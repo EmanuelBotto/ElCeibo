@@ -1,9 +1,9 @@
-import Image from "next/image";
+import Producto from './Ventana/producto';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div>
-      hello world
-    </div>
+    <main className="p-4">
+      <Producto />
+    </main>
   );
 }
