@@ -12,13 +12,32 @@ export async function GET() {
   try {
     const client = await pool.connect();
     try {
-      const result = await client.query('SELECT * FROM producto');
+      console.log('Ejecutando consulta GET productos');
+      
+      const result = await client.query(`
+        SELECT 
+          producto.id_producto,
+          producto.stock,
+          producto.nombre AS nombre_producto,
+          producto.precio_costo,
+          producto.id_tipo,
+          tipo.nombre AS nombre_tipo
+        FROM 
+          producto
+        INNER JOIN 
+          tipo ON producto.id_tipo = tipo.id_tipo
+        ORDER BY producto.id_producto
+      `);
+      
+      console.log('Productos encontrados:', result.rows.length);
+      console.log('IDs de productos:', result.rows.map(p => p.id_producto));
+      
       return NextResponse.json(result.rows);
     } finally {
-      client.release(); // liberar conexión al pool
+      client.release();
     }
   } catch (err) {
-    console.error('Error en API /products:', err);
-    return NextResponse.json({ error: 'Error en la base de datos' }, { status: 500 });
+    console.error('Error detallado en API /products:', err);
+    return NextResponse.json({ error: 'Error en la base de datos: ' + err.message }, { status: 500 });
   }
 }
