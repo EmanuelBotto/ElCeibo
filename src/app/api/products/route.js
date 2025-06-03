@@ -21,6 +21,7 @@ export async function GET() {
           producto.nombre AS nombre_producto,
           producto.precio_costo,
           producto.id_tipo,
+          producto.modificado,
           tipo.nombre AS nombre_tipo
         FROM 
           producto
@@ -29,8 +30,10 @@ export async function GET() {
         ORDER BY producto.id_producto
       `);
       
-      console.log('Productos encontrados:', result.rows.length);
-      console.log('IDs de productos:', result.rows.map(p => p.id_producto));
+
+      
+      //console.log('Productos encontrados:', result.rows.length);
+      //console.log('IDs de productos:', result.rows.map(p => p.id_producto));
       
       return NextResponse.json(result.rows);
     } finally {

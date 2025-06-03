@@ -17,6 +17,19 @@ export default function Producto() {
   const productosPorPagina = 10;
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  
+  // Nuevos estados para los porcentajes
+  const [porcentajePersonalizado, setPorcentajePersonalizado] = useState(false);
+  const [porcentajes, setPorcentajes] = useState({
+    mayorista: 19,
+    minorista: 35
+  });
+
+  // Función para validar número
+  const validarNumero = (valor) => {
+    const numero = parseFloat(valor);
+    return isNaN(numero) ? 0 : numero;
+  };
 
   // Cargar productos desde la API
   const cargarProductos = async () => {
@@ -62,15 +75,63 @@ export default function Producto() {
   // Función para actualizar producto
   const actualizarProducto = async () => {
     try {
+      if (!productoEditando.nombre_producto?.trim()) {
+        throw new Error('El nombre del producto es requerido');
+      }
+
+      const precio_costo = validarNumero(productoEditando.precio_costo);
+      const stock = validarNumero(productoEditando.stock);
+
+      if (precio_costo <= 0) {
+        throw new Error('El precio debe ser mayor a 0');
+      }
+
+      if (stock < 0) {
+        throw new Error('El stock no puede ser negativo');
+      }
+
       const datosActualizacion = {
-        nombre: productoEditando.nombre_producto,
-        precio_costo: parseFloat(productoEditando.precio_costo),
-        stock: parseInt(productoEditando.stock),
+        nombre: productoEditando.nombre_producto.trim(),
+        precio_costo: precio_costo,
+        stock: stock,
         id_tipo: productoEditando.id_tipo
       };
       
-      console.log('Datos a enviar:', datosActualizacion);
-      console.log('ID del producto:', productoEditando.id_producto);
+      // Si los porcentajes son personalizados, crear o actualizar en detalle_lista
+      if (porcentajePersonalizado) {
+        try {
+          const porcentajeMayorista = validarNumero(porcentajes.mayorista);
+          const porcentajeMinorista = validarNumero(porcentajes.minorista);
+
+          if (porcentajeMayorista <= 0 || porcentajeMinorista <= 0) {
+            throw new Error('Los porcentajes deben ser mayores a 0');
+          }
+
+          const detalleListaData = {
+            nombre: "Lista personalizada",
+            detalles: [{
+              id_producto: productoEditando.id_producto,
+              precio: precio_costo,
+              porcentaje_mayorista: porcentajeMayorista,
+              porcentaje_minorista: porcentajeMinorista
+            }]
+          };
+
+          const resLista = await fetch('/api/price-lists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(detalleListaData)
+          });
+
+          if (!resLista.ok) {
+            const errorData = await resLista.json();
+            throw new Error(errorData.error || 'Error al guardar los porcentajes personalizados');
+          }
+        } catch (err) {
+          console.error('Error al guardar porcentajes:', err);
+          throw new Error(err.message || 'Error al guardar los porcentajes personalizados');
+        }
+      }
       
       const res = await fetch(`/api/products/${productoEditando.id_producto}`, {
         method: 'PUT',
@@ -93,6 +154,8 @@ export default function Producto() {
 
       setMostrarFormularioEdicion(false);
       setProductoEditando(null);
+      setPorcentajePersonalizado(false);
+      setPorcentajes({ mayorista: 19, minorista: 35 });
       cargarProductos(); // recargar lista
     } catch (err) {
       alert(err.message);
@@ -135,6 +198,12 @@ export default function Producto() {
   const indexPrimerProducto = indexUltimoProducto - productosPorPagina;
   const productosActuales = productosFiltrados.slice(indexPrimerProducto, indexUltimoProducto);
   const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
+
+  // Calcular precio con porcentaje
+  const calcularPrecio = (precio_base, porcentaje) => {
+    const precio = validarNumero(precio_base) * (1 + validarNumero(porcentaje) / 100);
+    return isNaN(precio) ? 0 : precio;
+  };
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -235,14 +304,14 @@ export default function Producto() {
       {/* Modal de edición de producto */}
       {mostrarFormularioEdicion && productoEditando && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
+          <div className="bg-white p-6 rounded-lg w-[500px]">
             <h2 className="text-xl font-bold mb-4">Editar Producto</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Nombre</label>
                 <input
                   type="text"
-                  value={productoEditando.nombre_producto}
+                  value={productoEditando.nombre_producto || ''}
                   onChange={(e) => setProductoEditando({
                     ...productoEditando,
                     nombre_producto: e.target.value
@@ -251,10 +320,12 @@ export default function Producto() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Precio</label>
+                <label className="block text-sm font-medium mb-1">Precio Costo</label>
                 <input
                   type="number"
-                  value={productoEditando.precio_costo}
+                  min="0"
+                  step="0.01"
+                  value={productoEditando.precio_costo || ''}
                   onChange={(e) => setProductoEditando({
                     ...productoEditando,
                     precio_costo: e.target.value
@@ -266,7 +337,8 @@ export default function Producto() {
                 <label className="block text-sm font-medium mb-1">Stock</label>
                 <input
                   type="number"
-                  value={productoEditando.stock}
+                  min="0"
+                  value={productoEditando.stock || ''}
                   onChange={(e) => setProductoEditando({
                     ...productoEditando,
                     stock: e.target.value
@@ -274,12 +346,69 @@ export default function Producto() {
                   className="border px-2 py-1 w-full rounded"
                 />
               </div>
+
+              {/* Nueva sección de porcentajes */}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center mb-4">
+                  <input
+                    type="checkbox"
+                    id="porcentajePersonalizado"
+                    checked={porcentajePersonalizado}
+                    onChange={(e) => setPorcentajePersonalizado(e.target.checked)}
+                    className="mr-2"
+                  />
+                  <label htmlFor="porcentajePersonalizado" className="text-sm font-medium">
+                    Personalizar porcentajes de ganancia
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">% Mayorista</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={porcentajes.mayorista}
+                      onChange={(e) => setPorcentajes({
+                        ...porcentajes,
+                        mayorista: validarNumero(e.target.value)
+                      })}
+                      disabled={!porcentajePersonalizado}
+                      className="border px-2 py-1 w-full rounded disabled:bg-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">% Minorista</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={porcentajes.minorista}
+                      onChange={(e) => setPorcentajes({
+                        ...porcentajes,
+                        minorista: validarNumero(e.target.value)
+                      })}
+                      disabled={!porcentajePersonalizado}
+                      className="border px-2 py-1 w-full rounded disabled:bg-gray-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-2 text-sm">
+                  <div>Precio Mayorista: ${calcularPrecio(productoEditando.precio_costo, porcentajes.mayorista).toFixed(2)}</div>
+                  <div>Precio Minorista: ${calcularPrecio(productoEditando.precio_costo, porcentajes.minorista).toFixed(2)}</div>
+                </div>
+              </div>
             </div>
+
             <div className="flex justify-end gap-2 mt-6">
               <button 
                 onClick={() => {
                   setMostrarFormularioEdicion(false);
                   setProductoEditando(null);
+                  setPorcentajePersonalizado(false);
+                  setPorcentajes({ mayorista: 19, minorista: 35 });
                 }}
                 className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
               >
@@ -310,13 +439,15 @@ export default function Producto() {
                 <th className="border px-4 py-2 w-1/6">Stock</th>
                 <th className="border px-4 py-2 w-1/6">Tipo</th>
                 <th className="border px-4 py-2 w-1/6">Precio {tipoCliente === 'mayorista' ? 'Mayorista' : 'Final'}</th>
+                {/* <th className="border px-4 py-2 w-1/6">Estado</th> */}
               </tr>
             </thead>
             <tbody>
               {productosActuales.map((p) => {
-                const precioMostrar = tipoCliente === 'mayorista' 
-                  ? parseFloat(p.precio_costo) * 1.19
-                  : parseFloat(p.precio_costo) * 1.35;
+                const precioMostrar = calcularPrecio(
+                  p.precio_costo,
+                  tipoCliente === 'mayorista' ? porcentajes.mayorista : porcentajes.minorista
+                );
                 
                 return (
                   <tr 
@@ -333,6 +464,17 @@ export default function Producto() {
                     <td className="border px-4 py-3 w-1/6 text-center">{p.stock}</td>
                     <td className="border px-4 py-3 w-1/6 text-center">{p.nombre_tipo}</td>
                     <td className="border px-4 py-3 w-1/6 text-center">${precioMostrar.toFixed(2)}</td>
+                    {/* <td className="border px-4 py-3 w-1/6 text-center">
+                      {p.modificado ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Modificado
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Original
+                        </span>
+                      )}
+                    </td>*/}
                   </tr>
                 );
               })}

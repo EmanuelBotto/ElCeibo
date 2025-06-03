@@ -40,7 +40,8 @@ export async function PUT(request, { params }) {
           nombre = COALESCE($1, nombre),
           stock = COALESCE($2, stock),
           precio_costo = COALESCE($3, precio_costo),
-          id_tipo = COALESCE($4, id_tipo)
+          id_tipo = COALESCE($4, id_tipo),
+          modificado = true
         WHERE id_producto = $5
         RETURNING *
       `;
