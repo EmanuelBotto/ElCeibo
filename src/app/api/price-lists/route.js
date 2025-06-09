@@ -17,7 +17,7 @@ export async function GET() {
           l.id_lista,
           l.nombre,
           d.id_detalle,
-          d.precio,
+          d.precio_costo,
           d.porcentaje_mayorista,
           d.porcentaje_minorista,
           d.id_producto,
@@ -25,13 +25,13 @@ export async function GET() {
         FROM 
           lista_precio l
         LEFT JOIN 
-          detalle_lista d ON l.id_lista = d.id_lista
+          detalle_lista d 
         LEFT JOIN 
           producto p ON d.id_producto = p.id_producto
         ORDER BY 
           l.id_lista, p.nombre
       `);
-      
+     
       return NextResponse.json(result.rows);
     } finally {
       client.release();
@@ -54,11 +54,6 @@ export async function POST(request) {
     try {
       await client.query('BEGIN');
       
-      // Crear la secuencia si no existe
-      await client.query(`
-        CREATE SEQUENCE IF NOT EXISTS detalle_lista_id_detalle_seq;
-      `);
-      
       // Insertar la lista de precios
       const listaResult = await client.query(
         'INSERT INTO lista_precio (nombre) VALUES ($1) RETURNING id_lista',
@@ -69,10 +64,12 @@ export async function POST(request) {
       
       // Insertar los detalles
       for (const detalle of detalles) {
+        // Modificamos la consulta para que use la secuencia correctamente
         await client.query(
           `INSERT INTO detalle_lista 
            (id_detalle, id_lista, id_producto, precio, porcentaje_mayorista, porcentaje_minorista) 
-           VALUES (nextval('detalle_lista_id_detalle_seq'), $1, $2, $3, $4, $5)`,
+           VALUES 
+           ((SELECT COALESCE(MAX(id_detalle), 0) + 1 FROM detalle_lista), $1, $2, $3, $4, $5)`,
           [
             id_lista, 
             detalle.id_producto, 
