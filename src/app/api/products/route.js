@@ -12,7 +12,6 @@ export async function GET() {
   try {
     const client = await pool.connect();
     try {
-      console.log('Ejecutando consulta GET productos');
       
       const result = await client.query(`
         SELECT 
@@ -29,11 +28,6 @@ export async function GET() {
           tipo ON producto.id_tipo = tipo.id_tipo
         ORDER BY producto.id_producto
       `);
-      
-
-      
-      //console.log('Productos encontrados:', result.rows.length);
-      //console.log('IDs de productos:', result.rows.map(p => p.id_producto));
       
       return NextResponse.json(result.rows);
     } finally {

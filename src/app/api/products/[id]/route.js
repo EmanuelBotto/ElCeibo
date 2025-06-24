@@ -23,8 +23,6 @@ export async function PUT(request, { params }) {
       const checkQuery = 'SELECT * FROM producto WHERE id_producto = $1';
       const checkResult = await client.query(checkQuery, [id]);
       
-      //console.log('Resultado de verificación:', checkResult.rows);
-      
       if (checkResult.rows.length === 0) {
         console.log('Producto no encontrado en la base de datos');
         return NextResponse.json(
@@ -54,13 +52,7 @@ export async function PUT(request, { params }) {
         id
       ];
 
-      /*console.log('Query a ejecutar:', {
-        query,
-        values
-      });*/
-
       const result = await client.query(query, values);
-      //console.log('Resultado de la actualización:', result.rows[0]);
 
       if (result.rows.length === 0) {
         console.log('La actualización no afectó ninguna fila');
