@@ -64,8 +64,8 @@ export default function ListaPrecios() {
   };
 
   useEffect(() => {
-    cargarListas();
-    cargarProductos();
+    //cargarListas();
+    //cargarProductos();
   }, []);
 
   // Crear nueva lista

@@ -13,25 +13,12 @@ export async function PUT(request, { params }) {
   
   try {
     const producto = await request.json();
-    console.log('ID recibido:', id);
-    console.log('Datos recibidos:', producto);
-    
     const client = await pool.connect();
     
     try {
-      // Primero verificamos si el producto existe
-      const checkQuery = 'SELECT * FROM producto WHERE id_producto = $1';
-      const checkResult = await client.query(checkQuery, [id]);
-      
-      if (checkResult.rows.length === 0) {
-        console.log('Producto no encontrado en la base de datos');
-        return NextResponse.json(
-          { error: 'Producto no encontrado' },
-          { status: 404 }
-        );
-      }
+      await client.query('BEGIN');
 
-      // Si el producto existe, procedemos a actualizarlo
+      // Actualizar el producto
       const query = `
         UPDATE producto 
         SET 
@@ -39,8 +26,8 @@ export async function PUT(request, { params }) {
           stock = COALESCE($2, stock),
           precio_costo = COALESCE($3, precio_costo),
           id_tipo = COALESCE($4, id_tipo),
-          modificado = true
-        WHERE id_producto = $5
+          modificado = $5
+        WHERE id_producto = $6
         RETURNING *
       `;
       
@@ -49,20 +36,18 @@ export async function PUT(request, { params }) {
         producto.stock,
         producto.precio_costo,
         producto.id_tipo,
+        producto.modificado,
         id
       ];
 
       const result = await client.query(query, values);
-
-      if (result.rows.length === 0) {
-        console.log('La actualización no afectó ninguna fila');
-        return NextResponse.json(
-          { error: 'No se pudo actualizar el producto' },
-          { status: 500 }
-        );
-      }
+      
+      await client.query('COMMIT');
 
       return NextResponse.json(result.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
     } finally {
       client.release();
     }

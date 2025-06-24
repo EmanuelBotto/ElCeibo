@@ -8,7 +8,13 @@ export default function Producto() {
   // Estado de carga
   const [cargando, setCargando] = useState(true);
   // Nuevo producto a crear
-  const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', precio_costo: '' });
+  const [nuevoProducto, setNuevoProducto] = useState({ 
+    nombre: '', 
+    marca: '',
+    precio_costo: '',
+    stock: '',
+    id_tipo: '1'
+  });
   const [productoEditando, setProductoEditando] = useState(null);
   const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState(false);
   const [busqueda, setBusqueda] = useState('');
@@ -20,10 +26,7 @@ export default function Producto() {
   
   // Nuevos estados para los porcentajes
   const [porcentajePersonalizado, setPorcentajePersonalizado] = useState(false);
-  const [porcentajes, setPorcentajes] = useState({
-    mayorista: 19,
-    minorista: 35
-  });
+ 
 
   // Función para validar número
   const validarNumero = (valor) => {
@@ -35,13 +38,24 @@ export default function Producto() {
   const cargarProductos = async () => {
     try {
       setCargando(true);
-      // Llamada a la API para obtener productos
       const res = await fetch('/api/products');
       
+      if (!res.ok) {
+        throw new Error('Error al cargar productos');
+      }
+
       const data = await res.json();
-      setProductos(data);
+      
+      // Nos aseguramos de que data sea un array
+      if (Array.isArray(data)) {
+        setProductos(data);
+      } else {
+        console.error('Los datos recibidos no son un array:', data);
+        setProductos([]);
+      }
     } catch (err) {
       console.error('Error al cargar productos:', err);
+      setProductos([]); // En caso de error, establecemos un array vacío
     } finally {
       setCargando(false);
     }
@@ -55,20 +69,77 @@ export default function Producto() {
   // Crear producto
   const crearProducto = async () => {
     try {
+      // Validaciones
+      if (!nuevoProducto.nombre?.trim()) {
+        throw new Error('El nombre del producto es requerido');
+      }
+
+      const precio_costo = validarNumero(nuevoProducto.precio_costo);
+      const stock = validarNumero(nuevoProducto.stock);
+
+      if (precio_costo <= 0) {
+        throw new Error('El precio debe ser mayor a 0');
+      }
+
+      if (stock < 0) {
+        throw new Error('El stock no puede ser negativo');
+      }
+
+      const productoParaEnviar = {
+        nombre: nuevoProducto.nombre.trim(),
+        marca: nuevoProducto.marca?.trim() || '',
+        precio_costo: precio_costo,
+        stock: stock,
+        id_tipo: nuevoProducto.id_tipo || '1'
+      };
+
       const res = await fetch('/api/products', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nuevoProducto),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(productoParaEnviar),
       });
 
-      if (!res.ok) throw new Error('Error al crear producto');
+      // Manejar diferentes tipos de errores
+      if (!res.ok) {
+        let errorMessage = 'Error al crear producto';
+        
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          // Si no podemos parsear el JSON, usamos el status text
+          errorMessage = `Error: ${res.status} - ${res.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
 
-      setNuevoProducto({ nombre: '', precio_costo: '' });
+      // Intentar parsear la respuesta exitosa
+      let responseData;
+      try {
+        responseData = await res.json();
+      } catch (jsonError) {
+        console.warn('La respuesta no contiene JSON válido, pero el producto fue creado');
+      }
+
+      setNuevoProducto({ 
+        nombre: '', 
+        marca: '', 
+        precio_costo: '', 
+        stock: '', 
+        id_tipo: '1' 
+      });
       setMostrarFormulario(false);
       cargarProductos(); // recargar lista
+      
+      // Mostrar mensaje de éxito
+      alert('Producto creado exitosamente');
     } catch (err) {
-      alert('Error al crear producto');
-      console.error(err);
+      alert(err.message);
+      console.error('Error completo:', err);
     }
   };
 
@@ -81,6 +152,8 @@ export default function Producto() {
 
       const precio_costo = validarNumero(productoEditando.precio_costo);
       const stock = validarNumero(productoEditando.stock);
+      const porcentajeMayorista = validarNumero(productoEditando.porcentaje_mayorista);
+      const porcentajeFinal = validarNumero(productoEditando.porcentaje_final);
 
       if (precio_costo <= 0) {
         throw new Error('El precio debe ser mayor a 0');
@@ -94,49 +167,15 @@ export default function Producto() {
         nombre: productoEditando.nombre_producto.trim(),
         precio_costo: precio_costo,
         stock: stock,
-        id_tipo: productoEditando.id_tipo
+        id_tipo: productoEditando.id_tipo,
+        modificado: porcentajePersonalizado
       };
-      
-      // Si los porcentajes son personalizados, crear o actualizar en detalle_lista
-      if (porcentajePersonalizado) {
-        try {
-          const porcentajeMayorista = validarNumero(porcentajes.mayorista);
-          const porcentajeMinorista = validarNumero(porcentajes.minorista);
 
-          if (porcentajeMayorista <= 0 || porcentajeMinorista <= 0) {
-            throw new Error('Los porcentajes deben ser mayores a 0');
-          }
-
-          const detalleListaData = {
-            nombre: "Lista personalizada",
-            detalles: [{
-              id_producto: productoEditando.id_producto,
-              precio: precio_costo,
-              porcentaje_mayorista: porcentajeMayorista,
-              porcentaje_minorista: porcentajeMinorista
-            }]
-          };
-
-          const resLista = await fetch('/api/price-lists', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(detalleListaData)
-          });
-
-          if (!resLista.ok) {
-            const errorData = await resLista.json();
-            throw new Error(errorData.error || 'Error al guardar los porcentajes personalizados');
-          }
-        } catch (err) {
-          console.error('Error al guardar porcentajes:', err);
-          throw new Error(err.message || 'Error al guardar los porcentajes personalizados');
-        }
-      }
-      
+      // Actualizar el producto
       const res = await fetch(`/api/products/${productoEditando.id_producto}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(datosActualizacion),
+        body: JSON.stringify(datosActualizacion)
       });
 
       if (!res.ok) {
@@ -144,19 +183,29 @@ export default function Producto() {
         throw new Error(error.error || 'Error al actualizar producto');
       }
 
-      const productoActualizado = await res.json();
-      console.log('Respuesta del servidor:', productoActualizado);
+      // Si hay porcentajes personalizados, actualizarlos
+      if (porcentajePersonalizado) {
+        const resPercentages = await fetch(`/api/products/${productoEditando.id_producto}/percentages`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            porcentaje_mayorista: porcentajeMayorista,
+            porcentaje_minorista: porcentajeFinal
+          })
+        });
 
-      // Verificar si el producto se actualizó correctamente
-      const resGet = await fetch('/api/products');
-      const productos = await resGet.json();
-      console.log('Productos después de actualizar:', productos);
+        if (!resPercentages.ok) {
+          const error = await resPercentages.json();
+          throw new Error(error.error || 'Error al actualizar porcentajes');
+        }
+      }
 
+      // Limpiar estados y recargar datos
       setMostrarFormularioEdicion(false);
       setProductoEditando(null);
       setPorcentajePersonalizado(false);
-      setPorcentajes({ mayorista: 19, minorista: 35 });
-      cargarProductos(); // recargar lista
+      cargarProductos();
+
     } catch (err) {
       alert(err.message);
       console.error('Error completo:', err);
@@ -164,7 +213,7 @@ export default function Producto() {
   };
 
   // Eliminar producto
-  /*
+  
   const eliminarProducto = async (id) => {
     if (!confirm('¿Estás seguro de eliminar este producto?')) return;
 
@@ -179,19 +228,13 @@ export default function Producto() {
       console.error(err);
     }
   };
-*/
+
 
   // Filtrar productos según la búsqueda y tipo de cliente
-  const productosFiltrados = productos.filter(producto => {
-    // Primero filtramos por la búsqueda
-    const coincideBusqueda = producto.nombre_producto.toLowerCase().includes(busqueda.toLowerCase());
-    
-    // Si no coincide con la búsqueda, no lo incluimos
-    if (!coincideBusqueda) return false;
-
-    // Retornamos true para incluir el producto en los resultados
-    return true;
-  });
+  const productosFiltrados = Array.isArray(productos) ? productos.filter(producto => {
+    if (!producto) return false;
+    return producto.nombre_producto?.toLowerCase().includes(busqueda.toLowerCase());
+  }) : [];
 
   // Calcular productos para la página actual
   const indexUltimoProducto = paginaActual * productosPorPagina;
@@ -200,8 +243,15 @@ export default function Producto() {
   const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
 
   // Calcular precio con porcentaje
-  const calcularPrecio = (precio_base, porcentaje) => {
-    const precio = validarNumero(precio_base) * (1 + validarNumero(porcentaje) / 100);
+  const calcularPrecio = (producto, tipoCliente = 'final') => {
+    if (!producto) return 0;
+    
+    const precio_base = validarNumero(producto.precio_costo);
+    const porcentaje = tipoCliente === 'final' ? 
+        validarNumero(producto.porcentaje_final) : 
+        validarNumero(producto.porcentaje_mayorista);
+    
+    const precio = precio_base * (1 + porcentaje / 100);
     return isNaN(precio) ? 0 : precio;
   };
 
@@ -277,12 +327,37 @@ export default function Producto() {
               className="border px-2 py-1 mb-2 w-full"
             />
             <input
+              type="text"
+              placeholder="marca"
+              value={nuevoProducto.marca}
+              onChange={(e) => setNuevoProducto({ ...nuevoProducto, marca: e.target.value })}
+              className="border px-2 py-1 mb-4 w-full"
+            />
+            <input
               type="number"
               placeholder="Precio"
               value={nuevoProducto.precio_costo}
               onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio_costo: e.target.value })}
               className="border px-2 py-1 mb-4 w-full"
             />
+            <input
+              type="number"
+              placeholder="Stock"
+              value={nuevoProducto.stock}
+              onChange={(e) => setNuevoProducto({ ...nuevoProducto, stock: e.target.value })}
+              className="border px-2 py-1 mb-4 w-full"
+            />
+            <select
+              value={nuevoProducto.id_tipo}
+              onChange={(e) => setNuevoProducto({ ...nuevoProducto, id_tipo: e.target.value })}
+              className="border px-2 py-1 mb-4 w-full"
+            >
+              <option value="1">Balanceado</option>
+              <option value="2">Medicamento</option>
+              <option value="3">Accesorio</option>
+              <option value="4">Acuario</option>
+
+            </select>
             <div className="flex justify-end gap-2">
               <button 
                 onClick={() => setMostrarFormulario(false)}
@@ -347,7 +422,7 @@ export default function Producto() {
                 />
               </div>
 
-              {/* Nueva sección de porcentajes */}
+              {/* Sección de porcentajes */}
               <div className="border-t pt-4 mt-4">
                 <div className="flex items-center mb-4">
                   <input
@@ -369,35 +444,55 @@ export default function Producto() {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={porcentajes.mayorista}
-                      onChange={(e) => setPorcentajes({
-                        ...porcentajes,
-                        mayorista: validarNumero(e.target.value)
+                      value={productoEditando.porcentaje_mayorista || ''}
+                      onChange={(e) => setProductoEditando({
+                        ...productoEditando,
+                        porcentaje_mayorista: validarNumero(e.target.value)
                       })}
                       disabled={!porcentajePersonalizado}
                       className="border px-2 py-1 w-full rounded disabled:bg-gray-100"
                     />
+                    {!porcentajePersonalizado && (
+                      <span className="text-xs text-gray-500">
+                        Porcentaje base: {productoEditando.porcentaje_mayorista}%
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">% Minorista</label>
+                    <label className="block text-sm font-medium mb-1">% Final</label>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
-                      value={porcentajes.minorista}
-                      onChange={(e) => setPorcentajes({
-                        ...porcentajes,
-                        minorista: validarNumero(e.target.value)
+                      value={productoEditando.porcentaje_final || ''}
+                      onChange={(e) => setProductoEditando({
+                        ...productoEditando,
+                        porcentaje_final: validarNumero(e.target.value)
                       })}
                       disabled={!porcentajePersonalizado}
                       className="border px-2 py-1 w-full rounded disabled:bg-gray-100"
                     />
+                    {!porcentajePersonalizado && (
+                      <span className="text-xs text-gray-500">
+                        Porcentaje base: {productoEditando.porcentaje_final}%
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div className="mt-2 text-sm">
-                  <div>Precio Mayorista: ${calcularPrecio(productoEditando.precio_costo, porcentajes.mayorista).toFixed(2)}</div>
-                  <div>Precio Minorista: ${calcularPrecio(productoEditando.precio_costo, porcentajes.minorista).toFixed(2)}</div>
+                {/* Previsualización de precios */}
+                <div className="mt-4 p-3 bg-gray-50 rounded">
+                  <h3 className="font-medium text-sm mb-2">Precios calculados:</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Precio Mayorista: </span>
+                      ${calcularPrecio(productoEditando, 'mayorista').toFixed(2)}
+                    </div>
+                    <div>
+                      <span className="font-medium">Precio Final: </span>
+                      ${calcularPrecio(productoEditando, 'final').toFixed(2)}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -408,7 +503,6 @@ export default function Producto() {
                   setMostrarFormularioEdicion(false);
                   setProductoEditando(null);
                   setPorcentajePersonalizado(false);
-                  setPorcentajes({ mayorista: 19, minorista: 35 });
                 }}
                 className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
               >
@@ -427,6 +521,8 @@ export default function Producto() {
 
       {cargando ? (
         <p>Cargando productos...</p>
+      ) : !Array.isArray(productos) || productos.length === 0 ? (
+        <p>No hay productos disponibles.</p>
       ) : productosActuales.length === 0 ? (
         <p>No hay productos que coincidan con la búsqueda.</p>
       ) : (
@@ -434,19 +530,19 @@ export default function Producto() {
           <table className="table-fixed w-full border">
             <thead>
               <tr className="bg-gray-200">
-                <th className="border px-4 py-2 w-1/3">Descripcion</th>
+                <th className="border px-4 py-2 w-1/3">Descripción</th>
                 <th className="border px-4 py-2 w-1/6">Código</th>
                 <th className="border px-4 py-2 w-1/6">Stock</th>
                 <th className="border px-4 py-2 w-1/6">Tipo</th>
                 <th className="border px-4 py-2 w-1/6">Precio {tipoCliente === 'mayorista' ? 'Mayorista' : 'Final'}</th>
-                {/* <th className="border px-4 py-2 w-1/6">Estado</th> */}
+                {/*<th className="border px-4 py-2 w-1/6">Estado</th>*/}  
               </tr>
             </thead>
             <tbody>
               {productosActuales.map((p) => {
                 const precioMostrar = calcularPrecio(
-                  p.precio_costo,
-                  tipoCliente === 'mayorista' ? porcentajes.mayorista : porcentajes.minorista
+                  p,
+                  tipoCliente === 'mayorista' ? 'mayorista' : 'final'
                 );
                 
                 return (
@@ -464,14 +560,15 @@ export default function Producto() {
                     <td className="border px-4 py-3 w-1/6 text-center">{p.stock}</td>
                     <td className="border px-4 py-3 w-1/6 text-center">{p.nombre_tipo}</td>
                     <td className="border px-4 py-3 w-1/6 text-center">${precioMostrar.toFixed(2)}</td>
-                    {/* <td className="border px-4 py-3 w-1/6 text-center">
+                    <td className="border px-4 py-3 w-1/6 text-center"><button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={() => eliminarProducto(p.id_producto)}>Eliminar</button></td>
+                    {/*<td className="border px-4 py-3 w-1/6 text-center">
                       {p.modificado ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           Modificado
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Original
+                          Base
                         </span>
                       )}
                     </td>*/}
