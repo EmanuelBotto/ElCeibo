@@ -9,7 +9,7 @@ const pool = new Pool({ connectionString });
 
 // PUT: Actualizar producto por ID
 export async function PUT(request, { params }) {
-  const { id } = params;
+  const { id } = await params;
   
   try {
     const producto = await request.json();
@@ -62,7 +62,7 @@ export async function PUT(request, { params }) {
 
 // DELETE: Eliminar producto por ID
 export async function DELETE(_, { params }) {
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const client = await pool.connect();

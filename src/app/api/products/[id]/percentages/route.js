@@ -9,7 +9,7 @@ const pool = new Pool({ connectionString });
 
 // PUT: Actualizar porcentajes personalizados
 export async function PUT(request, { params }) {
-  const { id } = params;
+  const { id } = await params;
   
   try {
     const { porcentaje_mayorista, porcentaje_minorista } = await request.json();

@@ -14,29 +14,36 @@ const pool = new Pool({ connectionString });
 async function ensureTableExists() {
   const client = await pool.connect();
   try {
-    // Primero intentamos eliminar la tabla si existe
-    await client.query('DROP TABLE IF EXISTS distribuidor');
-    
-    // Luego creamos la tabla con la estructura correcta
-    await client.query(`
-      CREATE TABLE distribuidor (
-        id_distribuidor SERIAL PRIMARY KEY,
-        cuit VARCHAR(20) UNIQUE NOT NULL,
-        nombre VARCHAR(100) NOT NULL,
-        telefono VARCHAR(20),
-        email VARCHAR(100) NOT NULL,
-        nombre_fantasia VARCHAR(100),
-        calle VARCHAR(100),
-        numero INTEGER,
-        codigo_postal INTEGER,
-        cbu BIGINT,
-        alias VARCHAR(50),
-        deuda DECIMAL(10,2) DEFAULT 0
-      )
+    // Verificar si la tabla existe
+    const tableExists = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'distribuidor'
+      );
     `);
-    console.log('Tabla distribuidor creada/actualizada exitosamente');
+
+    // Si la tabla no existe, la creamos
+    if (!tableExists.rows[0].exists) {
+      await client.query(`
+        CREATE TABLE distribuidor (
+          id_distribuidor SERIAL PRIMARY KEY,
+          cuit VARCHAR(20) UNIQUE NOT NULL,
+          nombre VARCHAR(100) NOT NULL,
+          telefono VARCHAR(20),
+          email VARCHAR(100) NOT NULL,
+          nombre_fantasia VARCHAR(100),
+          calle VARCHAR(100),
+          numero INTEGER,
+          codigo_postal INTEGER,
+          cbu BIGINT,
+          alias VARCHAR(50),
+          deuda DECIMAL(10,2) DEFAULT 0
+        )
+      `);
+      console.log('Tabla distribuidor creada exitosamente');
+    }
   } catch (err) {
-    console.error('Error al crear la tabla distribuidor:', err);
+    console.error('Error al verificar/crear la tabla distribuidor:', err);
     throw err;
   } finally {
     client.release();

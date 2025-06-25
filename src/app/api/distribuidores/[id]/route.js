@@ -14,7 +14,7 @@ export async function GET(request, { params }) {
   try {
     const client = await pool.connect();
     try {
-      const { id } = params;
+      const { id } = await params;
       const result = await client.query(
         'SELECT * FROM distribuidor WHERE id_distribuidor = $1',
         [id]
@@ -44,7 +44,7 @@ export async function PUT(request, { params }) {
   try {
     const client = await pool.connect();
     try {
-      const { id } = params;
+      const { id } = await params;
       const body = await request.json();
       console.log('Datos recibidos para actualización:', body);
 
@@ -204,7 +204,7 @@ export async function DELETE(request, { params }) {
   try {
     const client = await pool.connect();
     try {
-      const { id } = params;
+      const { id } = await params;
       const result = await client.query(
         'DELETE FROM distribuidor WHERE id_distribuidor = $1 RETURNING id_distribuidor',
         [id]

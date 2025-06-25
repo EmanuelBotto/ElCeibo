@@ -10,7 +10,7 @@ const pool = new Pool({ connectionString });
 export async function GET(request, { params }) {
     try {
         const client = await pool.connect();
-        const { id } = params;
+        const { id } = await params;
         const result = await client.query('SELECT * FROM items WHERE id_item = $1', [id]);
         if (result.rows.length === 0) {
             return NextResponse.json({ error: 'Item no encontrado' }, { status: 404 });
@@ -25,38 +25,40 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
+    let client;
     try {
-        const client = await pool.connect();
-        const { id } = params;
+        client = await pool.connect();
+        const { id } = await params;
         const body = await request.json();
-        //const result = await client.query('UPDATE items SET rubro = $1, detalle = $2, descripcion = $3, prospecto = $4, duracion = $5 WHERE id_item = $6', [body.rubro, body.detalle, body.descripcion, body.prospecto, body.duracion, id]);
-        
+
         const {
-            rubro,
-            detalle,
-            descripcion,
-            prospecto,
-            duracion
-        } = body; 
-        const existingItem = await client.query('SELECT * FROM items WHERE id_item = $1', [detalle.trim(), id]);
+            rubro = '',
+            detalle = '',
+            prospecto = '',
+            duracion = ''
+        } = body;
+
+        // Chequear si ya existe otro item con el mismo detalle
+        const existingItem = await client.query(
+            'SELECT * FROM items WHERE detalle = $1 AND id_item != $2',
+            [detalle.trim(), id]
+        );
         if (existingItem.rows.length > 0) {
             return NextResponse.json({ error: 'Ya existe otro item con este detalle' }, { status: 400 });
         }
 
         const result = await client.query(`UPDATE items 
             SET rubro = $1, 
-            detalle = $2, 
-            descripcion = $3, 
-            prospecto = $4, 
-            duracion = $5 
-            WHERE id_item = $6 
+                detalle = $2, 
+                prospecto = $3, 
+                duracion = $4 
+            WHERE id_item = $5 
             returning *`, 
-            [   
-                rubro.trim(), 
-                detalle.trim(), 
-                descripcion.trim(), 
-                prospecto.trim(), 
-                duracion.trim(), 
+            [
+                rubro.trim(),
+                detalle.trim(),
+                prospecto.trim(),
+                duracion.toString().trim(),
                 id
             ]);
         if (result.rows.length === 0) {
@@ -70,14 +72,14 @@ export async function PUT(request, { params }) {
         console.error('Error al actualizar item:', error);
         return NextResponse.json({ error: 'Error al actualizar el item: ' + error.message }, { status: 500 });
     } finally {
-        client.release();
+        if (client) client.release();
     }
 }
 
 export   async function DELETE(request, { params }) {
     try {
         const client = await pool.connect();
-        const { id } = params;
+        const { id } = await params;
         const result = await client.query('DELETE FROM items WHERE id_item = $1', [id]);
         if (result.rowCount === 0) {
             return NextResponse.json({ error: 'Item no encontrado' }, { status: 404 });

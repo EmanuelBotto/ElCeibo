@@ -21,6 +21,13 @@ export default function ListaPrecios() {
       const res = await fetch('/api/price-lists');
       const data = await res.json();
       
+      // Verificar que data sea un array
+      if (!Array.isArray(data)) {
+        console.error('Los datos recibidos no son un array:', data);
+        setListas([]);
+        return;
+      }
+      
       // Agrupar los detalles por lista
       const listasAgrupadas = data.reduce((acc, item) => {
         if (!acc[item.id_lista]) {
@@ -35,8 +42,9 @@ export default function ListaPrecios() {
             id_detalle: item.id_detalle,
             id_producto: item.id_producto,
             nombre_producto: item.nombre_producto,
-            precio: item.precio,
-            porcentaje: item.porcentaje
+            precio: item.precio_costo,
+            porcentaje_mayorista: item.porcentaje_mayorista,
+            porcentaje_minorista: item.porcentaje_minorista
           });
         }
         return acc;
@@ -64,8 +72,8 @@ export default function ListaPrecios() {
   };
 
   useEffect(() => {
-    //cargarListas();
-    //cargarProductos();
+    cargarListas();
+    cargarProductos();
   }, []);
 
   // Crear nueva lista
@@ -132,7 +140,7 @@ export default function ListaPrecios() {
       ...prev,
       detalles: [
         ...prev.detalles,
-        { id_producto: '', precio: 0, porcentaje: 0 }
+        { id_producto: '', precio: 0, porcentaje_mayorista: 0, porcentaje_minorista: 0 }
       ]
     }));
   };
@@ -186,7 +194,7 @@ export default function ListaPrecios() {
               </div>
 
               {nuevaLista.detalles.map((detalle, index) => (
-                <div key={index} className="grid grid-cols-3 gap-2 mb-2">
+                <div key={index} className="grid grid-cols-4 gap-2 mb-2">
                   <select
                     value={detalle.id_producto}
                     onChange={(e) => actualizarDetalle(index, 'id_producto', e.target.value)}
@@ -208,9 +216,16 @@ export default function ListaPrecios() {
                   />
                   <input
                     type="number"
-                    placeholder="Porcentaje"
-                    value={detalle.porcentaje}
-                    onChange={(e) => actualizarDetalle(index, 'porcentaje', parseInt(e.target.value))}
+                    placeholder="% Mayorista"
+                    value={detalle.porcentaje_mayorista}
+                    onChange={(e) => actualizarDetalle(index, 'porcentaje_mayorista', parseInt(e.target.value))}
+                    className="border rounded px-2 py-1"
+                  />
+                  <input
+                    type="number"
+                    placeholder="% Minorista"
+                    value={detalle.porcentaje_minorista}
+                    onChange={(e) => actualizarDetalle(index, 'porcentaje_minorista', parseInt(e.target.value))}
                     className="border rounded px-2 py-1"
                   />
                 </div>
@@ -257,7 +272,7 @@ export default function ListaPrecios() {
             <div className="mb-4">
               <h3 className="font-medium mb-2">Detalles</h3>
               {listaSeleccionada.detalles.map((detalle, index) => (
-                <div key={detalle.id_detalle || index} className="grid grid-cols-3 gap-2 mb-2">
+                <div key={detalle.id_detalle || index} className="grid grid-cols-4 gap-2 mb-2">
                   <div className="px-2 py-1">{detalle.nombre_producto}</div>
                   <input
                     type="number"
@@ -271,10 +286,22 @@ export default function ListaPrecios() {
                   />
                   <input
                     type="number"
-                    value={detalle.porcentaje}
+                    placeholder="% Mayorista"
+                    value={detalle.porcentaje_mayorista}
                     onChange={(e) => {
                       const detalles = [...listaSeleccionada.detalles];
-                      detalles[index] = { ...detalle, porcentaje: parseInt(e.target.value) };
+                      detalles[index] = { ...detalle, porcentaje_mayorista: parseInt(e.target.value) };
+                      setListaSeleccionada(prev => ({ ...prev, detalles }));
+                    }}
+                    className="border rounded px-2 py-1"
+                  />
+                  <input
+                    type="number"
+                    placeholder="% Minorista"
+                    value={detalle.porcentaje_minorista}
+                    onChange={(e) => {
+                      const detalles = [...listaSeleccionada.detalles];
+                      detalles[index] = { ...detalle, porcentaje_minorista: parseInt(e.target.value) };
                       setListaSeleccionada(prev => ({ ...prev, detalles }));
                     }}
                     className="border rounded px-2 py-1"
@@ -348,9 +375,13 @@ export default function ListaPrecios() {
                     <tr key={detalle.id_detalle} className="border-t">
                       <td className="py-2 px-4">{detalle.nombre_producto}</td>
                       <td className="text-right py-2 px-4">${detalle.precio}</td>
-                      <td className="text-right py-2 px-4">{detalle.porcentaje}%</td>
                       <td className="text-right py-2 px-4">
-                        ${(detalle.precio * (1 + detalle.porcentaje / 100)).toFixed(2)}
+                        Mayorista: {detalle.porcentaje_mayorista}%<br/>
+                        Minorista: {detalle.porcentaje_minorista}%
+                      </td>
+                      <td className="text-right py-2 px-4">
+                        Mayorista: ${(detalle.precio * (1 + detalle.porcentaje_mayorista / 100)).toFixed(2)}<br/>
+                        Minorista: ${(detalle.precio * (1 + detalle.porcentaje_minorista / 100)).toFixed(2)}
                       </td>
                     </tr>
                   ))}

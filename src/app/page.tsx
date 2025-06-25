@@ -6,6 +6,8 @@ import ListaPrecios from './Ventana/lista-precios';
 import Distribuidor from './Ventana/distribuidor';
 import Item from './Ventana/item';
 import { Button } from "@/components/ui/button";
+import Mascota from './Ventana/mascota';
+import FichasClientes from './Ventana/fichas-clientes';
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('productos');
@@ -20,6 +22,8 @@ export default function HomePage() {
         return <Distribuidor />;
       case 'items':
         return <Item />;
+      case 'fichasClientes':
+        return <FichasClientes />;
       default:
         return <Producto />;
     }
@@ -51,6 +55,12 @@ export default function HomePage() {
           onClick={() => setActiveTab('items')}
         >
           Items
+        </Button>
+        <Button
+          variant={activeTab === 'fichasClientes' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('fichasClientes')}
+        >
+          Fichas Clientes
         </Button>
       </div>
       <div>
