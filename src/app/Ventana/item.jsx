@@ -236,9 +236,9 @@ export default function Item() {
         </div>
         {/* Botones */}
         <div style={{ display: 'flex', gap: '28px', justifyContent: 'center', width: '100%', marginTop: 8 }}>
-          <Button style={{ background: '#a06ba5', fontWeight: 'bold', minWidth: '120px', fontSize: 17, padding: '10px 0' }} onClick={handleAgregar}>Agregar</Button>
-          <Button style={{ background: '#a06ba5', fontWeight: 'bold', minWidth: '120px', fontSize: 17, padding: '10px 0' }} onClick={handleModificar} disabled={!selectedItem}>Modificar</Button>
-          <Button style={{ background: '#a06ba5', fontWeight: 'bold', minWidth: '120px', fontSize: 17, padding: '10px 0' }} onClick={handleEliminar} disabled={!selectedItem}>Eliminar</Button>
+          <Button variant="default" onClick={handleAgregar}>Agregar</Button>
+          <Button variant="default" onClick={handleModificar} disabled={!selectedItem}>Modificar</Button>
+          <Button variant="destructive" onClick={handleEliminar} disabled={!selectedItem}>Eliminar</Button>
         </div>
       </div>
     </div>

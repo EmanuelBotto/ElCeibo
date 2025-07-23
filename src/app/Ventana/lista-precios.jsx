@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
 
 export default function ListaPrecios() {
   const [listas, setListas] = useState([]);
@@ -158,12 +159,9 @@ export default function ListaPrecios() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Listas de Precios</h1>
-        <button
-          onClick={() => setMostrarFormulario(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
+        <Button onClick={() => setMostrarFormulario(true)}>
           Nueva Lista
-        </button>
+        </Button>
       </div>
 
       {/* Modal de nueva lista */}
@@ -185,12 +183,9 @@ export default function ListaPrecios() {
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-medium">Detalles</h3>
-                <button
-                  onClick={agregarDetalle}
-                  className="bg-green-600 text-white px-3 py-1 rounded text-sm"
-                >
+                <Button onClick={agregarDetalle}>
                   Agregar Producto
-                </button>
+                </Button>
               </div>
 
               {nuevaLista.detalles.map((detalle, index) => (
@@ -233,21 +228,15 @@ export default function ListaPrecios() {
             </div>
 
             <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setMostrarFormulario(false);
-                  setNuevaLista({ nombre: '', detalles: [] });
-                }}
-                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-              >
+              <Button variant="outline" onClick={() => {
+                setMostrarFormulario(false);
+                setNuevaLista({ nombre: '', detalles: [] });
+              }}>
                 Cancelar
-              </button>
-              <button
-                onClick={crearLista}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
+              </Button>
+              <Button onClick={crearLista}>
                 Guardar
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -311,21 +300,15 @@ export default function ListaPrecios() {
             </div>
 
             <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setMostrarFormularioEdicion(false);
-                  setListaSeleccionada(null);
-                }}
-                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-              >
+              <Button variant="outline" onClick={() => {
+                setMostrarFormularioEdicion(false);
+                setListaSeleccionada(null);
+              }}>
                 Cancelar
-              </button>
-              <button
-                onClick={actualizarLista}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
+              </Button>
+              <Button onClick={actualizarLista}>
                 Guardar Cambios
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -343,21 +326,15 @@ export default function ListaPrecios() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">{lista.nombre}</h2>
                 <div className="space-x-2">
-                  <button
-                    onClick={() => {
-                      setListaSeleccionada(lista);
-                      setMostrarFormularioEdicion(true);
-                    }}
-                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
-                  >
+                  <Button onClick={() => {
+                    setListaSeleccionada(lista);
+                    setMostrarFormularioEdicion(true);
+                  }}>
                     Editar
-                  </button>
-                  <button
-                    onClick={() => eliminarLista(lista.id_lista)}
-                    className="bg-red-600 text-white px-3 py-1 rounded text-sm"
-                  >
+                  </Button>
+                  <Button variant="destructive" onClick={() => eliminarLista(lista.id_lista)}>
                     Eliminar
-                  </button>
+                  </Button>
                 </div>
               </div>
 
