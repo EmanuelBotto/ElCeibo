@@ -6,10 +6,10 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  <div className="relative w-full overflow-auto rounded-2xl shadow-lg bg-white">
     <table
       ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
+      className={cn("w-full caption-bottom text-base text-black rounded-2xl overflow-hidden", className)}
       {...props}
     />
   </div>
@@ -20,7 +20,7 @@ const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
+  <thead ref={ref} className={cn("[&_tr]:border-b border-black bg-[#a06ba5] rounded-t-2xl", className)} {...props} />
 ))
 TableHeader.displayName = "TableHeader"
 
@@ -30,7 +30,7 @@ const TableBody = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("[&_tr:last-child]:border-0", className)}
+    className={cn("[&_tr:last-child]:border-0 rounded-b-2xl", className)}
     {...props}
   />
 ))
@@ -51,16 +51,30 @@ TableFooter.displayName = "TableFooter"
 const TableRow = React.forwardRef<
   HTMLTableRowElement,
   React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
-  <tr
-    ref={ref}
-    className={cn(
-      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  // Uso aria-rowindex y aria-rowcount para saber si es la primera o última fila
+  const rowIndex = props['aria-rowindex'] !== undefined ? Number(props['aria-rowindex']) : undefined;
+  const rowCount = props['aria-rowcount'] !== undefined ? Number(props['aria-rowcount']) : undefined;
+  const isSelected = className?.includes('data-[state=selected]') || className?.includes('bg-[#d6d6d6]');
+  let rounded = '';
+  if (isSelected && rowIndex === 0) {
+    rounded = 'rounded-tl-2xl rounded-tr-2xl';
+  } else if (isSelected && rowCount !== undefined && rowIndex === rowCount - 1) {
+    rounded = 'rounded-bl-2xl rounded-br-2xl';
+  }
+  return (
+    <tr
+      ref={ref}
+      className={cn(
+        isSelected
+          ? `bg-[#e5e7eb] ${rounded}`
+          : "border-b-1 border-black transition-colors hover:bg-gray-100 even:bg-gray-30 odd:bg-white-white",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 TableRow.displayName = "TableRow"
 
 const TableHead = React.forwardRef<
@@ -70,7 +84,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      "h-14 px-4 text-left align-middle font-bold text-white border-b border-black bg-[#a06ba5] text-lg",
       className
     )}
     {...props}
@@ -85,7 +99,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      "p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      "p-3 align-middle text-black text-base",
       className
     )}
     {...props}
@@ -99,7 +113,7 @@ const TableCaption = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <caption
     ref={ref}
-    className={cn("mt-4 text-sm text-muted-foreground", className)}
+    className={cn("mt-4 text-base border-b text-black", className)}
     {...props}
   />
 ))
