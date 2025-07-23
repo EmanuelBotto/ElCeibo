@@ -46,9 +46,6 @@ export default function Caja() {
                     <td className='border px-4 py-2'>
                         {`$${factura.monto_total}`}
                         </td>
-                    <td className='border px-4 py-2'>
-                        {factura.apellido_usuario}
-                        </td>
                     </tr>
                 ))}
                 </tbody>

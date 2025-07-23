@@ -17,7 +17,7 @@ export async function GET() {
           l.id_lista,
           l.nombre,
           d.id_detalle,
-          d.precio_costo,
+          d.precio as precio_costo,
           d.porcentaje_mayorista,
           d.porcentaje_minorista,
           d.id_producto,
@@ -25,7 +25,7 @@ export async function GET() {
         FROM 
           lista_precio l
         LEFT JOIN 
-          detalle_lista d 
+          detalle_lista d ON d.id_lista = l.id_lista
         LEFT JOIN 
           producto p ON d.id_producto = p.id_producto
         ORDER BY 

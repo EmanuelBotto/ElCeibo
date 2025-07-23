@@ -12,7 +12,6 @@ export async function GET() {
   try {
     const client = await pool.connect();
     try {
-      console.log('Ejecutando consulta GET productos');
       
       const result = await client.query(`
         SELECT 
@@ -26,15 +25,24 @@ export async function GET() {
           COALESCE(dl.porcentaje_mayorista, t.porcentaje_mayorista) as porcentaje_mayorista
         FROM 
           producto p
-        INNER JOIN 
-          tipo ON producto.id_tipo = tipo.id_tipo
-        ORDER BY producto.id_producto
+        INNER JOIN
+        tipo t ON p.id_tipo = t.id_tipo
+        LEFT JOIN (
+          SELECT 
+            id_producto,
+            porcentaje_mayorista,
+            porcentaje_minorista as porcentaje_final
+          FROM detalle_lista dl1
+          WHERE dl1.id_detalle = (
+            SELECT id_detalle 
+            FROM detalle_lista dl2 
+            WHERE dl2.id_producto = dl1.id_producto 
+            ORDER BY dl2.id_detalle DESC 
+            LIMIT 1
+          )
+        ) dl ON p.id_producto = dl.id_producto AND p.modificado = true
+        ORDER BY p.id_producto
       `);
-      
-
-      
-      //console.log('Productos encontrados:', result.rows.length);
-      //console.log('IDs de productos:', result.rows.map(p => p.id_producto));
       
       return NextResponse.json(result.rows);
     } finally {
