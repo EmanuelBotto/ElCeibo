@@ -22,11 +22,11 @@ const InfoCard = ({ title, children, className, headerAction }) => (
 );
 
 const getPetIcon = (especie) => {
-    switch (especie?.toLowerCase()) {
-      case 'gato': return <Cat className="inline-block mr-2 text-purple-600" size={18} />;
-      case 'perro': return <Dog className="inline-block mr-2 text-purple-600" size={18} />;
-      default: return <PawPrint className="inline-block mr-2 text-purple-600" size={18} />;
-    }
+  switch (especie?.toLowerCase()) {
+    case 'gato': return <Cat className="inline-block mr-2 text-purple-600" size={18} />;
+    case 'perro': return <Dog className="inline-block mr-2 text-purple-600" size={18} />;
+    default: return <PawPrint className="inline-block mr-2 text-purple-600" size={18} />;
+  }
 };
 
 export default function FichaPaciente({ mascotaId }) {
@@ -335,7 +335,7 @@ export default function FichaPaciente({ mascotaId }) {
         <Button variant="outline" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Ficha de Paciente</h1>
+        <h1 className="text-2xl font-bold text-purple-800">Ficha de Paciente</h1>
       </header>
 
       <main className="flex-grow p-4 pt-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -345,7 +345,7 @@ export default function FichaPaciente({ mascotaId }) {
           {/* Historial real */}
           {historial.length === 0 ? (
             <div className="flex-grow flex items-center justify-center">
-              <p className="text-gray-400 text-2xl">No hay visitas registradas para este animal.</p>
+              <p className="text-gray-800 text-2xl">No hay visitas registradas para este animal.</p>
             </div>
           ) : (
             <div className="space-y-4 mb-4">
@@ -354,11 +354,11 @@ export default function FichaPaciente({ mascotaId }) {
                   onClick={() => setVisitaSeleccionada(visita)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <div className="flex items-center text-lg font-semibold">
+                  <div className="flex items-center text-lg font-semibold text-purple-600">
                     <FolderOpen className="mr-2 text-purple-600" />
                     {visita.fecha}
                   </div>
-                  <ul className="ml-8 mt-2 space-y-1 text-gray-700">
+                  <ul className="ml-8 mt-2 space-y-1 text-gray-800">
                     <li className="flex items-center"><FileText className="mr-2 text-purple-500" size={16} /> Diagnóstico: {visita.diagnostico}</li>
                     <li className="flex items-center"><FileText className="mr-2 text-purple-500" size={16} /> Frecuencia cardíaca: {visita.frecuencia_cardiaca}</li>
                     <li className="flex items-center"><FileText className="mr-2 text-purple-500" size={16} /> Frecuencia respiratoria: {visita.frecuencia_respiratoria}</li>
@@ -373,7 +373,7 @@ export default function FichaPaciente({ mascotaId }) {
                               style={{ cursor: 'pointer' }}
                             >
                               <Syringe className="mr-1 text-purple-400" size={14} />
-                              {vac.nombre_vacuna} - {vac.fecha_aplicacion} ({vac.duracion_meses} meses)
+                              <span className="text-gray-800">{vac.nombre_vacuna} - {vac.fecha_aplicacion} ({vac.duracion_meses} meses)</span>
                               <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); abrirEdicionVacuna(vac); }}>Editar</Button>
                               <Button size="sm" variant="destructive" onClick={e => { e.stopPropagation(); setVacunaSeleccionada(vac); handleEliminarVacuna(); }}>Eliminar</Button>
                             </li>
@@ -408,7 +408,7 @@ export default function FichaPaciente({ mascotaId }) {
                 {mascota.foto ? (
                   <img src={mascota.foto} alt="Foto mascota" className="w-full h-full object-cover" />
                 ) : (
-                  <PawPrint size={64} className="text-gray-400" />
+                  <PawPrint size={64} className="text-purple-600" />
                 )}
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
                   <Button 
@@ -421,11 +421,11 @@ export default function FichaPaciente({ mascotaId }) {
                   </Button>
                 </div>
               </div>
-              <p><b>Especie:</b> {mascota.especie}</p>
-              <p><b>Raza:</b> {mascota.raza}</p>
-              <p><b>Sexo:</b> {mascota.sexo}</p>
-              <p><b>Edad:</b> {mascota.edad} años</p>
-              <p><b>Dueño:</b> {owner?.nombre} {owner?.apellido}</p>
+              <p className="text-black"><b>Especie:</b> {mascota.especie}</p>
+              <p className="text-black"><b>Raza:</b> {mascota.raza}</p>
+              <p className="text-black"><b>Sexo:</b> {mascota.sexo}</p>
+              <p className="text-black"><b>Edad:</b> {mascota.edad} años</p>
+              <p className="text-black"><b>Dueño:</b> {owner?.nombre} {owner?.apellido}</p>
             </div>
           </InfoCard>
 
@@ -433,7 +433,7 @@ export default function FichaPaciente({ mascotaId }) {
             <ul className="space-y-2">
               {otrasMascotas.map(pet => (
                   <li key={pet.id_mascota} className="flex items-center cursor-pointer hover:text-purple-700 p-1 rounded hover:bg-gray-100" onClick={() => router.push(`/mascota/${pet.id_mascota}`)}>
-                      {getPetIcon(pet.especie)} {pet.nombre} - <span className="text-gray-500 ml-1">{pet.especie}</span>
+                      {getPetIcon(pet.especie)} <span className="font-semibold text-black">{pet.nombre}</span> - <span className="text-gray-700 ml-1">{pet.especie}</span>
                   </li>
               ))}
             </ul>
@@ -449,20 +449,20 @@ export default function FichaPaciente({ mascotaId }) {
           >
             <ul className="space-y-2">
               {proximasVacunas.length === 0 && (
-                <li className="text-gray-400">No hay vacunas próximas.</li>
+                <li className="text-gray-800">No hay vacunas próximas.</li>
               )}
               {proximasVacunas.map(vac => {
                 const fechaProxima = new Date(vac.fecha_proxima);
                 const hoy = new Date();
                 const diff = Math.ceil((fechaProxima - hoy) / (1000 * 60 * 60 * 24));
-                let color = 'text-gray-600';
+                let color = 'text-gray-800';
                 let aviso = '';
                 if (diff < 0) { color = 'text-red-600 font-bold'; aviso = ' (¡Vencida!)'; }
                 else if (diff <= 7) { color = 'text-orange-500 font-bold'; aviso = ' (¡Muy próxima!)'; }
                 else if (diff <= 30) { color = 'text-yellow-600'; aviso = ' (Próxima)'; }
                 return (
                   <li key={vac.id_vacuna_aplicada} className="flex items-center justify-between">
-                    <div><Syringe size={16} className="inline-block mr-2 text-purple-500" /> {vac.nombre_vacuna}</div>
+                    <div><Syringe size={16} className="inline-block mr-2 text-purple-500" /> <span className="text-gray-800">{vac.nombre_vacuna}</span></div>
                     <span className={color}>{fechaProxima.toLocaleDateString()} {aviso}</span>
                   </li>
                 );
