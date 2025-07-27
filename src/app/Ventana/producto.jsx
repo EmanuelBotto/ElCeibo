@@ -308,16 +308,16 @@ export default function Producto() {
               placeholder="Buscar por descripción o código..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400"
+              className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12"
             />
           </div>
-          <div className="flex flex-col gap-2 w-full md:w-1/3">
+          <div className="flex flex-col gap-2 w-full md:w-1/2">
             <Label htmlFor="tipoCliente" className="text-base font-semibold">Tipo de Cliente</Label>
             <select
               id="tipoCliente"
               value={tipoCliente}
               onChange={(e) => setTipoCliente(e.target.value)}
-              className="border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold bg-white text-black focus:border-purple-400"
+              className="border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold bg-white text-black focus:border-purple-400 h-12"
             >
               <option value="cliente final">Cliente Final</option>
               <option value="mayorista">Mayorista</option>
