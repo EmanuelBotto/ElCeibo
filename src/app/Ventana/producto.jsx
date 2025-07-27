@@ -270,10 +270,13 @@ export default function Producto() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
       <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-4xl flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-          <h1 className="text-3xl font-extrabold text-purple-800 tracking-tight">Productos</h1>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Productos</h1>
+            <p className="text-gray-600 text-lg">Administra el inventario y precios</p>
+          </div>
           <div className="flex gap-2">
-            <Button onClick={() => setMostrarFormulario(true)}>
+            <Button onClick={() => setMostrarFormulario(true)} className="px-6 py-2">
               Agregar
             </Button>
             <Button
@@ -285,6 +288,7 @@ export default function Producto() {
                   setMostrarFormularioEdicion(true);
                 }
               }}
+              className="px-6 py-2"
             >
               Modificar
             </Button>
@@ -294,6 +298,7 @@ export default function Producto() {
               onClick={() => {
                 if (productoSeleccionado) eliminarProducto(productoSeleccionado.id_producto);
               }}
+              className="px-6 py-2"
             >
               Eliminar
             </Button>
@@ -339,11 +344,11 @@ export default function Producto() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Descripción</TableHead>
-                <TableHead>Código</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Precio {tipoCliente === 'mayorista' ? 'Mayorista' : 'Final'}</TableHead>
+                <TableHead className="font-bold text-white">Descripción</TableHead>
+                <TableHead className="font-bold text-white">Código</TableHead>
+                <TableHead className="font-bold text-white">Stock</TableHead>
+                <TableHead className="font-bold text-white">Tipo</TableHead>
+                <TableHead className="font-bold text-white">Precio {tipoCliente === 'mayorista' ? 'Mayorista' : 'Final'}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -378,24 +383,26 @@ export default function Producto() {
         )}
 
         {/* Paginación */}
-        {productosActuales.length > 0 && (
-          <div className="mt-4 flex justify-center items-center gap-4">
+        {productosFiltrados.length > productosPorPagina && (
+          <div className="mt-6 flex justify-center items-center gap-4">
             <Button
-              variant="default"
+              variant="outline"
               onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
               disabled={paginaActual === 1}
+              className="px-4"
             >
-              Anterior
+              ← Anterior
             </Button>
-            <span className="text-black font-semibold">
+            <span className="text-gray-700 font-semibold px-4 py-2 bg-white rounded-lg border">
               Página {paginaActual} de {totalPaginas}
             </span>
             <Button
-              variant="default"
+              variant="outline"
               onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
               disabled={paginaActual === totalPaginas}
+              className="px-4"
             >
-              Siguiente
+              Siguiente →
             </Button>
           </div>
         )}

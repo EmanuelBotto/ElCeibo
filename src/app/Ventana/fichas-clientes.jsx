@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from 'sonner';
-import { Search, Cat, Dog, PawPrint } from 'lucide-react'; // Asumiendo que usas lucide-react para iconos
+import { Search, Cat, Dog, PawPrint } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // Función debounce para retrasar la ejecución de la búsqueda
@@ -102,14 +102,11 @@ export default function FichasClientes() {
       toast.error(error.message);
     }
   };
-  
-  const handleDelete = async (clientId) => {
-    if (!clientId) {
-        toast.error("Por favor, seleccione un cliente para eliminar.");
-        return;
-    }
 
-    if (!confirm('¿Seguro que quieres eliminar este cliente y todas sus mascotas? Esta acción es irreversible.')) return;
+  const handleDelete = async (clientId) => {
+    if (!clientId) return;
+    if (!confirm('¿Está seguro de que desea eliminar este cliente?')) return;
+
     try {
       const response = await fetch(`/api/clientes/${clientId}`, { method: 'DELETE' });
       if (!response.ok) {
@@ -117,13 +114,13 @@ export default function FichasClientes() {
         throw new Error(err.error || 'Error al eliminar cliente');
       }
       toast.success('Cliente eliminado con éxito');
-      fetchFichas(searchTerm); // Refresh
-      setSelectedClient(null); // Deselect
+      setSelectedClient(null);
+      fetchFichas(searchTerm);
     } catch (error) {
       toast.error(error.message);
     }
   };
-  
+
   const getPetIcon = (especie) => {
     switch (especie?.toLowerCase()) {
       case 'gato': return <Cat className="inline-block mr-2" size={18} />;
@@ -137,127 +134,235 @@ export default function FichasClientes() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Panel izquierdo */}
-      <div className="w-1/3 p-4 flex flex-col space-y-4">
-        <div className="relative">
-          <Input 
-            placeholder="Buscador de cliente"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-7xl flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Fichas de Clientes</h1>
+            <p className="text-gray-600 text-lg">Gestiona la información de clientes y sus mascotas</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => handleOpenForm()} className="px-6 py-2">
+              Crear Cliente
+            </Button>
+            <Button 
+              onClick={() => selectedClient && handleOpenForm(selectedClient)}
+              disabled={!selectedClient}
+              variant={selectedClient ? "default" : "outline"}
+              className="px-6 py-2"
+            >
+              Modificar
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => handleDelete(selectedClient?.id_clinete)}
+              disabled={!selectedClient}
+              className="px-6 py-2"
+            >
+              Eliminar
+            </Button>
+          </div>
         </div>
-        <div className="flex space-x-2">
-          <Button onClick={() => handleOpenForm()}>Crear</Button>
-          <Button 
-            onClick={() => selectedClient && handleOpenForm(selectedClient)}
-            disabled={!selectedClient}
-          >
-            Modificar
-          </Button>
-          <Button 
-            variant="destructive"
-            onClick={() => handleDelete(selectedClient?.id_clinete)}
-            disabled={!selectedClient}
-          >
-            Eliminar
-          </Button>
-        </div>
-        <div className="flex-grow border rounded-lg bg-white p-2">
-          <h2 className="text-lg font-semibold mb-2">Resultados</h2>
-          {isLoading && <p>Buscando...</p>}
-          {!isLoading && fichas.length === 0 && <p className="text-gray-500">No se encontraron clientes.</p>}
-          <ul className="space-y-1">
-            {fichas.map(ficha => (
-              <li 
-                key={ficha.id_clinete}
-                onClick={() => setSelectedClient(ficha)}
-                className={`p-2 rounded cursor-pointer ${selectedClient?.id_clinete === ficha.id_clinete ? 'bg-purple-200' : 'hover:bg-gray-200'}`}
-              >
-                {ficha.nombre} {ficha.apellido}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
 
-      {/* Panel derecho */}
-      <div className="w-2/3 p-4">
-        <div className="h-full border rounded-lg bg-white p-4">
-          <h1 className="text-xl font-bold mb-4 border-b pb-2">Fichas Clientes</h1>
-          {selectedClient ? (
-            <div>
-              <h2 className="text-2xl font-semibold text-purple-700">{selectedClient.nombre} {selectedClient.apellido}</h2>
-              <div className="text-sm text-gray-600">
-                <p>{selectedClient.calle} {selectedClient.numero}, CP {selectedClient.codigo_postal}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Panel izquierdo - Lista de clientes */}
+          <div className="lg:col-span-1">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden h-full">
+              <div className="bg-[#a06ba5] px-6 py-4">
+                <h2 className="text-xl font-bold text-white">Lista de Clientes</h2>
               </div>
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold mb-2">Mascotas:</h3>
-                {selectedClient.mascotas && selectedClient.mascotas.length > 0 ? (
-                  <ul className="space-y-2">
-                    {selectedClient.mascotas.map(pet => (
-                      <li 
-                        key={pet.id_mascota} 
-                        className="border-l-4 border-purple-500 pl-3 py-1 cursor-pointer hover:bg-gray-200"
-                        onClick={() => handleNavigateToPet(pet.id_mascota)}
-                      >
-                        {getPetIcon(pet.especie)}
-                        <span className="font-medium">{pet.nombre}</span> ({pet.especie} - {pet.raza})
-                      </li>
-                    ))}
-                  </ul>
+              
+              <div className="p-6">
+                <div className="relative mb-4">
+                  <Input 
+                    placeholder="Buscar clientes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-12 border-2 border-gray-300 focus:border-purple-400"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
+                </div>
+                
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {isLoading && (
+                    <div className="text-center py-4">
+                      <p className="text-gray-600">Buscando...</p>
+                    </div>
+                  )}
+                  {!isLoading && fichas.length === 0 && (
+                    <div className="text-center py-4">
+                      <p className="text-gray-500">No se encontraron clientes.</p>
+                    </div>
+                  )}
+                  {fichas.map(ficha => (
+                    <div 
+                      key={ficha.id_clinete}
+                      onClick={() => setSelectedClient(ficha)}
+                      className={`p-4 rounded-lg cursor-pointer transition-colors ${
+                        selectedClient?.id_clinete === ficha.id_clinete 
+                          ? 'bg-purple-100 border-l-4 border-purple-500' 
+                          : 'hover:bg-gray-50 border-l-4 border-transparent'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-800">
+                        {ficha.nombre} {ficha.apellido}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {ficha.calle} {ficha.numero}, CP {ficha.codigo_postal}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Panel derecho - Detalles del cliente */}
+          <div className="lg:col-span-2">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden h-full">
+              <div className="bg-[#a06ba5] px-6 py-4">
+                <h2 className="text-xl font-bold text-white">Detalles del Cliente</h2>
+              </div>
+              
+              <div className="p-6">
+                {selectedClient ? (
+                  <div>
+                    <div className="mb-6">
+                      <h3 className="text-2xl font-bold text-purple-800 mb-2">
+                        {selectedClient.nombre} {selectedClient.apellido}
+                      </h3>
+                      <div className="text-gray-700 bg-gray-50 p-4 rounded-lg">
+                        <p className="font-medium">
+                          Dirección: {selectedClient.calle} {selectedClient.numero}, CP {selectedClient.codigo_postal}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-lg font-semibold text-purple-800 mb-4 flex items-center">
+                        <PawPrint className="mr-2" size={20} />
+                        Mascotas Registradas
+                      </h4>
+                      {selectedClient.mascotas && selectedClient.mascotas.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {selectedClient.mascotas.map(pet => (
+                            <div 
+                              key={pet.id_mascota} 
+                              className="border border-purple-200 rounded-lg p-4 cursor-pointer hover:bg-purple-50 transition-colors"
+                              onClick={() => handleNavigateToPet(pet.id_mascota)}
+                            >
+                              <div className="flex items-center mb-2 text-black">
+                                {getPetIcon(pet.especie)}
+                                <span className="font-semibold text-gray-800">{pet.nombre}</span>
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                <p>{pet.especie} - {pet.raza}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <PawPrint className="mx-auto text-gray-400 mb-2" size={32} />
+                          <p className="text-gray-500">Este cliente no tiene mascotas registradas.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ) : (
-                  <p className="text-gray-500">Este cliente no tiene mascotas registradas.</p>
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                      <PawPrint className="mx-auto text-gray-400 mb-4" size={48} />
+                      <p className="text-gray-500 text-lg">Selecciona un cliente para ver su información detallada</p>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500 text-lg">Seleccione un cliente para ver su ficha.</p>
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
       {/* Dialogo para Crear/Editar Cliente */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{selectedClient ? 'Modificar Cliente' : 'Crear Nuevo Cliente'}</DialogTitle>
-            <DialogDescription>
-              {selectedClient ? 'Actualice los datos del cliente.' : 'Complete el formulario para crear un nuevo cliente.'}
+            <DialogTitle className="text-xl font-bold text-purple-800">
+              {selectedClient ? 'Modificar Cliente' : 'Crear Nuevo Cliente'}
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              {selectedClient ? 'Actualiza los datos del cliente.' : 'Completa el formulario para crear un nuevo cliente.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="nombre">Nombre</Label>
-                <Input id="nombre" name="nombre" value={formState.nombre} onChange={handleFormChange} required />
+                <Label htmlFor="nombre" className="text-gray-700 font-semibold">Nombre</Label>
+                <Input 
+                  id="nombre" 
+                  name="nombre" 
+                  value={formState.nombre} 
+                  onChange={handleFormChange} 
+                  required 
+                  className="mt-1 h-12"
+                />
               </div>
               <div>
-                <Label htmlFor="apellido">Apellido</Label>
-                <Input id="apellido" name="apellido" value={formState.apellido} onChange={handleFormChange} required />
+                <Label htmlFor="apellido" className="text-gray-700 font-semibold">Apellido</Label>
+                <Input 
+                  id="apellido" 
+                  name="apellido" 
+                  value={formState.apellido} 
+                  onChange={handleFormChange} 
+                  required 
+                  className="mt-1 h-12"
+                />
               </div>
             </div>
             <div>
-              <Label htmlFor="calle">Calle</Label>
-              <Input id="calle" name="calle" value={formState.calle} onChange={handleFormChange} required />
+              <Label htmlFor="calle" className="text-gray-700 font-semibold">Calle</Label>
+              <Input 
+                id="calle" 
+                name="calle" 
+                value={formState.calle} 
+                onChange={handleFormChange} 
+                required 
+                className="mt-1 h-12"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="numero">Número</Label>
-                <Input id="numero" name="numero" type="number" value={formState.numero} onChange={handleFormChange} required />
+                <Label htmlFor="numero" className="text-gray-700 font-semibold">Número</Label>
+                <Input 
+                  id="numero" 
+                  name="numero" 
+                  type="number" 
+                  value={formState.numero} 
+                  onChange={handleFormChange} 
+                  required 
+                  className="mt-1 h-12"
+                />
               </div>
               <div>
-                <Label htmlFor="codigo_postal">Código Postal</Label>
-                <Input id="codigo_postal" name="codigo_postal" type="number" value={formState.codigo_postal} onChange={handleFormChange} required />
+                <Label htmlFor="codigo_postal" className="text-gray-700 font-semibold">Código Postal</Label>
+                <Input 
+                  id="codigo_postal" 
+                  name="codigo_postal" 
+                  type="number" 
+                  value={formState.codigo_postal} 
+                  onChange={handleFormChange} 
+                  required 
+                  className="mt-1 h-12"
+                />
               </div>
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancelar</Button>
-              <Button type="submit">Guardar</Button>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                {selectedClient ? 'Actualizar' : 'Crear'}
+              </Button>
             </div>
           </form>
         </DialogContent>

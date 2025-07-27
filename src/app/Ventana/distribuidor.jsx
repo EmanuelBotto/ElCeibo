@@ -282,10 +282,13 @@ export default function Distribuidor() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
       <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-6xl flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-          <h1 className="text-3xl font-extrabold text-purple-800 tracking-tight">Distribuidores</h1>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Distribuidores</h1>
+            <p className="text-gray-600 text-lg">Administra proveedores y contactos</p>
+          </div>
           <div className="flex gap-2">
-            <Button onClick={() => setMostrarFormulario(true)}>
+            <Button onClick={() => setMostrarFormulario(true)} className="px-6 py-2">
               Agregar
             </Button>
             <Button
@@ -297,6 +300,7 @@ export default function Distribuidor() {
                   setMostrarFormularioEdicion(true);
                 }
               }}
+              className="px-6 py-2"
             >
               Modificar
             </Button>
@@ -306,6 +310,7 @@ export default function Distribuidor() {
               onClick={() => {
                 if (distribuidorSeleccionado) eliminarDistribuidor(distribuidorSeleccionado.id_distribuidor);
               }}
+              className="px-6 py-2"
             >
               Eliminar
             </Button>
@@ -339,12 +344,12 @@ export default function Distribuidor() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>CUIT</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Teléfono</TableHead>
-                <TableHead>Nombre Fantasía</TableHead>
-                <TableHead>Deuda</TableHead>
+                <TableHead className="font-bold text-white">CUIT</TableHead>
+                <TableHead className="font-bold text-white">Nombre</TableHead>
+                <TableHead className="font-bold text-white">Email</TableHead>
+                <TableHead className="font-bold text-white">Teléfono</TableHead>
+                <TableHead className="font-bold text-white">Nombre Fantasía</TableHead>
+                <TableHead className="font-bold text-white">Deuda</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -374,24 +379,26 @@ export default function Distribuidor() {
         )}
 
         {/* Paginación */}
-        {distribuidoresActuales.length > 0 && (
-          <div className="mt-4 flex justify-center items-center gap-4">
+        {distribuidoresFiltrados.length > distribuidoresPorPagina && (
+          <div className="mt-6 flex justify-center items-center gap-4">
             <Button
-              variant="default"
+              variant="outline"
               onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
               disabled={paginaActual === 1}
+              className="px-4"
             >
-              Anterior
+              ← Anterior
             </Button>
-            <span className="text-black font-semibold">
+            <span className="text-gray-700 font-semibold px-4 py-2 bg-white rounded-lg border">
               Página {paginaActual} de {totalPaginas}
             </span>
             <Button
-              variant="default"
+              variant="outline"
               onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
               disabled={paginaActual === totalPaginas}
+              className="px-4"
             >
-              Siguiente
+              Siguiente →
             </Button>
           </div>
         )}
