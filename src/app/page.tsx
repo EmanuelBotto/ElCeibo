@@ -19,16 +19,12 @@ export default function HomePage() {
         return <DashboardPage />;
       case 'productos':
         return <Producto />;
-        case 'caja':
-          return <Caja />;
+      case 'caja':
+        return <Caja />;
       case 'fichas':
         return <FichasClientes />;
-      case 'medicamentos':
-        return <Item />;
-      case 'usuarios':
-        return <UsuariosPage />;
       case 'mascota':
-        return <Mascota />
+        return <Mascota />;
       default:
         return <DashboardPage />;
     }
