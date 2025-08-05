@@ -10,6 +10,7 @@ import {
   Pill, 
   Settings, 
   User,
+  Users,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -59,6 +60,12 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       label: 'Medicamentos',
       icon: Pill,
       description: 'Gestión de medicamentos'
+    },
+    {
+      id: 'usuarios',
+      label: 'Usuarios',
+      icon: Users,
+      description: 'Gestión de usuarios'
     }
   ];
 
@@ -71,8 +78,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   };
 
   const handleUserManagementClick = () => {
-    // Aquí se puede implementar la gestión de usuarios
-    console.log('Gestión de usuarios');
+    router.push('/usuarios');
   };
 
   return (
