@@ -1,6 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from "@/components/ui/table";
 
 export default function Producto() {
   // Llista de productos
@@ -256,121 +268,202 @@ export default function Producto() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Productos</h1>
-        <div className="space-x-2">
-          <button 
-            onClick={() => setMostrarFormulario(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Nuevo Producto
-          </button>
-          <button 
-            onClick={() => {
-              if (productoSeleccionado) {
-                setProductoEditando({...productoSeleccionado});
-                setMostrarFormularioEdicion(true);
-              } else {
-                alert('Por favor, selecciona un producto para editar');
-              }
-            }}
-            className={`px-4 py-2 rounded ${
-              productoSeleccionado 
-                ? 'bg-green-600 text-white hover:bg-green-700' 
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            Editar Producto
-          </button>
-        </div>
-      </div>
-
-      <div className="mb-6 space-y-4">
-        {/* Selector de tipo de cliente */}
-        <div className="flex items-center gap-4">
-          <label htmlFor="tipoCliente" className="font-medium">Tipo de Cliente:</label>
-          <select
-            id="tipoCliente"
-            value={tipoCliente}
-            onChange={(e) => {
-              setTipoCliente(e.target.value);
-              setPaginaActual(1); // Reset a la primera página al cambiar el filtro
-            }}
-            className="border px-4 py-2 rounded"
-          >
-            <option value="cliente final">Cliente Final</option>
-            <option value="mayorista">Mayorista</option>
-          </select>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-4xl flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Productos</h1>
+            <p className="text-gray-600 text-lg">Administra el inventario y precios</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setMostrarFormulario(true)} className="px-6 py-2">
+              Agregar
+            </Button>
+            <Button
+              variant={productoSeleccionado ? "default" : "outline"}
+              disabled={!productoSeleccionado}
+              onClick={() => {
+                if (productoSeleccionado) {
+                  setProductoEditando({ ...productoSeleccionado });
+                  setMostrarFormularioEdicion(true);
+                }
+              }}
+              className="px-6 py-2"
+            >
+              Modificar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!productoSeleccionado}
+              onClick={() => {
+                if (productoSeleccionado) eliminarProducto(productoSeleccionado.id_producto);
+              }}
+              className="px-6 py-2"
+            >
+              Eliminar
+            </Button>
+          </div>
         </div>
 
-        {/* Buscador */}
-        <input
-          type="text"
-          placeholder="Buscar productos..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full border px-4 py-2 rounded"
-        />
+        <div className="mb-6 flex flex-col md:flex-row md:items-end gap-6">
+          <div className="flex flex-col gap-2 w-full md:w-1/2">
+            <Label htmlFor="busqueda" className="text-base font-semibold">Buscar</Label>
+            <Input
+              id="busqueda"
+              placeholder="Buscar por descripción o código..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12"
+            />
+          </div>
+          <div className="flex flex-col gap-2 w-full md:w-1/2">
+            <Label htmlFor="tipoCliente" className="text-base font-semibold">Tipo de Cliente</Label>
+            <select
+              id="tipoCliente"
+              value={tipoCliente}
+              onChange={(e) => setTipoCliente(e.target.value)}
+              className="border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold bg-white text-black focus:border-purple-400 h-12"
+            >
+              <option value="cliente final">Cliente Final</option>
+              <option value="mayorista">Mayorista</option>
+            </select>
+          </div>
+        </div>
+
+        {cargando ? (
+          <p className="text-center text-lg font-semibold py-8">Cargando productos...</p>
+        ) : !Array.isArray(productos) || productos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-center text-lg font-semibold bg-red-100 text-red-700 px-6 py-4 rounded-lg border border-red-300">No hay productos disponibles.</p>
+          </div>
+        ) : productosActuales.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-center text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay productos que coincidan con la búsqueda.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-bold text-white">Descripción</TableHead>
+                <TableHead className="font-bold text-white">Código</TableHead>
+                <TableHead className="font-bold text-white">Stock</TableHead>
+                <TableHead className="font-bold text-white">Tipo</TableHead>
+                <TableHead className="font-bold text-white">Precio {tipoCliente === 'mayorista' ? 'Mayorista' : 'Final'}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {productosActuales.map((p, idx) => {
+                const precioMostrar = calcularPrecio(
+                  p,
+                  tipoCliente === 'mayorista' ? 'mayorista' : 'final'
+                );
+                return (
+                  <TableRow
+                    key={p.id_producto}
+                    className={
+                      productoSeleccionado?.id_producto === p.id_producto
+                        ? "bg-gray-200 !border-2 !border-gray-500"
+                        : "hover:bg-gray-100 transition-colors"
+                    }
+                    onClick={() => setProductoSeleccionado(p)}
+                    style={{ cursor: "pointer" }}
+                    aria-rowindex={idx}
+                    aria-rowcount={productosActuales.length}
+                  >
+                    <TableCell>{p.nombre_producto}</TableCell>
+                    <TableCell className="text-center">{p.id_producto}</TableCell>
+                    <TableCell className="text-center">{p.stock}</TableCell>
+                    <TableCell className="text-center">{p.nombre_tipo}</TableCell>
+                    <TableCell className="text-center">${precioMostrar.toFixed(2)}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+
+        {/* Paginación */}
+        {productosFiltrados.length > productosPorPagina && (
+          <div className="mt-6 flex justify-center items-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+              disabled={paginaActual === 1}
+              className="px-4"
+            >
+              ← Anterior
+            </Button>
+            <span className="text-gray-700 font-semibold px-4 py-2 bg-white rounded-lg border">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+              disabled={paginaActual === totalPaginas}
+              className="px-4"
+            >
+              Siguiente →
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Modal de nuevo producto */}
       {mostrarFormulario && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-[350px]">
             <h2 className="text-xl font-bold mb-4">Nuevo Producto</h2>
-            <input
-              type="text"
-              placeholder="Nombre"
-              value={nuevoProducto.nombre}
-              onChange={(e) => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })}
-              className="border px-2 py-1 mb-2 w-full"
-            />
-            <input
-              type="text"
-              placeholder="marca"
-              value={nuevoProducto.marca}
-              onChange={(e) => setNuevoProducto({ ...nuevoProducto, marca: e.target.value })}
-              className="border px-2 py-1 mb-4 w-full"
-            />
-            <input
-              type="number"
-              placeholder="Precio"
-              value={nuevoProducto.precio_costo}
-              onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio_costo: e.target.value })}
-              className="border px-2 py-1 mb-4 w-full"
-            />
-            <input
-              type="number"
-              placeholder="Stock"
-              value={nuevoProducto.stock}
-              onChange={(e) => setNuevoProducto({ ...nuevoProducto, stock: e.target.value })}
-              className="border px-2 py-1 mb-4 w-full"
-            />
-            <select
-              value={nuevoProducto.id_tipo}
-              onChange={(e) => setNuevoProducto({ ...nuevoProducto, id_tipo: e.target.value })}
-              className="border px-2 py-1 mb-4 w-full"
-            >
-              <option value="1">Balanceado</option>
-              <option value="2">Medicamento</option>
-              <option value="3">Accesorio</option>
-              <option value="4">Acuario</option>
-
-            </select>
+            <div className="flex flex-col gap-2 mb-4">
+              <Label htmlFor="nombre">Nombre</Label>
+              <Input
+                id="nombre"
+                value={nuevoProducto.nombre}
+                onChange={(e) => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })}
+                placeholder="Nombre"
+              />
+              <Label htmlFor="marca">Marca</Label>
+              <Input
+                id="marca"
+                value={nuevoProducto.marca}
+                onChange={(e) => setNuevoProducto({ ...nuevoProducto, marca: e.target.value })}
+                placeholder="Marca"
+              />
+              <Label htmlFor="precio">Precio</Label>
+              <Input
+                id="precio"
+                type="number"
+                value={nuevoProducto.precio_costo}
+                onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio_costo: e.target.value })}
+                placeholder="Precio"
+              />
+              <Label htmlFor="stock">Stock</Label>
+              <Input
+                id="stock"
+                type="number"
+                value={nuevoProducto.stock}
+                onChange={(e) => setNuevoProducto({ ...nuevoProducto, stock: e.target.value })}
+                placeholder="Stock"
+              />
+              <Label htmlFor="tipo">Tipo</Label>
+              <select
+                id="tipo"
+                value={nuevoProducto.id_tipo}
+                onChange={(e) => setNuevoProducto({ ...nuevoProducto, id_tipo: e.target.value })}
+                className="border px-2 py-1 rounded"
+              >
+                <option value="1">Balanceado</option>
+                <option value="2">Medicamento</option>
+                <option value="3">Accesorio</option>
+                <option value="4">Acuario</option>
+              </select>
+            </div>
             <div className="flex justify-end gap-2">
-              <button 
-                onClick={() => setMostrarFormulario(false)}
-                className="bg-gray-400 text-white px-4 py-2 rounded"
-              >
+              <Button variant="outline" onClick={() => setMostrarFormulario(false)}>
                 Cancelar
-              </button>
-              <button 
-                onClick={crearProducto}
-                className="bg-green-600 text-white px-4 py-2 rounded"
-              >
+              </Button>
+              <Button onClick={crearProducto}>
                 Guardar
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -378,227 +471,48 @@ export default function Producto() {
 
       {/* Modal de edición de producto */}
       {mostrarFormularioEdicion && productoEditando && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-[500px]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-[400px]">
             <h2 className="text-xl font-bold mb-4">Editar Producto</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre</label>
-                <input
-                  type="text"
-                  value={productoEditando.nombre_producto || ''}
-                  onChange={(e) => setProductoEditando({
-                    ...productoEditando,
-                    nombre_producto: e.target.value
-                  })}
-                  className="border px-2 py-1 w-full rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Precio Costo</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={productoEditando.precio_costo || ''}
-                  onChange={(e) => setProductoEditando({
-                    ...productoEditando,
-                    precio_costo: e.target.value
-                  })}
-                  className="border px-2 py-1 w-full rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Stock</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={productoEditando.stock || ''}
-                  onChange={(e) => setProductoEditando({
-                    ...productoEditando,
-                    stock: e.target.value
-                  })}
-                  className="border px-2 py-1 w-full rounded"
-                />
-              </div>
-
-              {/* Sección de porcentajes */}
-              <div className="border-t pt-4 mt-4">
-                <div className="flex items-center mb-4">
-                  <input
-                    type="checkbox"
-                    id="porcentajePersonalizado"
-                    checked={porcentajePersonalizado}
-                    onChange={(e) => setPorcentajePersonalizado(e.target.checked)}
-                    className="mr-2"
-                  />
-                  <label htmlFor="porcentajePersonalizado" className="text-sm font-medium">
-                    Personalizar porcentajes de ganancia
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">% Mayorista</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={productoEditando.porcentaje_mayorista || ''}
-                      onChange={(e) => setProductoEditando({
-                        ...productoEditando,
-                        porcentaje_mayorista: validarNumero(e.target.value)
-                      })}
-                      disabled={!porcentajePersonalizado}
-                      className="border px-2 py-1 w-full rounded disabled:bg-gray-100"
-                    />
-                    {!porcentajePersonalizado && (
-                      <span className="text-xs text-gray-500">
-                        Porcentaje base: {productoEditando.porcentaje_mayorista}%
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">% Final</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={productoEditando.porcentaje_final || ''}
-                      onChange={(e) => setProductoEditando({
-                        ...productoEditando,
-                        porcentaje_final: validarNumero(e.target.value)
-                      })}
-                      disabled={!porcentajePersonalizado}
-                      className="border px-2 py-1 w-full rounded disabled:bg-gray-100"
-                    />
-                    {!porcentajePersonalizado && (
-                      <span className="text-xs text-gray-500">
-                        Porcentaje base: {productoEditando.porcentaje_final}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Previsualización de precios */}
-                <div className="mt-4 p-3 bg-gray-50 rounded">
-                  <h3 className="font-medium text-sm mb-2">Precios calculados:</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Precio Mayorista: </span>
-                      ${calcularPrecio(productoEditando, 'mayorista').toFixed(2)}
-                    </div>
-                    <div>
-                      <span className="font-medium">Precio Final: </span>
-                      ${calcularPrecio(productoEditando, 'final').toFixed(2)}
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="flex flex-col gap-2 mb-4">
+              <Label htmlFor="nombreEdit">Nombre</Label>
+              <Input
+                id="nombreEdit"
+                value={productoEditando.nombre_producto || ''}
+                onChange={(e) => setProductoEditando({ ...productoEditando, nombre_producto: e.target.value })}
+                placeholder="Nombre"
+              />
+              <Label htmlFor="precioEdit">Precio Costo</Label>
+              <Input
+                id="precioEdit"
+                type="number"
+                value={productoEditando.precio_costo || ''}
+                onChange={(e) => setProductoEditando({ ...productoEditando, precio_costo: e.target.value })}
+                placeholder="Precio"
+              />
+              <Label htmlFor="stockEdit">Stock</Label>
+              <Input
+                id="stockEdit"
+                type="number"
+                value={productoEditando.stock || ''}
+                onChange={(e) => setProductoEditando({ ...productoEditando, stock: e.target.value })}
+                placeholder="Stock"
+              />
+              {/* Aquí puedes agregar más campos si lo deseas */}
             </div>
-
-            <div className="flex justify-end gap-2 mt-6">
-              <button 
-                onClick={() => {
-                  setMostrarFormularioEdicion(false);
-                  setProductoEditando(null);
-                  setPorcentajePersonalizado(false);
-                }}
-                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-              >
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => {
+                setMostrarFormularioEdicion(false);
+                setProductoEditando(null);
+              }}>
                 Cancelar
-              </button>
-              <button 
-                onClick={actualizarProducto}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
+              </Button>
+              <Button onClick={actualizarProducto}>
                 Guardar Cambios
-              </button>
+              </Button>
             </div>
           </div>
         </div>
-      )}
-
-      {cargando ? (
-        <p>Cargando productos...</p>
-      ) : !Array.isArray(productos) || productos.length === 0 ? (
-        <p>No hay productos disponibles.</p>
-      ) : productosActuales.length === 0 ? (
-        <p>No hay productos que coincidan con la búsqueda.</p>
-      ) : (
-        <>
-          <table className="table-fixed w-full border">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="border px-4 py-2 w-1/3">Descripción</th>
-                <th className="border px-4 py-2 w-1/6">Código</th>
-                <th className="border px-4 py-2 w-1/6">Stock</th>
-                <th className="border px-4 py-2 w-1/6">Tipo</th>
-                <th className="border px-4 py-2 w-1/6">Precio {tipoCliente === 'mayorista' ? 'Mayorista' : 'Final'}</th>
-                {/*<th className="border px-4 py-2 w-1/6">Estado</th>*/}  
-              </tr>
-            </thead>
-            <tbody>
-              {productosActuales.map((p) => {
-                const precioMostrar = calcularPrecio(
-                  p,
-                  tipoCliente === 'mayorista' ? 'mayorista' : 'final'
-                );
-                
-                return (
-                  <tr 
-                    key={p.id_producto} 
-                    className={`hover:bg-gray-50 cursor-pointer ${
-                      productoSeleccionado?.id_producto === p.id_producto 
-                        ? 'bg-blue-100' 
-                        : ''
-                    }`}
-                    onClick={() => setProductoSeleccionado(p)}
-                  >
-                    <td className="border px-4 py-3 w-1/3 truncate">{p.nombre_producto}</td>
-                    <td className="border px-4 py-3 w-1/6 text-center">{p.id_producto}</td>
-                    <td className="border px-4 py-3 w-1/6 text-center">{p.stock}</td>
-                    <td className="border px-4 py-3 w-1/6 text-center">{p.nombre_tipo}</td>
-                    <td className="border px-4 py-3 w-1/6 text-center">${precioMostrar.toFixed(2)}</td>
-                    <td className="border px-4 py-3 w-1/6 text-center"><button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={() => eliminarProducto(p.id_producto)}>Eliminar</button></td>
-                    {/*<td className="border px-4 py-3 w-1/6 text-center">
-                      {p.modificado ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Modificado
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Base
-                        </span>
-                      )}
-                    </td>*/}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {/* Paginación */}
-          <div className="mt-4 flex justify-center items-center gap-4">
-            <button
-              onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
-              disabled={paginaActual === 1}
-              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            <span>
-              Página {paginaActual} de {totalPaginas}
-            </span>
-            <button
-              onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
-              disabled={paginaActual === totalPaginas}
-              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-            >
-              Siguiente
-            </button>
-          </div>
-        </>
       )}
     </div>
   );

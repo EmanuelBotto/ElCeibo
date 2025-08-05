@@ -1,246 +1,518 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from 'sonner';
-
-function Modal({ open, onClose, onSubmit, form, setForm, mode }) {
-  if (!open) return null;
-  return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.2)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#fff', borderRadius: 12, padding: 24, minWidth: 340, boxShadow: '0 2px 16px #0002' }}>
-        <h2 style={{ fontWeight: 'bold', fontSize: 20, marginBottom: 12 }}>{mode === 'agregar' ? 'Agregar ítem' : 'Modificar ítem'}</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Input placeholder="Descripción" value={form.detalle} onChange={e => setForm(f => ({ ...f, detalle: e.target.value }))} />
-          <Input placeholder="Rubro" value={form.rubro} onChange={e => setForm(f => ({ ...f, rubro: e.target.value }))} />
-          <Input placeholder="Duración (en meses o años)" value={form.duracion} onChange={e => setForm(f => ({ ...f, duracion: e.target.value }))} />
-          <textarea placeholder="Prospecto" value={form.prospecto} onChange={e => setForm(f => ({ ...f, prospecto: e.target.value }))} style={{ borderRadius: 8, border: '1px solid #ccc', padding: 8, minHeight: 60 }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={onSubmit}>{mode === 'agregar' ? 'Agregar' : 'Guardar'}</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from "@/components/ui/table";
 
 export default function Item() {
+  // Lista de items
   const [items, setItems] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedRubro, setSelectedRubro] = useState('Todos');
-  const [searchMode, setSearchMode] = useState('todos'); // 'todos' o 'descripcion'
-  const [searchText, setSearchText] = useState('');
-  const [prospecto, setProspecto] = useState('');
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [formMode, setFormMode] = useState(null); // null, 'agregar', 'modificar'
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ detalle: '', rubro: '', duracion: '', prospecto: '' });
+  // Estado de carga
+  const [cargando, setCargando] = useState(true);
+  // Nuevo item a crear
+  const [nuevoItem, setNuevoItem] = useState({
+    detalle: '',
+    rubro: '',
+    duracion: '',
+    prospecto: ''
+  });
+  const [itemEditando, setItemEditando] = useState(null);
+  const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [rubroSeleccionado, setRubroSeleccionado] = useState('Todos');
+  const itemsPorPagina = 10;
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [itemSeleccionado, setItemSeleccionado] = useState(null);
+  const [prospectoSeleccionado, setProspectoSeleccionado] = useState('');
 
+  // Función para validar número
+  const validarNumero = (valor) => {
+    const numero = parseFloat(valor);
+    return isNaN(numero) ? 0 : numero;
+  };
+
+  // Cargar items desde la API
+  const cargarItems = async () => {
+    try {
+      setCargando(true);
+      const res = await fetch('/api/items');
+      
+      if (!res.ok) {
+        throw new Error('Error al cargar items');
+      }
+
+      const data = await res.json();
+      
+      // Nos aseguramos de que data sea un array
+      if (Array.isArray(data)) {
+        setItems(data);
+      } else {
+        console.error('Los datos recibidos no son un array:', data);
+        setItems([]);
+      }
+    } catch (err) {
+      console.error('Error al cargar items:', err);
+      setItems([]); // En caso de error, establecemos un array vacío
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // Carga los items en la pagina por primera vez
   useEffect(() => {
-    fetchItems();
+    cargarItems();
   }, []);
 
-  const fetchItems = async () => {
+  // Crear item
+  const crearItem = async () => {
     try {
-      const response = await fetch('/api/items');
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al cargar items');
+      // Validaciones
+      if (!nuevoItem.detalle?.trim()) {
+        throw new Error('La descripción es requerida');
       }
-      const data = await response.json();
-      setItems(data);
-    } catch (error) {
-      toast.error(error.message);
-      console.error('Error detallado:', error);
-    } finally {
-      setIsLoading(false);
+      if (!nuevoItem.rubro?.trim()) {
+        throw new Error('El rubro es requerido');
+      }
+
+      const itemParaEnviar = {
+        detalle: nuevoItem.detalle.trim(),
+        rubro: nuevoItem.rubro.trim(),
+        duracion: nuevoItem.duracion?.trim() || '',
+        prospecto: nuevoItem.prospecto?.trim() || ''
+      };
+
+      const res = await fetch('/api/items', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(itemParaEnviar),
+      });
+
+      // Manejar diferentes tipos de errores
+      if (!res.ok) {
+        let errorMessage = 'Error al crear item';
+        
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          // Si no podemos parsear el JSON, usamos el status text
+          errorMessage = `Error: ${res.status} - ${res.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Intentar parsear la respuesta exitosa
+      let responseData;
+      try {
+        responseData = await res.json();
+      } catch (jsonError) {
+        console.warn('La respuesta no contiene JSON válido, pero el item fue creado');
+      }
+
+      setNuevoItem({
+        detalle: '',
+        rubro: '',
+        duracion: '',
+        prospecto: ''
+      });
+      setMostrarFormulario(false);
+      cargarItems(); // recargar lista
+      
+      // Mostrar mensaje de éxito
+      alert('Item creado exitosamente');
+    } catch (err) {
+      alert(err.message);
+      console.error('Error completo:', err);
+    }
+  };
+
+  // Función para actualizar item
+  const actualizarItem = async () => {
+    try {
+      if (!itemEditando.detalle?.trim()) {
+        throw new Error('La descripción es requerida');
+      }
+      if (!itemEditando.rubro?.trim()) {
+        throw new Error('El rubro es requerido');
+      }
+
+      const datosActualizacion = {
+        detalle: itemEditando.detalle.trim(),
+        rubro: itemEditando.rubro.trim(),
+        duracion: itemEditando.duracion?.trim() || '',
+        prospecto: itemEditando.prospecto?.trim() || ''
+      };
+
+      // Actualizar el item
+      const res = await fetch(`/api/items/${itemEditando.id_item}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datosActualizacion)
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Error al actualizar item');
+      }
+
+      // Limpiar estados y recargar datos
+      setMostrarFormularioEdicion(false);
+      setItemEditando(null);
+      cargarItems();
+
+    } catch (err) {
+      alert(err.message);
+      console.error('Error completo:', err);
+    }
+  };
+
+  // Eliminar item
+  const eliminarItem = async (id) => {
+    if (!confirm('¿Estás seguro de eliminar este item?')) return;
+
+    try {
+      const res = await fetch(`/api/items/${id}`, { method: 'DELETE' });
+      // Verificar si la respuesta fue exitosa
+      if (!res.ok) throw new Error('Error al eliminar item');
+      cargarItems();
+      setItemSeleccionado(null);
+      setProspectoSeleccionado('');
+    } catch (err) {
+      alert('Error al eliminar item');
+      console.error(err);
     }
   };
 
   // Rubros únicos para el dropdown
   const rubros = ['Todos', ...Array.from(new Set(items.map(i => i.rubro)))];
 
-  // Filtrado de items
-  const filteredItems = items.filter(item => {
-    if (selectedRubro !== 'Todos' && item.rubro !== selectedRubro) return false;
-    if (searchMode === 'descripcion' && searchText) {
-      return item.detalle.toLowerCase().includes(searchText.toLowerCase());
+  // Filtrar items según la búsqueda y rubro
+  const itemsFiltrados = Array.isArray(items) ? items.filter(item => {
+    if (!item) return false;
+    
+    // Filtro por rubro
+    if (rubroSeleccionado !== 'Todos' && item.rubro !== rubroSeleccionado) {
+      return false;
     }
+    
+    // Filtro por búsqueda
+    if (busqueda) {
+      const busquedaLower = busqueda.toLowerCase();
+      return item.detalle?.toLowerCase().includes(busquedaLower) ||
+             item.rubro?.toLowerCase().includes(busquedaLower);
+    }
+    
     return true;
-  });
+  }) : [];
 
-  // Selección de item para mostrar prospecto
-  const handleRowClick = (item) => {
-    setSelectedItem(item);
-    setProspecto(item.prospecto || '');
-  };
+  // Calcular items para la página actual
+  const indexUltimoItem = paginaActual * itemsPorPagina;
+  const indexPrimerItem = indexUltimoItem - itemsPorPagina;
+  const itemsActuales = itemsFiltrados.slice(indexPrimerItem, indexUltimoItem);
+  const totalPaginas = Math.ceil(itemsFiltrados.length / itemsPorPagina);
 
-  // Handlers de botones (simples, puedes conectar a la API si lo deseas)
-  const handleAgregar = () => {
-    setForm({ detalle: '', rubro: '', duracion: '', prospecto: '' });
-    setFormMode('agregar');
-    setModalOpen(true);
-  };
-  const handleModificar = () => {
-    if (!selectedItem) return;
-    setForm({
-      detalle: selectedItem.detalle || '',
-      rubro: selectedItem.rubro || '',
-      duracion: selectedItem.duracion || '',
-      prospecto: selectedItem.prospecto || '',
-    });
-    setFormMode('modificar');
-    setModalOpen(true);
-  };
-  const handleEliminar = async () => {
-    if (!selectedItem) return;
-    if (!window.confirm('¿Seguro que deseas eliminar este ítem?')) return;
-    setIsLoading(true);
-    try {
-      await fetch(`/api/items/${selectedItem.id_item}`, { method: 'DELETE' });
-      setSelectedItem(null);
-      setProspecto('');
-      await fetchItems();
-    } catch (e) {}
-    setIsLoading(false);
-  };
-
-  // Modal submit
-  const handleModalSubmit = async () => {
-    setIsLoading(true);
-    try {
-      if (formMode === 'agregar') {
-        await fetch('/api/items', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        });
-      } else if (formMode === 'modificar' && selectedItem) {
-        await fetch(`/api/items/${selectedItem.id_item}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        });
-      }
-      setModalOpen(false);
-      setSelectedItem(null);
-      setProspecto('');
-      await fetchItems();
-    } catch (e) {}
-    setIsLoading(false);
+  // Manejar selección de item
+  const handleItemSeleccionado = (item) => {
+    setItemSeleccionado(item);
+    setProspectoSeleccionado(item.prospecto || '');
   };
 
   return (
-    <div style={{ display: 'flex', height: '90vh', background: '#fff', alignItems: 'flex-start', padding: '32px 0 0 0' }}>
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleModalSubmit} form={form} setForm={setForm} mode={formMode} />
-      {/* Panel izquierdo: tabla */}
-      <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <h2 style={{ margin: 0, marginBottom: 10, fontWeight: 'bold', fontSize: 22, color: '#7a3e8e', letterSpacing: 1 }}>Listado de Items</h2>
-        <div style={{ width: '95%', background: '#d9d9d9', borderRadius: '18px', marginTop: 0, overflow: 'hidden', border: '1px solid #a06ba5', boxShadow: '0 2px 8px #0001' }}>
-          <Table>
-            <TableHeader>
-              <TableRow style={{ background: '#a06ba5' }}>
-                <TableHead style={{ color: '#fff', fontStyle: 'italic', textAlign: 'center', padding: '12px 0' }}>Descripción</TableHead>
-                <TableHead style={{ color: '#fff', fontStyle: 'italic', textAlign: 'center', padding: '12px 0' }}>Rubro</TableHead>
-                <TableHead style={{ color: '#fff', fontStyle: 'italic', textAlign: 'center', padding: '12px 0' }}>Duración</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredItems.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={3} style={{ textAlign: 'center', padding: 18, color: '#888' }}>No hay datos para mostrar</TableCell>
-                </TableRow>
-              )}
-              {filteredItems.map((item, idx) => {
-                const isSelected = selectedItem?.id_item === item.id_item;
-                return (
-                  <TableRow
-                    key={item.id_item || idx}
-                    onClick={() => handleRowClick(item)}
-                    style={{
-                      cursor: 'pointer',
-                      background: isSelected ? '#e1bee7' : idx % 2 === 0 ? '#f3eaf7' : '#d9d9d9',
-                      borderLeft: isSelected ? '6px solid #a06ba5' : '6px solid transparent',
-                      transition: 'background 0.2s, border 0.2s',
-                    }}
-                  >
-                    <TableCell style={{ padding: '10px 8px', fontWeight: isSelected ? 'bold' : 'normal' }}>{item.detalle}</TableCell>
-                    <TableCell style={{ padding: '10px 8px', fontWeight: isSelected ? 'bold' : 'normal' }}>{item.rubro}</TableCell>
-                    <TableCell style={{ padding: '10px 8px', textAlign: 'center', fontWeight: isSelected ? 'bold' : 'normal' }}>
-                      {item.duracion ? `${item.duracion} ${parseInt(item.duracion) === 1 ? 'Año' : 'Meses'}` : ''}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-      {/* Panel derecho: filtros, búsqueda, prospecto y botones */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 0, alignSelf: 'flex-start' }}>
-        {/* Filtros y búsqueda */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', gap: '16px', marginTop: 8 }}>
-          <label style={{ display: 'flex', alignItems: 'center', fontSize: '16px' }}>
-            <input type="radio" checked={searchMode === 'todos'} onChange={() => setSearchMode('todos')} style={{ accentColor: '#a06ba5', marginRight: '4px' }} />
-            Todos los rubros
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', fontSize: '16px' }}>
-            <input type="radio" checked={searchMode === 'descripcion'} onChange={() => setSearchMode('descripcion')} style={{ accentColor: '#a06ba5', marginRight: '4px' }} />
-            Buscar Descripción
-          </label>
-          <select value={selectedRubro} onChange={e => setSelectedRubro(e.target.value)} style={{ borderRadius: '8px', padding: '4px 12px', border: '1px solid #ccc', background: '#e5e5e5', color: '#444' }}>
-            {rubros.map(rubro => <option key={rubro} value={rubro}>{rubro}</option>)}
-          </select>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '350px', marginBottom: '10px' }}>
-          <Input
-            placeholder="BUSCAR"
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-            disabled={searchMode !== 'descripcion'}
-            style={{ flex: 1, background: '#e5e5e5', fontStyle: 'italic', borderRadius: '12px', border: 'none', marginRight: '8px' }}
-          />
-          <span style={{ fontSize: '22px', color: '#444', cursor: 'pointer' }}>🔍</span>
-        </div>
-        {/* Prospecto */}
-        <div style={{ width: '100%', maxWidth: '420px', background: '#f7f2fa', borderRadius: '14px', border: '1px solid #a06ba5', marginBottom: '24px', boxShadow: '0 1px 6px #0001' }}>
-          <div style={{ background: '#a06ba5', color: '#fff', fontStyle: 'italic', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', padding: '6px 0', textAlign: 'center', fontWeight: 'bold', letterSpacing: 1 }}>
-            Prospecto
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-6xl flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Items</h1>
+            <p className="text-gray-600 text-lg">Administra productos, medicamentos y servicios</p>
           </div>
-          <textarea
-            value={prospecto}
-            onChange={e => setProspecto(e.target.value)}
-            placeholder="Aquí iría escrito manualmente el prospecto del medicamento o vacuna"
-            style={{ width: '100%', minHeight: '100px', border: 'none', borderRadius: '0 0 14px 14px', background: '#f7f2fa', padding: '12px', fontStyle: 'italic', resize: 'vertical', outline: 'none', color: '#444', fontSize: 15 }}
-            disabled
-          />
+          <div className="flex gap-2">
+            <Button onClick={() => setMostrarFormulario(true)} className="px-6 py-2">
+              Agregar
+            </Button>
+            <Button
+              variant={itemSeleccionado ? "default" : "outline"}
+              disabled={!itemSeleccionado}
+              onClick={() => {
+                if (itemSeleccionado) {
+                  setItemEditando({ ...itemSeleccionado });
+                  setMostrarFormularioEdicion(true);
+                }
+              }}
+              className="px-6 py-2"
+            >
+              Modificar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!itemSeleccionado}
+              onClick={() => {
+                if (itemSeleccionado) eliminarItem(itemSeleccionado.id_item);
+              }}
+              className="px-6 py-2"
+            >
+              Eliminar
+            </Button>
+          </div>
         </div>
-        {/* Botones */}
-        <div style={{ display: 'flex', gap: '28px', justifyContent: 'center', width: '100%', marginTop: 8 }}>
-          <Button style={{ background: '#a06ba5', fontWeight: 'bold', minWidth: '120px', fontSize: 17, padding: '10px 0' }} onClick={handleAgregar}>Agregar</Button>
-          <Button style={{ background: '#a06ba5', fontWeight: 'bold', minWidth: '120px', fontSize: 17, padding: '10px 0' }} onClick={handleModificar} disabled={!selectedItem}>Modificar</Button>
-          <Button style={{ background: '#a06ba5', fontWeight: 'bold', minWidth: '120px', fontSize: 17, padding: '10px 0' }} onClick={handleEliminar} disabled={!selectedItem}>Eliminar</Button>
+
+        <div className="mb-8 flex flex-col md:flex-row md:items-end gap-6">
+          <div className="flex flex-col gap-2 w-full md:w-1/2">
+            <Label htmlFor="busqueda" className="text-base font-semibold text-gray-700">Buscar Items</Label>
+            <Input
+              id="busqueda"
+              placeholder="Buscar por descripción o rubro..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12 shadow-sm"
+            />
+          </div>
+          <div className="flex flex-col gap-2 w-full md:w-1/2">
+            <Label htmlFor="rubro" className="text-base font-semibold text-gray-700">Filtrar por Rubro</Label>
+            <select
+              id="rubro"
+              value={rubroSeleccionado}
+              onChange={(e) => setRubroSeleccionado(e.target.value)}
+              className="border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold bg-white text-black focus:border-purple-400 h-12 shadow-sm"
+            >
+              {rubros.map(rubro => (
+                <option key={rubro} value={rubro}>{rubro}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Tabla de items */}
+          <div className="lg:col-span-2">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">       
+              {cargando ? (
+                <div className="p-8 text-center">
+                  <p className="text-lg font-semibold text-gray-600">Cargando items...</p>
+                </div>
+              ) : !Array.isArray(items) || items.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-lg font-semibold bg-red-100 text-red-700 px-6 py-4 rounded-lg border border-red-300">No hay items disponibles.</p>
+                </div>
+              ) : itemsActuales.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay items que coincidan con la búsqueda.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-bold text-white">Descripción</TableHead>
+                      <TableHead className="font-bold text-white">Rubro</TableHead>
+                      <TableHead className="font-bold text-white text-center">Duración</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {itemsActuales.map((item, idx) => (
+                      <TableRow
+                        key={item.id_item}
+                        className={
+                          itemSeleccionado?.id_item === item.id_item
+                            ? "bg-purple-100 border-l-4 border-purple-500"
+                            : "hover:bg-gray-50 transition-colors"
+                        }
+                        onClick={() => handleItemSeleccionado(item)}
+                        style={{ cursor: "pointer" }}
+                        aria-rowindex={idx}
+                        aria-rowcount={itemsActuales.length}
+                      >
+                        <TableCell className="font-medium">{item.detalle}</TableCell>
+                        <TableCell className="text-purple-600 font-medium">{item.rubro}</TableCell>
+                        <TableCell className="text-center text-gray-600">
+                          {item.duracion ? `${item.duracion} ${parseInt(item.duracion) === 1 ? 'Año' : 'Meses'}` : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+
+            {/* Paginación */}
+            {itemsFiltrados.length > itemsPorPagina && (
+              <div className="mt-6 flex justify-center items-center gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                  disabled={paginaActual === 1}
+                  className="px-4"
+                >
+                  ← Anterior
+                </Button>
+                <span className="text-gray-700 font-semibold px-4 py-2 bg-white rounded-lg border">
+                  Página {paginaActual} de {totalPaginas}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                  disabled={paginaActual === totalPaginas}
+                  className="px-4"
+                >
+                  Siguiente →
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Panel de prospecto */}
+          <div className="lg:col-span-1">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 shadow-sm">
+              <h3 className="text-xl font-bold text-purple-800 mb-4 flex items-center">
+                <span className="mr-2">📋</span>
+                Prospecto del Item
+              </h3>
+              <textarea
+                value={prospectoSeleccionado}
+                onChange={(e) => setProspectoSeleccionado(e.target.value)}
+                placeholder="Selecciona un item para ver su prospecto..."
+                className="w-full h-48 p-4 border-2 border-purple-200 rounded-lg resize-none focus:border-purple-400 focus:outline-none bg-white text-gray-800 font-medium leading-relaxed"
+                disabled
+              />
+              
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Modal de nuevo item */}
+      {mostrarFormulario && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-[500px] max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Nuevo Item</h2>
+            <div className="flex flex-col gap-4 mb-4">
+              <div>
+                <Label htmlFor="detalle">Descripción *</Label>
+                <Input
+                  id="detalle"
+                  value={nuevoItem.detalle}
+                  onChange={(e) => setNuevoItem({ ...nuevoItem, detalle: e.target.value })}
+                  placeholder="Descripción del item"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="rubro">Rubro *</Label>
+                <Input
+                  id="rubro"
+                  value={nuevoItem.rubro}
+                  onChange={(e) => setNuevoItem({ ...nuevoItem, rubro: e.target.value })}
+                  placeholder="Rubro del item"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="duracion">Duración</Label>
+                <Input
+                  id="duracion"
+                  value={nuevoItem.duracion}
+                  onChange={(e) => setNuevoItem({ ...nuevoItem, duracion: e.target.value })}
+                  placeholder="Duración (ej: 12 meses)"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="prospecto">Prospecto</Label>
+                <textarea
+                  id="prospecto"
+                  value={nuevoItem.prospecto}
+                  onChange={(e) => setNuevoItem({ ...nuevoItem, prospecto: e.target.value })}
+                  placeholder="Prospecto del item..."
+                  className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:border-purple-400 focus:outline-none mt-1"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setMostrarFormulario(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={crearItem}>
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de edición de item */}
+      {mostrarFormularioEdicion && itemEditando && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-[500px] max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Editar Item</h2>
+            <div className="flex flex-col gap-4 mb-4">
+              <div>
+                <Label htmlFor="detalleEdit">Descripción *</Label>
+                <Input
+                  id="detalleEdit"
+                  value={itemEditando.detalle || ''}
+                  onChange={(e) => setItemEditando({ ...itemEditando, detalle: e.target.value })}
+                  placeholder="Descripción del item"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="rubroEdit">Rubro *</Label>
+                <Input
+                  id="rubroEdit"
+                  value={itemEditando.rubro || ''}
+                  onChange={(e) => setItemEditando({ ...itemEditando, rubro: e.target.value })}
+                  placeholder="Rubro del item"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="duracionEdit">Duración</Label>
+                <Input
+                  id="duracionEdit"
+                  value={itemEditando.duracion || ''}
+                  onChange={(e) => setItemEditando({ ...itemEditando, duracion: e.target.value })}
+                  placeholder="Duración (ej: 12 meses)"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="prospectoEdit">Prospecto</Label>
+                <textarea
+                  id="prospectoEdit"
+                  value={itemEditando.prospecto || ''}
+                  onChange={(e) => setItemEditando({ ...itemEditando, prospecto: e.target.value })}
+                  placeholder="Prospecto del item..."
+                  className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:border-purple-400 focus:outline-none mt-1"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => {
+                setMostrarFormularioEdicion(false);
+                setItemEditando(null);
+              }}>
+                Cancelar
+              </Button>
+              <Button onClick={actualizarItem}>
+                Guardar Cambios
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
