@@ -1,9 +1,14 @@
 'use client';
 
+import React, { use } from 'react'
+import { useEgreso } from '@/lib/modales';
 import { useState, useEffect } from 'react';
+import Modal from '@/components/ui/modal';
 
 export default function Caja() {
     const [facturas, setFacturas] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const { title, renderContent } = useEgreso();
 
     useEffect(() => {
         const obtenerFacturas = async () => {
@@ -13,6 +18,14 @@ export default function Caja() {
         }
         obtenerFacturas();
     }, []);
+
+    const handleOpenModal = () => {
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+    };
 
     return (
         <div className="p-6 max-w-4xl mx-auto"> 
@@ -49,8 +62,25 @@ export default function Caja() {
                     </tr>
                 ))}
                 </tbody>
+                
         </table>
+        <div>
+            <button 
+                onClick={handleOpenModal}
+                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+            >
+                Nuevo Egreso
+            </button>
         </div>
+        </div>
+
+        {/* Modal para el popup de egreso */}
+        <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+            <div>
+                <h2 className="text-lg font-semibold mb-4">{title}</h2>
+                {renderContent}
+            </div>
+        </Modal>
         </div>
     )
 }

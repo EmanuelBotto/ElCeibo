@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-import Caja from './Ventana/caja';
-=======
-"use client";
+'use client'
 
-import { useState } from 'react';
->>>>>>> 9c35a8acd41a77913987a45f3efc291be1dd65ee
+import React, { useState } from "react";
+import Caja from './Ventana/caja';
 import Producto from './Ventana/producto';
 import ListaPrecios from './Ventana/lista-precios';
 import Distribuidor from './Ventana/distribuidor';
@@ -12,6 +9,63 @@ import Item from './Ventana/item';
 import { Button } from "@/components/ui/button";
 import Mascota from './Ventana/mascota';
 import FichasClientes from './Ventana/fichas-clientes';
+
+function FormaDePago() {
+  const [forma, setForma] = useState("contado");
+
+  const handleAceptar = () => {
+    alert(`Forma de pago seleccionada: ${forma}`);
+  };
+
+  return (
+    <div style={{
+      background: "#ddd",
+      padding: "10px",
+      borderRadius: "5px",
+      width: "150px",
+      margin: "10px",
+      border: "4px solid #9b59b6"
+    }}>
+      <div style={{ fontWeight: "bold", marginBottom: "8px" }}>Forma de pago</div>
+      <div>
+        <label style={{ display: "flex", alignItems: "center", marginBottom: "6px" }}>
+          <input
+            type="radio"
+            checked={forma === "contado"}
+            onChange={() => setForma("contado")}
+            style={{ marginRight: "6px" }}
+          />
+          Contado
+        </label>
+        <label style={{ display: "flex", alignItems: "center" }}>
+          <input
+            type="radio"
+            checked={forma === "electronico"}
+            onChange={() => setForma("electronico")}
+            style={{ marginRight: "6px" }}
+          />
+          Electronico
+        </label>
+      </div>
+      <button
+        onClick={handleAceptar}
+        style={{
+          marginTop: "12px",
+          width: "100%",
+          padding: "6px",
+          background: "#9b59b6",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          fontWeight: "bold",
+          cursor: "pointer"
+        }}
+      >
+        Aceptar
+      </button>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('productos');
@@ -28,6 +82,15 @@ export default function HomePage() {
         return <Item />;
       case 'fichasClientes':
         return <FichasClientes />;
+      case 'caja':
+        return (
+          <>
+            <Caja />
+            <FormaDePago />
+          </>
+        );
+      case 'mascota':
+        return <Mascota />
       default:
         return <Producto />;
     }
@@ -35,12 +98,6 @@ export default function HomePage() {
 
   return (
     <main className="p-4">
-<<<<<<< HEAD
-      <div className="space-y-8">
-        <ListaPrecios />
-        <Caja />
-        <Producto />
-=======
       <div className="mb-4 flex space-x-4 border-b pb-4">
         <Button
           variant={activeTab === 'productos' ? 'default' : 'outline'}
@@ -53,6 +110,12 @@ export default function HomePage() {
           onClick={() => setActiveTab('listaPrecios')}
         >
           Lista de Precios
+        </Button>
+        <Button
+          variant={activeTab === 'caja' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('caja')}
+        >
+          Caja
         </Button>
         <Button
           variant={activeTab === 'distribuidores' ? 'default' : 'outline'}
@@ -72,10 +135,15 @@ export default function HomePage() {
         >
           Fichas Clientes
         </Button>
+        <Button
+          variant={activeTab === 'Mascota' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('Mascota')}
+        >
+          Mascota
+        </Button>
       </div>
       <div>
         {renderContent()}
->>>>>>> 9c35a8acd41a77913987a45f3efc291be1dd65ee
       </div>
     </main>
   );
