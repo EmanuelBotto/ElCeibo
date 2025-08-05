@@ -4,6 +4,7 @@ import React, { use } from 'react'
 import { useEgreso } from '@/lib/modales';
 import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/modal';
+
 import { Button } from "@/components/ui/button";
 import {
   Table,
