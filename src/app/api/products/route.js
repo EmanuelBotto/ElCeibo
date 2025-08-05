@@ -12,6 +12,7 @@ export async function GET() {
   try {
     const client = await pool.connect();
     try {
+      
       const result = await client.query(`
         SELECT 
           p.id_producto,
@@ -24,8 +25,8 @@ export async function GET() {
           COALESCE(dl.porcentaje_mayorista, t.porcentaje_mayorista) as porcentaje_mayorista
         FROM 
           producto p
-        INNER JOIN 
-          tipo t ON p.id_tipo = t.id_tipo
+        INNER JOIN
+        tipo t ON p.id_tipo = t.id_tipo
         LEFT JOIN (
           SELECT 
             id_producto,
