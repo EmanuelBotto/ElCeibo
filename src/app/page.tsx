@@ -83,14 +83,9 @@ export default function HomePage() {
       case 'fichasClientes':
         return <FichasClientes />;
       case 'caja':
-        return (
-          <>
-            <Caja />
-            <FormaDePago />
-          </>
-        );
+        return <Caja />;
       case 'mascota':
-        return <Mascota />
+        return <Mascota />;
       default:
         return <Producto />;
     }
