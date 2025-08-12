@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
-import { User, Edit, Camera, Mail, Phone, MapPin, Shield } from 'lucide-react';
+import { User, Edit, Camera, Mail, Phone, MapPin, Shield, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { useRouter } from 'next/navigation';
 
 export default function PerfilPage() {
   const { user, updateUser } = useAuth();
+  const router = useRouter();
+
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -86,16 +89,30 @@ export default function PerfilPage() {
     return null;
   }
 
+  const handleBackClick = () => {
+    router.push('/');
+  };
+
   return (
-    <ProtectedRoute>
+      <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
         <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-4xl">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-            <div className="text-center md:text-left">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                onClick={handleBackClick}
+                className="mr-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
+              </Button>
+            </div>
+            {/* <div className="text-center md:text-left">
               <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Mi Perfil</h1>
               <p className="text-gray-600 text-lg">Gestiona tu información personal</p>
-            </div>
+            </div> */}
             <div className="flex gap-2">
               <Button 
                 onClick={() => setIsEditing(!isEditing)}
@@ -113,7 +130,7 @@ export default function PerfilPage() {
             <div className="lg:col-span-1">
               <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden h-full">
                 <div className="bg-[#a06ba5] px-6 py-4">
-                  <h2 className="text-xl font-bold text-white">Información Personal</h2>
+                  <h2 className="text-xl text-center font-bold text-white">Datos Basicos</h2>
                 </div>
                 
                 <div className="p-6">

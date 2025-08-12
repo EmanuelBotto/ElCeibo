@@ -1,6 +1,6 @@
 "use client";
 
-
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -15,90 +15,169 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
+interface StatItem {
+  title: string;
+  value: string;
+  change: string;
+  icon: React.ComponentType<any>;
+  color: string;
+  bgColor: string;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  message: string;
+  time: string;
+  icon: React.ComponentType<any>;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<StatItem[]>([]);
+  const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const stats = [
-    {
-      title: "Total Clientes",
-      value: "1,234",
-      change: "+12%",
-      icon: Users,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100"
-    },
-    {
-      title: "Productos Activos",
-      value: "567",
-      change: "+5%",
-      icon: Package,
-      color: "text-green-600",
-      bgColor: "bg-green-100"
-    },
-    {
-      title: "Fichas Creadas",
-      value: "89",
-      change: "+23%",
-      icon: FileText,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100"
-    },
-    {
-      title: "Ingresos del Mes",
-      value: "$45,678",
-      change: "+8%",
-      icon: DollarSign,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100"
-    }
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Obtener estadísticas
+        const statsResponse = await fetch('/api/dashboard/stats');
+        const statsData = await statsResponse.json();
+        
+        // Obtener actividades recientes
+        const activitiesResponse = await fetch('/api/dashboard/activities');
+        const activitiesData = await activitiesResponse.json();
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: "cliente",
-      message: "Nuevo cliente registrado: Rosame el ano",
-      time: "Hace 5 minutos",
-      icon: Users
-    },
-    {
-      id: 2,
-      type: "producto",
-      message: "Producto agregado: Vacuna Triple Felina",
-      time: "Hace 15 minutos",
-      icon: Package
-    },
-    {
-      id: 3,
-      type: "ficha",
-      message: "Ficha actualizada: Mascota 'Luna'",
-      time: "Hace 1 hora",
-      icon: FileText
-    },
-    {
-      id: 4,
-      type: "venta",
-      message: "Venta realizada: $150.00",
-      time: "Hace 2 horas",
-      icon: DollarSign
-    }
-  ];
+        // Mapear estadísticas con iconos
+        const statsWithIcons: StatItem[] = [
+          {
+            title: "Total Clientes",
+            value: statsData.totalClientes?.valor?.toLocaleString() || "0",
+            change: `${statsData.totalClientes?.cambio >= 0 ? '+' : ''}${statsData.totalClientes?.cambio || 0}%`,
+            icon: Users,
+            color: "text-blue-600",
+            bgColor: "bg-blue-100"
+          },
+          {
+            title: "Productos Activos",
+            value: statsData.totalProductos?.valor?.toLocaleString() || "0",
+            change: `${statsData.totalProductos?.cambio >= 0 ? '+' : ''}${statsData.totalProductos?.cambio || 0}%`,
+            icon: Package,
+            color: "text-green-600",
+            bgColor: "bg-green-100"
+          },
+          {
+            title: "Fichas Creadas",
+            value: statsData.totalMascotas?.valor?.toLocaleString() || "0",
+            change: `${statsData.totalMascotas?.cambio >= 0 ? '+' : ''}${statsData.totalMascotas?.cambio || 0}%`,
+            icon: FileText,
+            color: "text-purple-600",
+            bgColor: "bg-purple-100"
+          },
+          {
+            title: "Ingresos del Mes",
+            value: `$${statsData.ingresosMes?.valor?.toLocaleString() || "0"}`,
+            change: `${statsData.ingresosMes?.cambio >= 0 ? '+' : ''}${statsData.ingresosMes?.cambio || 0}%`,
+            icon: DollarSign,
+            color: "text-orange-600",
+            bgColor: "bg-orange-100"
+          }
+        ];
+
+        // Mapear actividades con iconos
+        const activitiesWithIcons: ActivityItem[] = activitiesData.map((activity: any) => {
+          const iconMap: { [key: string]: React.ComponentType<any> } = {
+            'Users': Users,
+            'Package': Package,
+            'FileText': FileText,
+            'DollarSign': DollarSign
+          };
+          
+          return {
+            ...activity,
+            icon: iconMap[activity.icon] || Activity
+          };
+        });
+
+        setStats(statsWithIcons);
+        setRecentActivities(activitiesWithIcons);
+      } catch (error) {
+        console.error('Error al cargar datos del dashboard:', error);
+        // En caso de error, usar datos por defecto
+        setStats([
+          {
+            title: "Total Clientes",
+            value: "0",
+            change: "0%",
+            icon: Users,
+            color: "text-blue-600",
+            bgColor: "bg-blue-100"
+          },
+          {
+            title: "Productos Activos",
+            value: "0",
+            change: "0%",
+            icon: Package,
+            color: "text-green-600",
+            bgColor: "bg-green-100"
+          },
+          {
+            title: "Fichas Creadas",
+            value: "0",
+            change: "0%",
+            icon: FileText,
+            color: "text-purple-600",
+            bgColor: "bg-purple-100"
+          },
+          {
+            title: "Ingresos del Mes",
+            value: "$0",
+            change: "0%",
+            icon: DollarSign,
+            color: "text-orange-600",
+            bgColor: "bg-orange-100"
+          }
+        ]);
+        setRecentActivities([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="p-8 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando datos del dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 space-y-6">
       {/* Header del Dashboard */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          {/* <h1 className="text-3xl font-bold text-gray-900">
             ¡Bienvenido, {user?.nombre}!
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Aquí tienes un resumen de la actividad de El Ceibo
-          </p>
+          </h1> */}
+                     <p className="text-2xl text-black mt-1">
+             Resumen de actividades
+           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Calendar className="text-gray-400" size={20} />
-          <span className="text-gray-600">
+          <Calendar className="text-black" size={20} />
+          <span className="text-black">
             {new Date().toLocaleDateString('es-ES', { 
               weekday: 'long', 
               year: 'numeric', 
@@ -125,7 +204,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                <p className="text-xs text-green-600 mt-1">
+                <p className={`text-xs mt-1 ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
                   <TrendingUp className="inline h-3 w-3 mr-1" />
                   {stat.change} desde el mes pasado
                 </p>
@@ -141,29 +220,35 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Activity className="h-5 w-5 text-black" />
-              <span>Actividad Reciente</span>
+              <Activity className="h-5 w-5 text-purple-600" />
+              <span className="text-black">Actividad Reciente</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivities.map((activity) => {
-                const Icon = activity.icon;
-                return (
-                  <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50">
-                    <div className="p-2 bg-purple-100 rounded-full">
-                      <Icon className="h-4 w-4 text-purple-600" />
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity) => {
+                  const Icon = activity.icon;
+                  return (
+                    <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50">
+                      <div className="p-2 bg-purple-100 rounded-full">
+                        <Icon className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{activity.message}</p>
+                        <p className="text-xs text-gray-500 flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {activity.time}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{activity.message}</p>
-                      <p className="text-xs text-gray-500 flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {activity.time}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No hay actividades recientes</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -173,25 +258,25 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <PawPrint className="h-5 w-5 text-purple-600" />
-              <span>Información del Sistema</span>
+              <span className="text-black">Información del Sistema</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Versión del Sistema</span>
-                <span className="text-sm font-medium">v2.1.0</span>
+                <span className="text-sm text-black">Versión del Sistema</span>
+                <span className="text-sm font-medium text-black">v1.0.0</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Última Actualización</span>
+              {/* <div className="flex items-center justify-between">
+                <span className="text-sm text-black">Última Actualización</span>
                 <span className="text-sm font-medium">Hace 2 días</span>
-              </div>
+              </div> */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Estado del Servidor</span>
+                <span className="text-sm text-black">Estado del Servidor</span>
                 <span className="text-sm font-medium text-green-600">Online</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Base de Datos</span>
+                <span className="text-sm text-black">Base de Datos</span>
                 <span className="text-sm font-medium text-green-600">Conectada</span>
               </div>
             </div>
@@ -211,8 +296,8 @@ export default function DashboardPage() {
                 Sistema El Ceibo
               </h3>
               <p className="text-gray-600 mt-1">
-                Tu sistema de gestión veterinaria está funcionando correctamente. 
-                Utiliza la barra lateral para navegar entre las diferentes secciones.
+                Sistema de gestión veterinaria creado como proyecto final de la carrera
+                desarrollador de software en Instituto Tecnologico el Molino (ITEC).
               </p>
             </div>
           </div>

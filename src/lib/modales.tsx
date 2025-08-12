@@ -39,13 +39,6 @@ export function useEgreso() {
                 tipo: "egreso"
             };
 
-            // Aquí puedes hacer la llamada a tu API para guardar el egreso
-            // Por ejemplo:
-            // const response = await fetch('/api/egresos', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify(egresoData)
-            // });
 
             console.log("Egreso guardado:", egresoData);
             

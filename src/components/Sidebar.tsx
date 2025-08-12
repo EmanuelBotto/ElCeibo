@@ -61,12 +61,12 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       icon: Pill,
       description: 'Gestión de medicamentos'
     },
-    {
+    /*	{
       id: 'usuarios',
       label: 'Usuarios',
       icon: Users,
       description: 'Gestión de usuarios'
-    }
+    }*/
   ];
 
   const handleTabClick = (tabId: string) => {

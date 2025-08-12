@@ -3,11 +3,9 @@
 import React, { useState } from "react";
 import Caja from './Ventana/caja';
 import Producto from './Ventana/producto';
-import Item from './Ventana/item';
 import FichasClientes from './Ventana/fichas-clientes';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
-import UsuariosPage from './usuarios/page';
 import Mascota from './Ventana/mascota';
 
 export default function HomePage() {

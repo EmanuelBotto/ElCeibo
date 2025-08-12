@@ -19,7 +19,8 @@ import {
   MapPin,
   ArrowLeft,
   Camera,
-  Upload
+  Upload,
+  User
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -241,64 +242,62 @@ export default function UsuariosPage() {
 
   return (
     <ProtectedRoute requiredRole="admin">
-      <div className="p-8 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="outline"
-              onClick={handleBackClick}
-              className="mr-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-            <Users className="h-8 w-8 text-purple-600" />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
-              <p className="text-gray-600">Administra los usuarios del sistema</p>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-7xl">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                onClick={handleBackClick}
+                className="mr-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  setShowCreateForm(true);
+                  setEditingUser(null);
+                  resetForm();
+                }}
+                className="px-6 py-2"
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Nuevo Usuario
+              </Button>
             </div>
           </div>
-          <Button
-            onClick={() => {
-              setShowCreateForm(true);
-              setEditingUser(null);
-              resetForm();
-            }}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            <UserPlus className="mr-2 h-4 w-4" />
-            Nuevo Usuario
-          </Button>
-        </div>
 
-        {/* Barra de búsqueda */}
-        <div className="flex items-center space-x-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Buscar usuarios..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          {/* Barra de búsqueda */}
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Buscar usuarios..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-12"
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Formulario de creación/edición */}
-        {showCreateForm && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Edit className="h-5 w-5" />
-                <span>{editingUser ? 'Editar Usuario' : 'Crear Nuevo Usuario'}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          {/* Formulario de creación/edición */}
+          {showCreateForm && (
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-6">
+              <div className="bg-[#a06ba5] px-6 py-4">
+                <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+                  <Edit className="h-5 w-5" />
+                  <span>{editingUser ? 'Editar Usuario' : 'Crear Nuevo Usuario'}</span>
+                </h2>
+              </div>
+              <div className="p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="usuario">Usuario *</Label>
+                    <Label htmlFor="usuario" className="text-gray-700 font-semibold">Usuario *</Label>
                     <Input
                       id="usuario"
                       name="usuario"
@@ -306,16 +305,17 @@ export default function UsuariosPage() {
                       onChange={handleInputChange}
                       required
                       disabled={!!editingUser}
+                      className="mt-1 h-12"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="tipo_usuario">Tipo de Usuario *</Label>
+                    <Label htmlFor="tipo_usuario" className="text-gray-700 font-semibold">Tipo de Usuario *</Label>
                     <select
                       id="tipo_usuario"
                       name="tipo_usuario"
                       value={formData.tipo_usuario}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 h-12 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                       required
                     >
                       <option value="admin">Administrador</option>
@@ -324,27 +324,29 @@ export default function UsuariosPage() {
                     </select>
                   </div>
                   <div>
-                    <Label htmlFor="nombre">Nombre *</Label>
+                    <Label htmlFor="nombre" className="text-gray-700 font-semibold">Nombre *</Label>
                     <Input
                       id="nombre"
                       name="nombre"
                       value={formData.nombre}
                       onChange={handleInputChange}
                       required
+                      className="mt-1 h-12"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="apellido">Apellido *</Label>
+                    <Label htmlFor="apellido" className="text-gray-700 font-semibold">Apellido *</Label>
                     <Input
                       id="apellido"
                       name="apellido"
                       value={formData.apellido}
                       onChange={handleInputChange}
                       required
+                      className="mt-1 h-12"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email" className="text-gray-700 font-semibold">Email *</Label>
                     <Input
                       id="email"
                       name="email"
@@ -352,49 +354,54 @@ export default function UsuariosPage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
+                      className="mt-1 h-12"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="telefono">Teléfono</Label>
+                    <Label htmlFor="telefono" className="text-gray-700 font-semibold">Teléfono</Label>
                     <Input
                       id="telefono"
                       name="telefono"
                       value={formData.telefono}
                       onChange={handleInputChange}
+                      className="mt-1 h-12"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="calle">Calle</Label>
+                    <Label htmlFor="calle" className="text-gray-700 font-semibold">Calle</Label>
                     <Input
                       id="calle"
                       name="calle"
                       value={formData.calle}
                       onChange={handleInputChange}
+                      className="mt-1 h-12"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="numero">Número</Label>
+                    <Label htmlFor="numero" className="text-gray-700 font-semibold">Número</Label>
                     <Input
                       id="numero"
                       name="numero"
                       type="number"
                       value={formData.numero}
                       onChange={handleInputChange}
+                      className="mt-1 h-12"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="codigo_postal">Código Postal</Label>
+                    <Label htmlFor="codigo_postal" className="text-gray-700 font-semibold">Código Postal</Label>
                     <Input
                       id="codigo_postal"
                       name="codigo_postal"
                       type="number"
                       value={formData.codigo_postal}
                       onChange={handleInputChange}
+                      className="mt-1 h-12"
                     />
                   </div>
                                      {!editingUser && (
                      <div className="md:col-span-2">
-                       <Label htmlFor="contrasenia">Contraseña *</Label>
+                       <Label htmlFor="contrasenia" className="text-gray-700 font-semibold">Contraseña *</Label>
                        <Input
                          id="contrasenia"
                          name="contrasenia"
@@ -402,13 +409,14 @@ export default function UsuariosPage() {
                          value={formData.contrasenia}
                          onChange={handleInputChange}
                          required={!editingUser}
+                         className="mt-1 h-12"
                        />
                      </div>
                    )}
                    
                    {/* Sección de foto de perfil */}
                    <div className="md:col-span-2">
-                     <Label>Foto de Perfil</Label>
+                     <Label className="text-gray-700 font-semibold">Foto de Perfil</Label>
                      <div className="mt-2 flex items-center space-x-4">
                        <div className="relative">
                          <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-300 flex items-center justify-center">
@@ -445,105 +453,134 @@ export default function UsuariosPage() {
                      </div>
                    </div>
                 </div>
-                <div className="flex space-x-2">
-                  <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
-                    {editingUser ? 'Actualizar Usuario' : 'Crear Usuario'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowCreateForm(false);
-                      setEditingUser(null);
-                      resetForm();
-                    }}
-                  >
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => {
+                    setShowCreateForm(false);
+                    setEditingUser(null);
+                    resetForm();
+                  }}>
                     Cancelar
+                  </Button>
+                  <Button type="submit">
+                    {editingUser ? 'Actualizar Usuario' : 'Crear Usuario'}
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
-        )}
+              </div>
+            </div>
+          )}
 
-        {/* Lista de usuarios */}
-        <div className="grid gap-4">
-          {filteredUsers.map((user) => (
-            <Card key={user.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                                 <div className="flex items-center justify-between">
-                   <div className="flex items-center space-x-4">
-                     <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
-                       {user.foto ? (
-                         <img
-                           src={user.foto}
-                           alt={`${user.nombre} ${user.apellido}`}
-                           className="w-full h-full object-cover"
-                         />
-                       ) : (
-                         <User className="h-6 w-6 text-purple-600" />
-                       )}
-                     </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">
-                        {user.nombre} {user.apellido}
-                      </h3>
-                      <p className="text-gray-600">@{user.usuario}</p>
-                      <div className="flex items-center space-x-4 mt-1">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+          {/* Lista de usuarios */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {filteredUsers.map((user) => (
+              <div key={user.id_usuario} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <div className="bg-[#a06ba5] px-6 py-4">
+                  <h3 className="text-lg font-bold text-white">
+                    {user.nombre} {user.apellido}
+                  </h3>
+                  <p className="text-purple-100">@{user.usuario}</p>
+                </div>
+                
+                <div className="p-6">
+                  <div className="flex items-start space-x-4">
+                    {/* Foto de perfil */}
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {user.foto ? (
+                        <img
+                          src={user.foto}
+                          alt={`${user.nombre} ${user.apellido}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="h-8 w-8 text-purple-600" />
+                      )}
+                    </div>
+                    
+                    {/* Información del usuario */}
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Shield className="text-purple-600" size={16} />
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 capitalize">
                           {user.tipo_usuario}
                         </span>
-                        {user.email && (
-                          <span className="text-sm text-gray-500 flex items-center">
-                            <Mail className="h-3 w-3 mr-1" />
-                            {user.email}
-                          </span>
-                        )}
-                        {user.telefono && (
-                          <span className="text-sm text-gray-500 flex items-center">
-                            <Phone className="h-3 w-3 mr-1" />
-                            {user.telefono}
-                          </span>
-                        )}
                       </div>
+                      
+                      {user.email && (
+                        <div className="flex items-center space-x-2">
+                          <Mail className="text-purple-600" size={16} />
+                          <span className="text-sm text-gray-700">{user.email}</span>
+                        </div>
+                      )}
+                      
+                      {user.telefono && (
+                        <div className="flex items-center space-x-2">
+                          <Phone className="text-purple-600" size={16} />
+                          <span className="text-sm text-gray-700">{user.telefono}</span>
+                        </div>
+                      )}
+                      
+                      {(user.calle && user.numero) && (
+                        <div className="flex items-center space-x-2">
+                          <MapPin className="text-purple-600" size={16} />
+                          <span className="text-sm text-gray-700">
+                            {user.calle} {user.numero}{user.codigo_postal && `, CP ${user.codigo_postal}`}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                  
+                  {/* Botones de acción */}
+                  <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-100">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(user)}
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-4 w-4 mr-1" />
+                      Editar
                     </Button>
-                                         {user.id_usuario !== currentUser?.id_usuario && (
+                    {user.id_usuario !== currentUser?.id_usuario && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleDelete(user.id_usuario)}
                         className="text-red-600 hover:text-red-700"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Eliminar
                       </Button>
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-8">
-            <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm ? 'No se encontraron usuarios' : 'No hay usuarios registrados'}
-            </h3>
-            <p className="text-gray-600">
-              {searchTerm ? 'Intenta con otros términos de búsqueda' : 'Crea el primer usuario del sistema'}
-            </p>
+              </div>
+            ))}
           </div>
-        )}
+
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-12">
+              <Users className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+              <h3 className="text-xl font-medium text-gray-900 mb-2">
+                {searchTerm ? 'No se encontraron usuarios' : 'No hay usuarios registrados'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm ? 'Intenta con otros términos de búsqueda' : 'Crea el primer usuario del sistema'}
+              </p>
+              {!searchTerm && (
+                <Button
+                  onClick={() => {
+                    setShowCreateForm(true);
+                    setEditingUser(null);
+                    resetForm();
+                  }}
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Crear Usuario
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </ProtectedRoute>
   );
