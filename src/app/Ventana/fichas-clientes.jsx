@@ -134,8 +134,8 @@ export default function FichasClientes() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-7xl flex flex-col gap-6">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8 px-4">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-6 md:p-10 w-full max-w-6xl mx-auto flex flex-col gap-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
           <div className="text-center md:text-left">
             <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Fichas de Clientes</h1>

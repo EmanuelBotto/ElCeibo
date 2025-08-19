@@ -263,7 +263,7 @@ export default function Producto() {
         validarNumero(producto.porcentaje_final) : 
         validarNumero(producto.porcentaje_mayorista);
     
-    const precio = precio_base * (1 + porcentaje / 100);
+    const precio = precio_base * porcentaje;
     return isNaN(precio) ? 0 : precio;
   };
 

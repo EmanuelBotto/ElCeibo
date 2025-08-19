@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
-import { User, Edit, Camera, Mail, Phone, MapPin, Shield, ArrowLeft } from 'lucide-react';
+import { User, Edit, Camera, Mail, Phone, MapPin, Shield, ArrowLeft, LogOut } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 
 export default function PerfilPage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -93,6 +93,11 @@ export default function PerfilPage() {
     router.push('/');
   };
 
+  //const handleLogout = () => {
+  //  logout();
+  //  router.push('/login');
+  //};
+
   return (
       <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
@@ -122,6 +127,15 @@ export default function PerfilPage() {
                 <Edit className="mr-2" size={16} />
                 {isEditing ? 'Cancelar' : 'Editar Perfil'}
               </Button>
+              
+              {/*<Button
+                variant="outline"
+                onClick={handleLogout}
+                className="border-red-300 text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar Sesión
+              </Button> */}
             </div>
           </div>
 
