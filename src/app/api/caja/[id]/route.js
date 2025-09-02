@@ -7,70 +7,64 @@ const connectionString = 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-ba
 
 const pool = new Pool({ connectionString });
 
-export async function PUT(request, { params}) {
-    const { id } = params
-
+export async function POST(request) {
     try {
-        const factura = await request.json();
+        const egresoData = await request.json();
         
+        // Obtener fecha y hora actual automáticamente
+        const fechaActual = new Date();
+        const dia = fechaActual.getDate();
+        const mes = fechaActual.getMonth() + 1; // getMonth() devuelve 0-11
+        const anio = fechaActual.getFullYear();
+        const horas = String(fechaActual.getHours()).padStart(2, '0');
+        const minutos = String(fechaActual.getMinutes()).padStart(2, '0');
+        const hora = `${horas}:${minutos}`;
+
         const client = await pool.connect();
-
+        
         try {
-            const checkQuery = 'SELECT * FROM factura WHERE id_factura = $1';
-            const checkResult = await client.query(checkQuery, [id]);
+            // Convertir array de formas de pago a string
+            const formaPago = Array.isArray(egresoData.formasPago) 
+                ? egresoData.formasPago.join(' - ') 
+                : egresoData.formasPago || '';
 
-            if (checkResult.rows.length === 0) {
-                console.log('Factura no encontrada en la base de datos');
-                return NextResponse.json(
-                    { error: 'Factura no encontrada' },
-                    { status: 404 }
-                );
-            }
+                console.log(formaPago);
 
             const query = `
-                UPDATE factura 
-                SET 
-                    dia = COALESCE($1, dia),
-                    mes = COALESCE($2, mes),
-                    anio = COALESCE($3, anio),
-                    hora = COALESCE($4, hora),
-                    tipo_factura = COALESCE($5, tipo_factura),
-                    forma_de_pago = COALESCE($6, forma_de_pago),
-                    total = COALESCE($7, total),
-                    id_usuario = COALESCE($8, id_usuario)
-                WHERE id_factura = $9
+                INSERT INTO factura (
+                    dia, mes, anio, hora, tipo_factura, forma_de_pago, 
+                    monto_total, detalle, id_distribuidor, id_usuario
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING *
             `;
 
             const values = [
-                factura.dia,
-                factura.mes,
-                factura.anio,
-                factura.hora,
-                factura.tipo_factura,
-                factura.forma_de_pago,
-                factura.total,
-                factura.id_usuario,
-                factura.id_factura
+                dia,
+                mes,
+                anio,
+                hora,
+                egresoData.tipo || 'otros',
+                formaPago,
+                egresoData.monto,
+                egresoData.detalle || null,
+                egresoData.id_distribuidor || null,
+                egresoData.id_usuario || 1 // Usuario por defecto si no se especifica
             ];
 
-            const result = await client.query(query, values)
+            const result = await client.query(query, values);
 
-            if (result.rows.length === 0) {
-                console.log('No se pudo actualizar la factura');
-                return NextResponse.json(
-                    { error: 'No se pudo actualizar la factura' },
-                    { status: 500 }
-                );
-            }
+            return NextResponse.json({
+                success: true,
+                message: 'Egreso registrado exitosamente',
+                data: result.rows[0]
+            });
 
-            return NextResponse.json(result.rows[0]);
         } finally {
             client.release();
         }
     } catch (err) {
-        console.error('Error detallado en API /caja/[id]:', err);
-        return NextResponse.json({ error: 'Error en la base de datos: ' + err.message }, { status: 500 });
+        console.error('Error al registrar egreso:', err);
+        return NextResponse.json({ error: 'Error al registrar el egreso: ' + err.message }, { status: 500 });
     }
 }
 
