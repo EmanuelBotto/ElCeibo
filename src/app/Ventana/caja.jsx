@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use } from 'react'
+import React from 'react'
 import { useEgreso } from '@/lib/modales';
 import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/modal';
@@ -18,14 +18,28 @@ import {
 export default function Caja() {
     const [facturas, setFacturas] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { title, renderContent } = useEgreso();
-
-    useEffect(() => {
-        const obtenerFacturas = async () => {
+    
+    const obtenerFacturas = async () => {
+        try {
             const res = await fetch('/api/caja');
             const data = await res.json();
-            setFacturas(data);
+            
+            // Verificar si la respuesta es un array
+            if (Array.isArray(data)) {
+                setFacturas(data);
+            } else {
+                console.error('La API no devolvió un array:', data);
+                setFacturas([]);
+            }
+        } catch (error) {
+            console.error('Error al obtener facturas:', error);
+            setFacturas([]);
         }
+    };
+    
+    const { title, renderContent } = useEgreso({ onEgresoSuccess: obtenerFacturas });
+
+    useEffect(() => {
         obtenerFacturas();
     }, []);
 
@@ -62,7 +76,7 @@ export default function Caja() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {facturas.map((factura) => (
+                                    {Array.isArray(facturas) && facturas.map((factura) => (
                                         <TableRow key={factura.id_factura} className="hover:bg-gray-100 transition-colors">
                                             <TableCell className="text-center">
                                                 {`${factura.dia}/${factura.mes}/${factura.anio}`}
@@ -71,7 +85,7 @@ export default function Caja() {
                                                 {`${factura.hora}`}
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                {factura.tipo_factura ? 'Venta' : 'Compra'}
+                                                {factura.tipo_factura || 'N/A'}
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 {`${factura.forma_de_pago}`}

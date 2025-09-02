@@ -7,6 +7,7 @@ import FichasClientes from './Ventana/fichas-clientes';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
 import Mascota from './Ventana/mascota';
+import ListaPrecios from './Ventana/lista-precios';
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -23,6 +24,8 @@ export default function HomePage() {
         return <FichasClientes />;
       case 'mascota':
         return <Mascota />;
+      case 'ListaPrecios':
+        return <ListaPrecios />;
       default:
         return <DashboardPage />;
     }

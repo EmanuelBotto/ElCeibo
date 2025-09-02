@@ -13,10 +13,13 @@ import {
   TableCell,
   TableCaption,
 } from "@/components/ui/table";
+import Modal from "@/components/ui/modal";
+import { buildProductoFormContent } from "@/lib/modales";
 
 export default function Producto() {
-  // Llista de productos
+  // Lista de productos
   const [productos, setProductos] = useState([]);
+  const [tipos, setTipos] = useState([]);
   // Estado de carga
   const [cargando, setCargando] = useState(true);
   // Nuevo producto a crear
@@ -57,12 +60,45 @@ export default function Producto() {
       }
 
       const data = await res.json();
-      
-      // Nos aseguramos de que data sea un array
       if (Array.isArray(data)) {
+        // compat con respuesta anterior
         setProductos(data);
+        // Derivar tipos desde productos (si vinieron campos de tipo)
+        const tiposMap = new Map();
+        data.forEach((p) => {
+          if (!p) return;
+          const key = String(p.id_tipo ?? '');
+          if (!key) return;
+          if (!tiposMap.has(key)) {
+            tiposMap.set(key, {
+              id_tipo: p.id_tipo,
+              nombre: p.nombre_tipo,
+              porcentaje_final: p.porcentaje_final_tipo ?? p.porcentaje_final,
+              porcentaje_mayorista: p.porcentaje_mayorista_tipo ?? p.porcentaje_mayorista,
+            });
+          }
+        });
+        setTipos(Array.from(tiposMap.values()));
+      } else if (data && Array.isArray(data.productos)) {
+        setProductos(data.productos);
+        // Derivar tipos desde productos (usar porcentajes por defecto del tipo)
+        const tiposMap = new Map();
+        data.productos.forEach((p) => {
+          if (!p) return;
+          const key = String(p.id_tipo ?? '');
+          if (!key) return;
+          if (!tiposMap.has(key)) {
+            tiposMap.set(key, {
+              id_tipo: p.id_tipo,
+              nombre: p.nombre_tipo,
+              porcentaje_final: p.porcentaje_final_tipo ?? p.porcentaje_final,
+              porcentaje_mayorista: p.porcentaje_mayorista_tipo ?? p.porcentaje_mayorista,
+            });
+          }
+        });
+        setTipos(Array.from(tiposMap.values()));
       } else {
-        console.error('Los datos recibidos no son un array:', data);
+        console.error('Respuesta inesperada de /api/products:', data);
         setProductos([]);
       }
     } catch (err) {
@@ -177,6 +213,7 @@ export default function Producto() {
 
       const datosActualizacion = {
         nombre: productoEditando.nombre_producto.trim(),
+        marca: productoEditando.marca?.trim() || '',
         precio_costo: precio_costo,
         stock: stock,
         id_tipo: productoEditando.id_tipo,
@@ -263,7 +300,7 @@ export default function Producto() {
         validarNumero(producto.porcentaje_final) : 
         validarNumero(producto.porcentaje_mayorista);
     
-    const precio = precio_base * (1 + porcentaje / 100);
+    const precio = precio_base * porcentaje;
     return isNaN(precio) ? 0 : precio;
   };
 
@@ -409,111 +446,40 @@ export default function Producto() {
       </div>
 
       {/* Modal de nuevo producto */}
-      {mostrarFormulario && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-[350px]">
-            <h2 className="text-xl font-bold mb-4">Nuevo Producto</h2>
-            <div className="flex flex-col gap-2 mb-4">
-              <Label htmlFor="nombre">Nombre</Label>
-              <Input
-                id="nombre"
-                value={nuevoProducto.nombre}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })}
-                placeholder="Nombre"
-              />
-              <Label htmlFor="marca">Marca</Label>
-              <Input
-                id="marca"
-                value={nuevoProducto.marca}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, marca: e.target.value })}
-                placeholder="Marca"
-              />
-              <Label htmlFor="precio">Precio</Label>
-              <Input
-                id="precio"
-                type="number"
-                value={nuevoProducto.precio_costo}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio_costo: e.target.value })}
-                placeholder="Precio"
-              />
-              <Label htmlFor="stock">Stock</Label>
-              <Input
-                id="stock"
-                type="number"
-                value={nuevoProducto.stock}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, stock: e.target.value })}
-                placeholder="Stock"
-              />
-              <Label htmlFor="tipo">Tipo</Label>
-              <select
-                id="tipo"
-                value={nuevoProducto.id_tipo}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, id_tipo: e.target.value })}
-                className="border px-2 py-1 rounded"
-              >
-                <option value="1">Balanceado</option>
-                <option value="2">Medicamento</option>
-                <option value="3">Accesorio</option>
-                <option value="4">Acuario</option>
-              </select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setMostrarFormulario(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={crearProducto}>
-                Guardar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal isOpen={mostrarFormulario} onClose={() => setMostrarFormulario(false)} contentClassName="max-w-[960px]">
+        {buildProductoFormContent({
+          mode: "create",
+          nuevoProducto,
+          setNuevoProducto,
+          tipos,
+          onCancel: () => setMostrarFormulario(false),
+          onSubmit: crearProducto,
+        })}
+      </Modal>
 
       {/* Modal de edición de producto */}
-      {mostrarFormularioEdicion && productoEditando && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-[400px]">
-            <h2 className="text-xl font-bold mb-4">Editar Producto</h2>
-            <div className="flex flex-col gap-2 mb-4">
-              <Label htmlFor="nombreEdit">Nombre</Label>
-              <Input
-                id="nombreEdit"
-                value={productoEditando.nombre_producto || ''}
-                onChange={(e) => setProductoEditando({ ...productoEditando, nombre_producto: e.target.value })}
-                placeholder="Nombre"
-              />
-              <Label htmlFor="precioEdit">Precio Costo</Label>
-              <Input
-                id="precioEdit"
-                type="number"
-                value={productoEditando.precio_costo || ''}
-                onChange={(e) => setProductoEditando({ ...productoEditando, precio_costo: e.target.value })}
-                placeholder="Precio"
-              />
-              <Label htmlFor="stockEdit">Stock</Label>
-              <Input
-                id="stockEdit"
-                type="number"
-                value={productoEditando.stock || ''}
-                onChange={(e) => setProductoEditando({ ...productoEditando, stock: e.target.value })}
-                placeholder="Stock"
-              />
-              {/* Aquí puedes agregar más campos si lo deseas */}
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => {
-                setMostrarFormularioEdicion(false);
-                setProductoEditando(null);
-              }}>
-                Cancelar
-              </Button>
-              <Button onClick={actualizarProducto}>
-                Guardar Cambios
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={Boolean(mostrarFormularioEdicion && productoEditando)}
+        contentClassName="max-w-[960px]"
+        onClose={() => {
+          setMostrarFormularioEdicion(false);
+          setProductoEditando(null);
+        }}
+      >
+        {buildProductoFormContent({
+          mode: "edit",
+          productoEditando,
+          setProductoEditando,
+          tipos,
+          porcentajePersonalizado,
+          setPorcentajePersonalizado,
+          onCancel: () => {
+            setMostrarFormularioEdicion(false);
+            setProductoEditando(null);
+          },
+          onSubmit: actualizarProducto,
+        })}
+      </Modal>
     </div>
   );
 }

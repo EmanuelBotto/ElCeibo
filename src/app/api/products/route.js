@@ -12,17 +12,21 @@ export async function GET() {
   try {
     const client = await pool.connect();
     try {
-      
       const result = await client.query(`
         SELECT 
           p.id_producto,
           p.stock,
           p.nombre AS nombre_producto,
+          p.marca,
+          p.id_tipo,
           p.precio_costo,
           p.modificado,
           t.nombre AS nombre_tipo,
+          -- Porcentajes efectivos (por producto) y por defecto (por tipo)
           COALESCE(dl.porcentaje_final, t.porcentaje_final) as porcentaje_final,
-          COALESCE(dl.porcentaje_mayorista, t.porcentaje_mayorista) as porcentaje_mayorista
+          COALESCE(dl.porcentaje_mayorista, t.porcentaje_mayorista) as porcentaje_mayorista,
+          t.porcentaje_final as porcentaje_final_tipo,
+          t.porcentaje_mayorista as porcentaje_mayorista_tipo
         FROM 
           producto p
         INNER JOIN
@@ -43,8 +47,8 @@ export async function GET() {
         ) dl ON p.id_producto = dl.id_producto AND p.modificado = true
         ORDER BY p.id_producto
       `);
-      
-      return NextResponse.json(result.rows);
+
+      return NextResponse.json({ productos: result.rows });
     } finally {
       client.release();
     }
