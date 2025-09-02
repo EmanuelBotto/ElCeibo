@@ -13,11 +13,13 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useRouter } from 'next/navigation';
 import Logo from './Logo';
+import ReportesModal from './ReportesModal';
 
 interface SidebarProps {
   activeTab: string;
@@ -26,6 +28,7 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isReportesModalOpen, setIsReportesModalOpen] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -87,6 +90,10 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     router.push('/login');
   };
 
+  const handleReportesClick = () => {
+    setIsReportesModalOpen(true);
+  };
+
   return (
     <div className={`bg-[#a06ba5] text-white transition-all duration-500 ease-out ${
       isCollapsed ? 'w-16' : 'w-64'
@@ -112,8 +119,8 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
          </Button>
        </div>
 
-             {/* Menú principal */}
-       <div className="h-96 py-4 overflow-hidden">
+                           {/* Menú principal */}
+       <div className="flex-1 py-4 overflow-hidden">
          <nav className="space-y-2 px-3 h-full overflow-y-auto">
            {menuItems.map((item) => {
              const Icon = item.icon;
@@ -139,60 +146,88 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
          </nav>
        </div>
 
-             {/* Footer con información del usuario */}
-       <div className="h-48 p-4 border-t border-purple-400 flex flex-col">
-         <div className={`mb-4 transition-all duration-300 ${
-           isCollapsed ? 'opacity-0' : 'opacity-100'
-         }`}>
-           <div className="flex items-center space-x-3 mb-3">
-             <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-               <User size={16} className="text-[#a06ba5]" />
-             </div>
-             <div className="flex-1">
-               <p className="text-sm font-medium text-black">{user?.nombre} {user?.apellido}</p>
-               <p className="text-xs text-black opacity-75 capitalize">{user?.tipo_usuario}</p>
+                                                       {/* Footer con información del usuario */}
+       <div className="flex-1 p-4 flex flex-col min-h-0">
+         {/* Área principal del footer */}
+         <div className="flex-1"></div>
+         
+         {/* Información del usuario y botones juntos al final */}
+         <div className="space-y-3">
+           <div className={`transition-all duration-300 ${
+             isCollapsed ? 'opacity-0' : 'opacity-100'
+           }`}>
+             <div className="flex items-center space-x-3">
+               <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                 <User size={16} className="text-[#a06ba5]" />
+               </div>
+               <div className="flex-1">
+                 <p className="text-sm font-medium text-black">{user?.nombre} {user?.apellido}</p>
+                 <p className="text-xs text-black opacity-75 capitalize">{user?.tipo_usuario}</p>
+               </div>
              </div>
            </div>
-         </div>
-        
-         <div className="space-y-2 flex-1">
-           <Button
-             variant="ghost"
-             size="sm"
-             className={`w-full hover:bg-purple-400 h-10 min-w-[40px] ${
-               isCollapsed ? 'justify-center' : 'justify-start'
-             } text-black`}
-             onClick={handleUserManagementClick}
-           >
-             <Settings size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
-             {!isCollapsed && <span className="text-black">Modificar Usuarios</span>}
-           </Button>
            
-           <Button
-             variant="ghost"
-             size="sm"
-             className={`w-full hover:bg-purple-400 h-10 min-w-[40px] ${
-               isCollapsed ? 'justify-center' : 'justify-start'
-             } text-black`}
-             onClick={handleProfileClick}
-           >
-             <User size={20} className={`${isCollapsed ? '': 'mr-3'} text-black`} />
-             {!isCollapsed && <span className="text-black">Mi Perfil</span>}
-           </Button>
-           
-           <Button
-             variant="ghost"
-             size="sm"
-             className={`w-full hover:bg-red-100 hover:text-red-700 h-10 min-w-[40px] ${
-               isCollapsed ? 'justify-center' : 'justify-start'
-             } text-red-600`}
-             onClick={handleLogout}
-           >
-             <LogOut size={20} className="text-red-600" />
-             {!isCollapsed && <span>Cerrar Sesión</span>}
-           </Button>
+                                             {/* Línea divisoria */}
+            <div className="border-t border-purple-400 pt-3"></div>
+            
+            {/* Todos los botones del footer juntos */}
+            <div className="space-y-1">
+             <Button
+               variant="ghost"
+               size="sm"
+               className={`w-full hover:bg-purple-400 h-8 min-w-[40px] ${
+                 isCollapsed ? 'justify-center' : 'justify-start'
+               } text-black`}
+               onClick={handleReportesClick}
+             >
+               <BarChart3 size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
+               {!isCollapsed && <span className="text-black">Reportes</span>}
+             </Button>
+             
+             <Button
+               variant="ghost"
+               size="sm"
+               className={`w-full hover:bg-purple-400 h-8 min-w-[40px] ${
+                 isCollapsed ? 'justify-center' : 'justify-start'
+               } text-black`}
+               onClick={handleUserManagementClick}
+             >
+               <Settings size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
+               {!isCollapsed && <span className="text-black">Modificar Usuarios</span>}
+             </Button>
+             
+             <Button
+               variant="ghost"
+               size="sm"
+               className={`w-full hover:bg-purple-400 h-8 min-w-[40px] ${
+                 isCollapsed ? 'justify-center' : 'justify-start'
+               } text-black`}
+               onClick={handleProfileClick}
+             >
+               <User size={20} className={`${isCollapsed ? '': 'mr-3'} text-black`} />
+               {!isCollapsed && <span className="text-black">Mi Perfil</span>}
+             </Button>
+             
+             <Button
+               variant="ghost"
+               size="sm"
+               className={`w-full hover:bg-red-100 hover:text-red-700 h-8 min-w-[40px] ${
+                 isCollapsed ? 'justify-center' : 'justify-start'
+               } text-red-600`}
+               onClick={handleLogout}
+             >
+               <LogOut size={20} className={`${isCollapsed ? '': 'mr-3'} text-red-600`} />
+               {!isCollapsed && <span>Cerrar Sesión</span>}
+             </Button>
+           </div>
          </div>
        </div>
+       
+       {/* Modal de Reportes */}
+       <ReportesModal 
+         isOpen={isReportesModalOpen} 
+         onClose={() => setIsReportesModalOpen(false)} 
+       />
     </div>
   );
 } 

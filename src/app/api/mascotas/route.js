@@ -1,143 +1,247 @@
 "use server";
 
-import { NextResponse } from 'next/server';
-import pkg from 'pg';
+import { Pool } from "pg";
 
-const { Pool } = pkg;
+const pool = new Pool({
+    connectionString: 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-base-ac7ax3c8-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require'
+});
 
-const connectionString = 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-base-ac7ax3c8-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require';
-
-const pool = new Pool({ connectionString });
-
+// GET - Obtener todas las mascotas
 export async function GET() {
-  try {
-    const client = await pool.connect();
     try {
-      const result = await client.query(`
-        SELECT 
-          id_mascota,
-          nombre,
-          especie,
-          raza,
-          sexo,
-          edad,
-          peso,
-          foto,
-          estado_reproductivo,
-          dia,
-          mes,
-          anio,
-          id_cliente
-        FROM 
-          mascota
-        ORDER BY 
-          nombre
-      `);
-      
-      return NextResponse.json(result.rows);
-    } finally {
-      client.release();
+        const result = await pool.query(`
+            SELECT 
+                id_mascota,
+                nombre,
+                especie,
+                raza,
+                sexo,
+                edad,
+                peso,
+                foto,
+                estado_reproductivo,
+                dia,
+                mes,
+                anio,
+                id_cliente
+            FROM mascota 
+            ORDER BY nombre
+            LIMIT 100
+        `);
+
+        // Convertir las fotos BYTEA a Base64 para el frontend
+        const mascotasConFotos = result.rows.map((mascota, index) => {
+            console.log(`Mascota ${index + 1} - nombre: ${mascota.nombre}`);
+            console.log(`Mascota ${index + 1} - foto type:`, typeof mascota.foto);
+            console.log(`Mascota ${index + 1} - foto is Buffer:`, Buffer.isBuffer(mascota.foto));
+            
+            if (mascota.foto) {
+                console.log(`Mascota ${index + 1} - foto length:`, mascota.foto.length);
+                
+                // Verificar que la imagen no sea demasiado grande (máximo 2MB)
+                if (mascota.foto.length > 2 * 1024 * 1024) {
+                    console.log(`Mascota ${index + 1} - imagen demasiado grande, omitiendo`);
+                    return {
+                        ...mascota,
+                        foto: null
+                    };
+                }
+                
+                console.log(`Mascota ${index + 1} - foto first 50 bytes:`, mascota.foto.toString('hex').substring(0, 100));
+                
+                const base64String = mascota.foto.toString('base64');
+                console.log(`Mascota ${index + 1} - base64 length:`, base64String.length);
+                console.log(`Mascota ${index + 1} - base64 first 50 chars:`, base64String.substring(0, 50));
+                
+                const finalString = `data:image/jpeg;base64,${base64String}`;
+                console.log(`Mascota ${index + 1} - final string length:`, finalString.length);
+                console.log(`Mascota ${index + 1} - final string starts with:`, finalString.substring(0, 50));
+                
+                return {
+                    ...mascota,
+                    foto: finalString
+                };
+            } else {
+                console.log(`Mascota ${index + 1} - no foto`);
+                return {
+                    ...mascota,
+                    foto: null
+                };
+            }
+        });
+
+        return new Response(JSON.stringify(mascotasConFotos), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (err) {
+        console.error('Error al obtener mascotas:', err);
+        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
-  } catch (err) {
-    console.error('Error detallado en API /mascotas:', err);
-    return NextResponse.json({ error: 'Error en la base de datos: ' + err.message }, { status: 500 });
-  }
 }
 
+// POST - Crear nueva mascota
 export async function POST(request) {
-  try {
-    const client = await pool.connect();
     try {
-      const body = await request.json();
-      console.log('Datos recibidos para mascota:', body);
+        const { nombre, especie, raza, edad, peso, foto, id_cliente } = await request.json();
+        
+        // Validaciones básicas
+        if (!nombre || !especie) {
+            return new Response(JSON.stringify({ error: 'Nombre y especie son requeridos' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
 
-      const {
-        nombre,
-        especie,
-        raza,
-        sexo,
-        edad,
-        peso,
-        foto, // Se asume que la foto viene en un formato compatible (ej. base64)
-        estado_reproductivo,
-        dia,
-        mes,
-        anio,
-        id_cliente
-      } = body;
+        // Validar tamaño de la foto (máximo 5MB en Base64)
+        if (foto && foto.length > 7 * 1024 * 1024) { // ~5MB en Base64
+            return new Response(JSON.stringify({ error: 'La imagen es demasiado grande. Máximo 5MB.' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
 
-      // Validaciones básicas
-      if (!nombre?.trim()) {
-        return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
-      }
-      if (!especie?.trim()) {
-        return NextResponse.json({ error: 'La especie es requerida' }, { status: 400 });
-      }
-      if (!raza?.trim()) {
-        return NextResponse.json({ error: 'La raza es requerida' }, { status: 400 });
-      }
-       if (!sexo?.trim()) {
-        return NextResponse.json({ error: 'El sexo es requerido' }, { status: 400 });
-      }
-      if (edad === undefined || edad === null) {
-        return NextResponse.json({ error: 'La edad es requerida' }, { status: 400 });
-      }
-      if (peso === undefined || peso === null) {
-        return NextResponse.json({ error: 'El peso es requerido' }, { status: 400 });
-      }
-      if (estado_reproductivo === undefined || estado_reproductivo === null) {
-          return NextResponse.json({ error: 'El estado reproductivo es requerido' }, { status: 400 });
-      }
-      if (dia === undefined || dia === null) {
-        return NextResponse.json({ error: 'El día de nacimiento es requerido' }, { status: 400 });
-      }
-      if (!mes?.trim()) {
-        return NextResponse.json({ error: 'El mes de nacimiento es requerido' }, { status: 400 });
-      }
-      if (anio === undefined || anio === null) {
-        return NextResponse.json({ error: 'El año de nacimiento es requerido' }, { status: 400 });
-      }
-      if (id_cliente === undefined || id_cliente === null) {
-        return NextResponse.json({ error: 'El ID del cliente es requerido' }, { status: 400 });
-      }
+        // Convertir Base64 a Buffer para almacenar como BYTEA
+        let fotoBuffer = null;
+        if (foto) {
+            // Remover el prefijo data:image/...;base64, si existe
+            const base64Data = foto.includes(',') ? foto.split(',')[1] : foto;
+            fotoBuffer = Buffer.from(base64Data, 'base64');
+        }
 
+        // Insertar en la base de datos
+        const result = await pool.query(`
+            INSERT INTO mascota (nombre, especie, raza, edad, peso, foto, id_cliente, fecha_registro)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            RETURNING id_mascota
+        `, [nombre, especie, raza, edad, peso, fotoBuffer, id_cliente]);
 
-      // Insertar la mascota
-      const result = await client.query(
-        `INSERT INTO mascota (
-          nombre, especie, raza, sexo, edad, peso, foto,
-          estado_reproductivo, dia, mes, anio, id_cliente
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        RETURNING id_mascota`,
-        [
-          nombre.trim(),
-          especie.trim(),
-          raza.trim(),
-          sexo.trim(),
-          parseInt(edad, 10),
-          parseInt(peso, 10),
-          foto, // Se pasa directamente. Asegurarse que el driver de pg lo maneje.
-          estado_reproductivo,
-          parseInt(dia, 10),
-          mes.trim(),
-          parseInt(anio, 10),
-          parseInt(id_cliente, 10)
-        ]
-      );
+        return new Response(JSON.stringify({ 
+            success: true, 
+            id: result.rows[0].id_mascota,
+            message: 'Mascota creada exitosamente'
+        }), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' }
+        });
 
-      return NextResponse.json({
-        message: 'Mascota creada exitosamente',
-        id_mascota: result.rows[0].id_mascota
-      }, { status: 201 });
-    } finally {
-      client.release();
+    } catch (err) {
+        console.error('Error al crear mascota:', err);
+        
+        // Verificar si es un error de restricción de clave foránea
+        if (err.code === '23503') {
+            return new Response(JSON.stringify({ error: 'El cliente especificado no existe' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
-  } catch (err) {
-    console.error('Error al crear mascota:', err);
-    return NextResponse.json(
-      { error: 'Error al crear la mascota: ' + err.message },
-      { status: 500 }
-    );
-  }
+}
+
+// PUT - Actualizar mascota existente
+export async function PUT(request) {
+    try {
+        const { id_mascota, nombre, especie, raza, edad, peso, foto, id_cliente } = await request.json();
+        
+        if (!id_mascota) {
+            return new Response(JSON.stringify({ error: 'ID de mascota es requerido' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Validar tamaño de la foto
+        if (foto && foto.length > 7 * 1024 * 1024) {
+            return new Response(JSON.stringify({ error: 'La imagen es demasiado grande. Máximo 5MB.' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Convertir Base64 a Buffer para almacenar como BYTEA
+        let fotoBuffer = null;
+        if (foto) {
+            // Remover el prefijo data:image/...;base64, si existe
+            const base64Data = foto.includes(',') ? foto.split(',')[1] : foto;
+            fotoBuffer = Buffer.from(base64Data, 'base64');
+        }
+
+        const result = await pool.query(`
+            UPDATE mascota 
+            SET nombre = $1, especie = $2, raza = $3, edad = $4, peso = $5, foto = $6, id_cliente = $7
+            WHERE id_mascota = $8
+            RETURNING id_mascota
+        `, [nombre, especie, raza, edad, peso, fotoBuffer, id_cliente, id_mascota]);
+
+        if (result.rowCount === 0) {
+            return new Response(JSON.stringify({ error: 'Mascota no encontrada' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        return new Response(JSON.stringify({ 
+            success: true, 
+            message: 'Mascota actualizada exitosamente'
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+    } catch (err) {
+        console.error('Error al actualizar mascota:', err);
+        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+}
+
+// DELETE - Eliminar mascota
+export async function DELETE(request) {
+    try {
+        const { id_mascota } = await request.json();
+        
+        if (!id_mascota) {
+            return new Response(JSON.stringify({ error: 'ID de mascota es requerido' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        const result = await pool.query(`
+            DELETE FROM mascota 
+            WHERE id_mascota = $1
+        `, [id_mascota]);
+
+        if (result.rowCount === 0) {
+            return new Response(JSON.stringify({ error: 'Mascota no encontrada' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        return new Response(JSON.stringify({ 
+            success: true, 
+            message: 'Mascota eliminada exitosamente'
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+    } catch (err) {
+        console.error('Error al eliminar mascota:', err);
+        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
 } 

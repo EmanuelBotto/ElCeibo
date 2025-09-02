@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from 'sonner';
 import { PawPrint, Syringe, FolderOpen, FileText, PlusCircle, Cat, Dog, ArrowLeft, Camera, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ImageDisplay from '@/components/ImageDisplay';
 
 const InfoCard = ({ title, children, className, headerAction }) => (
   <div className={`bg-white border border-gray-200 rounded-lg p-4 flex flex-col ${className}`}>
@@ -557,30 +558,25 @@ export default function FichaPaciente({ mascotaId }) {
               </Button>
             }
           >
-            <div className="flex flex-col items-center text-center">
-              <div className="relative w-32 h-32 bg-gray-200 rounded-full mb-4 flex items-center justify-center overflow-hidden group">
-                {mascota.foto ? (
-                  <img src={mascota.foto} alt="Foto mascota" className="w-full h-full object-cover" />
-                ) : (
-                  <PawPrint size={64} className="text-purple-600" />
-                )}
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/80 hover:bg-white"
-                    onClick={() => setIsFotoDialogOpen(true)}
-                  >
-                    <Edit size={16} className="text-gray-700" />
-                  </Button>
-                </div>
-              </div>
+            <div className="flex flex-col items-center text-center p-5">
+              <ImageDisplay 
+                src={mascota.foto} 
+                alt="Foto mascota" 
+                className="w-32 h-32 rounded-full"
+                showControls={false}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 p-4">
               <div className="space-y-2">
                 <p className="text-black"><b>Especie:</b> {mascota.especie}</p>
                 <p className="text-black"><b>Raza:</b> {mascota.raza}</p>
                 <p className="text-black"><b>Sexo:</b> {mascota.sexo}</p>
+                <p className="text-black"><b>Esterilizado/a:</b> {mascota.estado_reproductivo? 'Si' : 'No'}</p>
+              </div>
+              <div className="space-y-2 max-w-48">
                 <p className="text-black"><b>Edad:</b> {mascota.edad} años</p>
                 <p className="text-black"><b>Último peso:</b> {historial.length > 0 && historial[0].peso ? `${historial[0].peso} kg` : mascota.peso ? `${mascota.peso} kg` : 'No registrado'}</p>
+                <p className="text-black"><b>Estado:</b> <span className={`font-semibold ${mascota.estado === 'Vivo' ? 'text-green-600' : 'text-red-600'}`}>{mascota.estado || 'Vivo'}</span></p>
                 <p className="text-black"><b>Dueño:</b> {owner?.nombre} {owner?.apellido}</p>
               </div>
             </div>
@@ -837,7 +833,12 @@ export default function FichaPaciente({ mascotaId }) {
                 <div className="mt-6 text-center">
                   <Label className="text-base font-semibold text-gray-700 block mb-3">Vista previa:</Label>
                   <div className="flex justify-center">
-                    <img src={nuevaFoto} alt="Vista previa" className="rounded-lg w-32 h-32 object-cover border-2 border-purple-300" />
+                    <ImageDisplay 
+                      src={nuevaFoto} 
+                      alt="Vista previa" 
+                      className="w-32 h-32 rounded-lg border-2 border-purple-300"
+                      showControls={false}
+                    />
                   </div>
                 </div>
               )}

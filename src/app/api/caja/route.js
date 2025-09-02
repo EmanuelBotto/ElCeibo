@@ -14,7 +14,6 @@ export async function GET() {
                 anio,
                 hora,
                 forma_de_pago,
-                datos->>'apellido_usuario' AS apellido_usuario,
                 monto_total
                 FROM factura
                 ORDER BY dia DESC
