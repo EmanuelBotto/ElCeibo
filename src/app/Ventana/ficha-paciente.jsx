@@ -566,7 +566,7 @@ export default function FichaPaciente({ mascotaId }) {
                 showControls={false}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3 p-4">
+            <div className="grid grid-cols-2 gap-3 p-4 ">
               <div className="space-y-2">
                 <p className="text-black"><b>Especie:</b> {mascota.especie}</p>
                 <p className="text-black"><b>Raza:</b> {mascota.raza}</p>

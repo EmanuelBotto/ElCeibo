@@ -9,12 +9,16 @@ import { User, Edit, Camera, Mail, Phone, MapPin, Shield, ArrowLeft, LogOut } fr
 import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
+import ImageDisplay from '@/components/ImageDisplay';
 
 export default function PerfilPage() {
   const { user, updateUser, logout } = useAuth();
   const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isFotoDialogOpen, setIsFotoDialogOpen] = useState(false);
+  const [nuevaFoto, setNuevaFoto] = useState<string>('');
+  const [isActualizandoFoto, setIsActualizandoFoto] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -93,6 +97,50 @@ export default function PerfilPage() {
     router.push('/');
   };
 
+  const handleFotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNuevaFoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFotoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nuevaFoto || !user) {
+      toast.error('Por favor selecciona una foto');
+      return;
+    }
+
+    setIsActualizandoFoto(true);
+    try {
+      const response = await fetch(`/api/usuarios/${user.id_usuario}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foto: nuevaFoto })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al actualizar la foto');
+      }
+
+      // Actualizar el contexto de autenticación con la nueva foto
+      updateUser({ ...user, foto: nuevaFoto });
+
+      setIsFotoDialogOpen(false);
+      setNuevaFoto('');
+      toast.success('Foto actualizada exitosamente');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al actualizar la foto');
+    } finally {
+      setIsActualizandoFoto(false);
+    }
+  };
+
   //const handleLogout = () => {
   //  logout();
   //  router.push('/login');
@@ -150,13 +198,14 @@ export default function PerfilPage() {
                 <div className="p-6">
                   {/* Foto de perfil */}
                   <div className="text-center mb-6">
-                    <div className="relative inline-block">
-                      <div className="w-32 h-32 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="relative inline-block group">
+                      <div className="w-32 h-32 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
                         {user.foto ? (
-                          <img 
-                            src={user.foto} 
-                            alt="Foto de perfil" 
-                            className="w-32 h-32 rounded-full object-cover"
+                          <ImageDisplay
+                            src={user.foto}
+                            alt="Foto de perfil"
+                            className="w-full h-full"
+                            showControls={false}
                           />
                         ) : (
                           <User className="text-purple-600" size={48} />
@@ -165,7 +214,8 @@ export default function PerfilPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0"
+                        className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0 bg-white hover:bg-gray-50"
+                        onClick={() => setIsFotoDialogOpen(true)}
                       >
                         <Camera size={16} />
                       </Button>
@@ -349,6 +399,71 @@ export default function PerfilPage() {
           </div>
         </div>
       </div>
+
+      {/* Dialogo Cambiar Foto */}
+      {isFotoDialogOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Cambiar Foto de Perfil
+              </h3>
+              <p className="text-gray-600">Selecciona una nueva foto para tu perfil.</p>
+            </div>
+            
+            <form onSubmit={handleFotoSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="foto_perfil" className="block text-sm font-medium text-gray-700 mb-2">
+                  Foto del perfil
+                </label>
+                <input 
+                  type="file" 
+                  id="foto_perfil"
+                  accept="image/*" 
+                  onChange={handleFotoFileChange}
+                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              
+              {nuevaFoto && (
+                <div className="text-center">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Vista previa:</label>
+                  <div className="flex justify-center">
+                    <ImageDisplay 
+                      src={nuevaFoto} 
+                      alt="Vista previa" 
+                      className="w-24 h-24 rounded-lg border-2 border-purple-300"
+                      showControls={false}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsFotoDialogOpen(false);
+                    setNuevaFoto('');
+                  }}
+                  disabled={isActualizandoFoto}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!nuevaFoto || isActualizandoFoto}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {isActualizandoFoto ? 'Actualizando...' : 'Actualizar Foto'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   );
 } 
