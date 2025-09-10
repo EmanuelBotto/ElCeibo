@@ -6,17 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { toast } from 'sonner';
-import { PawPrint, Syringe, FolderOpen, FileText, PlusCircle, Cat, Dog, ArrowLeft, Camera, Edit } from 'lucide-react';
+import { PawPrint, Syringe, FolderOpen, FileText, PlusCircle, Cat, Dog, ArrowLeft, Camera, Edit, ChevronDown, ChevronRight, Calendar, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ImageDisplay from '@/components/ImageDisplay';
 
 const InfoCard = ({ title, children, className, headerAction }) => (
-  <div className={`bg-white border border-gray-200 rounded-lg p-4 flex flex-col ${className}`}>
+  <div className={`bg-white border border-gray-200 rounded-lg p-4 ${className}`}>
     <div className="flex justify-between items-center border-b border-purple-200 pb-2 mb-3">
       <h3 className="font-bold text-purple-700">{title}</h3>
       {headerAction}
     </div>
-    <div className="flex-grow">
+    <div>
       {children}
     </div>
   </div>
@@ -36,6 +36,7 @@ export default function FichaPaciente({ mascotaId }) {
   const [isVisitaDialogOpen, setIsVisitaDialogOpen] = useState(false);
   const [isVacunaDialogOpen, setIsVacunaDialogOpen] = useState(false);
   const [isFotoDialogOpen, setIsFotoDialogOpen] = useState(false);
+  const [isNuevaMascotaDialogOpen, setIsNuevaMascotaDialogOpen] = useState(false);
   const [historial, setHistorial] = useState([]);
   const [visitaForm, setVisitaForm] = useState({ 
     fecha: '', 
@@ -45,9 +46,28 @@ export default function FichaPaciente({ mascotaId }) {
     peso: '' 
   });
   const [nuevaVisitaId, setNuevaVisitaId] = useState(null);
-  const [vacunaForm, setVacunaForm] = useState({ nombre_vacuna: '', fecha_aplicacion: '', duracion_meses: '', observaciones: '', id_item: '' });
+  const [vacunaForm, setVacunaForm] = useState({ 
+    nombre_vacuna: '', 
+    fecha_aplicacion: new Date().toISOString().split('T')[0], // Fecha actual por defecto
+    duracion_meses: '', 
+    observaciones: '', 
+    id_item: '' 
+  });
   const [itemsVacunas, setItemsVacunas] = useState([]);
   const [vacunaManual, setVacunaManual] = useState(false);
+  const [duracionEditable, setDuracionEditable] = useState(false);
+  const [carpetasAbiertas, setCarpetasAbiertas] = useState(new Set());
+  const [nuevaMascotaForm, setNuevaMascotaForm] = useState({
+    nombre: '',
+    especie: '',
+    raza: '',
+    sexo: '',
+    edad: '',
+    peso: '',
+    estado_reproductivo: false,
+    estado: 'Vivo',
+    foto: null
+  });
   const [visitaSeleccionada, setVisitaSeleccionada] = useState(null);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [proximasVacunas, setProximasVacunas] = useState([]);
@@ -56,6 +76,7 @@ export default function FichaPaciente({ mascotaId }) {
   const [nuevaFoto, setNuevaFoto] = useState('');
   const [isActualizandoFoto, setIsActualizandoFoto] = useState(false);
   const router = useRouter();
+
 
   useEffect(() => {
     if (mascotaId) {
@@ -113,6 +134,80 @@ export default function FichaPaciente({ mascotaId }) {
   if (!ficha) return <div className="flex justify-center items-center h-screen"><p>No se encontró la ficha de la mascota.</p></div>;
 
   const { mascota, owner, otrasMascotas } = ficha;
+
+  // Función para alternar el estado de una carpeta
+  const toggleCarpeta = (visitaId) => {
+    setCarpetasAbiertas(prev => {
+      const nuevasCarpetas = new Set(prev);
+      if (nuevasCarpetas.has(visitaId)) {
+        nuevasCarpetas.delete(visitaId);
+      } else {
+        nuevasCarpetas.add(visitaId);
+      }
+      return nuevasCarpetas;
+    });
+  };
+
+  // Función para verificar si una carpeta está abierta
+  const isCarpetaAbierta = (visitaId) => {
+    return carpetasAbiertas.has(visitaId);
+  };
+
+  // Función para manejar el envío del formulario de nueva mascota
+  const handleNuevaMascotaSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      
+      // Agregar datos del formulario
+      Object.entries(nuevaMascotaForm).forEach(([key, value]) => {
+        if (key !== 'foto' && value !== null && value !== '') {
+          formData.append(key, value);
+        }
+      });
+      
+      // Agregar ID del cliente
+      formData.append('id_cliente', ficha?.owner?.id_cliente);
+      
+      // Agregar foto si existe
+      if (nuevaMascotaForm.foto) {
+        formData.append('foto', nuevaMascotaForm.foto);
+      }
+      
+      const response = await fetch('/api/mascotas', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear la mascota');
+      }
+
+      toast.success('Mascota agregada exitosamente');
+      setIsNuevaMascotaDialogOpen(false);
+      
+      // Limpiar formulario
+      setNuevaMascotaForm({
+        nombre: '',
+        especie: '',
+        raza: '',
+        sexo: '',
+        edad: '',
+        peso: '',
+        estado_reproductivo: false,
+        estado: 'Vivo',
+        foto: null
+      });
+      
+      // Recargar la ficha para mostrar la nueva mascota
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error al crear mascota:', error);
+      toast.error(error.message || 'Error al crear la mascota');
+    }
+  };
 
   const abrirEdicionVisita = (visita) => {
     setVisitaSeleccionada(visita);
@@ -259,6 +354,7 @@ export default function FichaPaciente({ mascotaId }) {
       observaciones: vac.observaciones,
       id_item: vac.id_item || ''
     });
+    setDuracionEditable(false); // Por defecto no editable en edición
     setModoEdicionVacuna(true);
     setIsVacunaDialogOpen(true);
   };
@@ -348,8 +444,15 @@ export default function FichaPaciente({ mascotaId }) {
       }
       
       // Limpiar formulario
-      setVacunaForm({ nombre_vacuna: '', fecha_aplicacion: '', duracion_meses: '', observaciones: '', id_item: '' });
+      setVacunaForm({ 
+        nombre_vacuna: '', 
+        fecha_aplicacion: new Date().toISOString().split('T')[0], // Fecha actual por defecto
+        duracion_meses: '', 
+        observaciones: '', 
+        id_item: '' 
+      });
       setVacunaManual(false);
+      setDuracionEditable(false);
     } catch (err) {
       toast.error(err.message);
     }
@@ -441,93 +544,118 @@ export default function FichaPaciente({ mascotaId }) {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <header className="p-4 flex items-center space-x-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
+        <Button variant="outline" size="icon" onClick={() => {
+          try {
+            console.log('Navegando a la página principal');
+            router.push('/');
+          } catch (error) {
+            console.error('Error en navegación:', error);
+            // Fallback: ir a la página principal
+            router.push('/');
+          }
+        }}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold text-purple-800">Ficha de Paciente</h1>
       </header>
 
-      <main className="flex-grow p-4 pt-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <main className="flex-1 p-4 pt-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Columna principal */}
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-4 flex flex-col">
+        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="text-xl font-bold text-purple-800 mb-4">Historial Médico de {ficha?.mascota?.nombre}</h2>
           {/* Historial real */}
           {historial.length === 0 ? (
-            <div className="flex-grow flex items-center justify-center">
-              <p className="text-gray-800 text-2xl">No hay visitas registradas para este animal.</p>
+            <div className="flex items-center justify-center py-8">
+              <p className="text-gray-800 text-2xl">No hay visitas registradas para este paciente.</p>
             </div>
           ) : (
-            <div className="space-y-4 mb-4">
-              {historial.map((visita, idx) => (
-                <div key={`${visita.id_visita}-${visita.fecha}-${visita.diagnostico}`} className={`border rounded-lg p-4 bg-gray-50 ${visitaSeleccionada?.id_visita === visita.id_visita ? 'ring-2 ring-purple-400' : ''}`}
-                  onClick={() => setVisitaSeleccionada(visita)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {/* Fecha y veterinario */}
-                  <div className="flex items-center justify-between text-lg font-semibold text-purple-600 mb-3">
-                    <div className="flex items-center">
-                      <FolderOpen className="mr-2 text-purple-600" />
-                      {visita.fecha}
+            <div className="space-y-2 mb-4">
+              {historial.map((visita, idx) => {
+                const isAbierta = isCarpetaAbierta(visita.id_visita);
+                return (
+                  <div key={`${visita.id_visita}-${visita.fecha}-${visita.diagnostico}`} className="border rounded-lg bg-gray-50 overflow-hidden">
+                    {/* Header de la carpeta - siempre visible */}
+                    <div 
+                      className={`flex items-center justify-between p-4 cursor-pointer hover:bg-gray-100 transition-colors ${visitaSeleccionada?.id_visita === visita.id_visita ? 'ring-2 ring-purple-400' : ''}`}
+                      onClick={() => {
+                        toggleCarpeta(visita.id_visita);
+                        setVisitaSeleccionada(visita);
+                      }}
+                    >
+                      <div className="flex items-center text-lg font-semibold text-purple-600">
+                        {isAbierta ? (
+                          <ChevronDown className="mr-2 text-purple-600" size={20} />
+                        ) : (
+                          <ChevronRight className="mr-2 text-purple-600" size={20} />
+                        )}
+                        <FolderOpen className="mr-2 text-purple-600" size={18} />
+                        {visita.fecha}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-semibold">Atendió:</span> {visita.nombre && visita.apellido ? `${visita.nombre} ${visita.apellido}` : 'No registrado'}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600">
-                      <span className="font-semibold">Atendió:</span> {visita.nombre && visita.apellido ? `${visita.nombre} ${visita.apellido}` : 'No registrado'}
-                    </div>
+                    
+                    {/* Contenido de la carpeta - solo visible si está abierta */}
+                    {isAbierta && (
+                      <div className="px-4 pb-4 border-t border-gray-200 bg-white">
+                        {/* Diagnóstico prominente */}
+                        <div className="mb-3 pt-3">
+                          <div className="font-semibold text-gray-800 mb-2">Diagnóstico:</div>
+                          <div className="bg-gray-50 border border-gray-300 rounded-md p-3 min-h-[60px] text-gray-800">
+                            {visita.diagnostico ? visita.diagnostico : 'Sin diagnóstico registrado'}
+                          </div>
+                        </div>
+                        
+                        {/* Información médica en dos columnas */}
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center text-gray-800">
+                              <FileText className="mr-2 text-purple-500" size={16} />
+                              <span className="font-semibold">Frecuencia cardíaca: </span> {visita.frecuencia_cardiaca || 'No registrada'}
+                            </div>
+                            <div className="flex items-center text-gray-800">
+                              <FileText className="mr-2 text-purple-500" size={16} />
+                              <span className="font-semibold">Frecuencia respiratoria: </span> {visita.frecuencia_respiratoria || 'No registrada'}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center text-gray-800">
+                              <FileText className="mr-2 text-purple-500" size={16} />
+                              <span className="font-semibold">Peso: </span> {visita.peso ? `${visita.peso} kg` : 'No registrado'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Vacunas aplicadas */}
+                        {visita.vacunas && visita.vacunas.length > 0 && (
+                          <div className="pt-3 border-t border-gray-200">
+                            <div className="flex items-center mb-2">
+                              <Syringe className="mr-2 text-purple-500" size={16} />
+                              <span className="font-semibold text-gray-800">Vacunas aplicadas:</span>
+                            </div>
+                            <ul className="ml-4 space-y-1">
+                              {visita.vacunas.map(vac => (
+                                <li key={`${vac.id_vacuna_aplicada}-${vac.nombre_vacuna}-${vac.fecha_aplicacion}`} className={`flex items-center gap-2 ${vacunaSeleccionada?.id_vacuna_aplicada === vac.id_vacuna_aplicada ? 'ring-2 ring-purple-400' : ''}`}
+                                  onClick={() => setVacunaSeleccionada(vac)}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  <Syringe className="mr-1 text-purple-400" size={14} />
+                                  <span className="text-gray-800">{vac.nombre_vacuna} - {vac.fecha_aplicacion} ({vac.duracion_meses} meses)</span>
+                                  <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); abrirEdicionVacuna(vac); }} className="border-blue-600 text-blue-600 hover:bg-blue-50">Editar</Button>
+                                  <Button size="sm" variant="destructive" onClick={e => { e.stopPropagation(); setVacunaSeleccionada(vac); handleEliminarVacuna(); }} className="bg-red-600 hover:bg-red-700">Eliminar</Button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* Diagnóstico prominente */}
-                  <div className="mb-3">
-                    <div className="font-semibold text-gray-800 mb-2">Diagnóstico:</div>
-                    <div className="bg-white border border-gray-300 rounded-md p-3 min-h-[60px] text-gray-800">
-                      {visita.diagnostico ? visita.diagnostico : 'Sin diagnóstico registrado'}
-                    </div>
-                  </div>
-                  
-                  {/* Información médica en dos columnas */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center text-gray-800">
-                        <FileText className="mr-2 text-purple-500" size={16} />
-                        <span className="font-semibold">Frecuencia cardíaca: </span> {visita.frecuencia_cardiaca || 'No registrada'}
-                      </div>
-                      <div className="flex items-center text-gray-800">
-                        <FileText className="mr-2 text-purple-500" size={16} />
-                        <span className="font-semibold">Frecuencia respiratoria: </span> {visita.frecuencia_respiratoria || 'No registrada'}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center text-gray-800">
-                        <FileText className="mr-2 text-purple-500" size={16} />
-                        <span className="font-semibold">Peso: </span> {visita.peso ? `${visita.peso} kg` : 'No registrado'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Vacunas aplicadas */}
-                  {visita.vacunas && visita.vacunas.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="flex items-center mb-2">
-                        <Syringe className="mr-2 text-purple-500" size={16} />
-                        <span className="font-semibold text-gray-800">Vacunas aplicadas:</span>
-                      </div>
-                      <ul className="ml-4 space-y-1">
-                        {visita.vacunas.map(vac => (
-                          <li key={`${vac.id_vacuna_aplicada}-${vac.nombre_vacuna}-${vac.fecha_aplicacion}`} className={`flex items-center gap-2 ${vacunaSeleccionada?.id_vacuna_aplicada === vac.id_vacuna_aplicada ? 'ring-2 ring-purple-400' : ''}`}
-                            onClick={() => setVacunaSeleccionada(vac)}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            <Syringe className="mr-1 text-purple-400" size={14} />
-                            <span className="text-gray-800">{vac.nombre_vacuna} - {vac.fecha_aplicacion} ({vac.duracion_meses} meses)</span>
-                            <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); abrirEdicionVacuna(vac); }} className="border-blue-600 text-blue-600 hover:bg-blue-50">Editar</Button>
-                            <Button size="sm" variant="destructive" onClick={e => { e.stopPropagation(); setVacunaSeleccionada(vac); handleEliminarVacuna(); }} className="bg-red-600 hover:bg-red-700">Eliminar</Button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <div className="flex justify-start space-x-2 mt-4">
@@ -582,7 +710,15 @@ export default function FichaPaciente({ mascotaId }) {
             </div>
           </InfoCard>
 
-          <InfoCard title="Otras mascotas">
+          <InfoCard 
+            title="Otras mascotas"
+            headerAction={
+              <Button size="sm" variant="outline" onClick={() => setIsNuevaMascotaDialogOpen(true)} className="border-green-600 text-green-600 hover:bg-green-50">
+                <PlusCircle size={16} className="mr-1" />
+                Agregar
+              </Button>
+            }
+          >
             <ul className="space-y-2">
               {otrasMascotas.map(pet => (
                   <li key={`${pet.id_mascota}-${pet.nombre}-${pet.especie}`} className="flex items-center cursor-pointer hover:text-purple-700 p-1 rounded hover:bg-gray-100" onClick={() => router.push(`/mascota/${pet.id_mascota}`)}>
@@ -733,10 +869,17 @@ export default function FichaPaciente({ mascotaId }) {
                   onChange={e => {
                     if (e.target.value === 'manual') {
                       setVacunaManual(true);
-                      setVacunaForm(f => ({ ...f, id_item: '', nombre_vacuna: '' }));
+                      setDuracionEditable(true);
+                      setVacunaForm(f => ({ ...f, id_item: '', nombre_vacuna: '', duracion_meses: '' }));
                     } else {
                       const item = itemsVacunas.find(i => i.id_item == e.target.value);
-                      setVacunaForm(f => ({ ...f, id_item: item?.id_item, nombre_vacuna: item?.detalle || '' }));
+                      setDuracionEditable(false);
+                      setVacunaForm(f => ({ 
+                        ...f, 
+                        id_item: item?.id_item, 
+                        nombre_vacuna: item?.detalle || '',
+                        duracion_meses: item?.duracion || ''
+                      }));
                     }
                   }}
                   required
@@ -783,9 +926,22 @@ export default function FichaPaciente({ mascotaId }) {
                   value={vacunaForm.duracion_meses} 
                   onChange={e => setVacunaForm(f => ({ ...f, duracion_meses: e.target.value }))} 
                   required 
-                  className="w-full text-center border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={!duracionEditable}
+                  className={`w-full text-center border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${!duracionEditable ? 'bg-gray-100 text-gray-500' : ''}`}
                   placeholder="Ej: 12"
                 />
+                <label className="flex items-center justify-center gap-2 cursor-pointer mt-2">
+                  <input
+                    type="checkbox"
+                    checked={duracionEditable}
+                    onChange={e => setDuracionEditable(e.target.checked)}
+                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span className="text-sm text-gray-600">Modificar manualmente</span>
+                </label>
+                {!duracionEditable && vacunaForm.duracion_meses && (
+                  <p className="text-xs text-gray-500 mt-1">Duración cargada desde la base de datos</p>
+                )}
               </div>
             </div>
             
@@ -849,6 +1005,148 @@ export default function FichaPaciente({ mascotaId }) {
               </Button>
               <Button type="submit" disabled={isActualizandoFoto || !nuevaFoto} className="bg-purple-600 hover:bg-purple-700 px-8 py-2">
                 {isActualizandoFoto ? 'Actualizando...' : 'Actualizar Foto'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo para agregar nueva mascota */}
+      <Dialog open={isNuevaMascotaDialogOpen} onOpenChange={setIsNuevaMascotaDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center text-purple-700">Agregar Nueva Mascota</DialogTitle>
+            <DialogDescription className="text-gray-600 text-center">Complete los datos de la nueva mascota para {ficha?.owner?.nombre} {ficha?.owner?.apellido}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleNuevaMascotaSubmit} className="space-y-6">
+            {/* Información básica */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="nombre_mascota" className="text-base font-semibold text-gray-700 block mb-2">Nombre *</Label>
+                <Input
+                  id="nombre_mascota"
+                  value={nuevaMascotaForm.nombre}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, nombre: e.target.value }))}
+                  placeholder="Nombre de la mascota"
+                  required
+                  className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <Label htmlFor="especie_mascota" className="text-base font-semibold text-gray-700 block mb-2">Especie *</Label>
+                <select
+                  id="especie_mascota"
+                  value={nuevaMascotaForm.especie}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, especie: e.target.value }))}
+                  required
+                  className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Seleccionar especie...</option>
+                  <option value="Perro">Perro</option>
+                  <option value="Gato">Gato</option>
+                  <option value="Conejo">Conejo</option>
+                  <option value="Ave">Ave</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="raza_mascota" className="text-base font-semibold text-gray-700 block mb-2">Raza</Label>
+                <Input
+                  id="raza_mascota"
+                  value={nuevaMascotaForm.raza}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, raza: e.target.value }))}
+                  placeholder="Raza de la mascota"
+                  className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <Label htmlFor="sexo_mascota" className="text-base font-semibold text-gray-700 block mb-2">Sexo *</Label>
+                <select
+                  id="sexo_mascota"
+                  value={nuevaMascotaForm.sexo}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, sexo: e.target.value }))}
+                  required
+                  className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Seleccionar sexo...</option>
+                  <option value="Macho">Macho</option>
+                  <option value="Hembra">Hembra</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="edad_mascota" className="text-base font-semibold text-gray-700 block mb-2">Edad (años)</Label>
+                <Input
+                  id="edad_mascota"
+                  type="number"
+                  value={nuevaMascotaForm.edad}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, edad: e.target.value }))}
+                  placeholder="Edad en años"
+                  min="0"
+                  step="0.1"
+                  className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <Label htmlFor="peso_mascota" className="text-base font-semibold text-gray-700 block mb-2">Peso (kg)</Label>
+                <Input
+                  id="peso_mascota"
+                  type="number"
+                  value={nuevaMascotaForm.peso}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, peso: e.target.value }))}
+                  placeholder="Peso en kg"
+                  min="0"
+                  step="0.1"
+                  className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Estado reproductivo */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="estado_reproductivo_mascota"
+                checked={nuevaMascotaForm.estado_reproductivo}
+                onChange={e => setNuevaMascotaForm(f => ({ ...f, estado_reproductivo: e.target.checked }))}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <Label htmlFor="estado_reproductivo_mascota" className="text-base font-semibold text-gray-700">
+                Esterilizado/a
+              </Label>
+            </div>
+
+            {/* Estado de la mascota */}
+            <div>
+              <Label htmlFor="estado_mascota" className="text-base font-semibold text-gray-700 block mb-2">Estado</Label>
+              <select
+                id="estado_mascota"
+                value={nuevaMascotaForm.estado}
+                onChange={e => setNuevaMascotaForm(f => ({ ...f, estado: e.target.value }))}
+                className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="Vivo">Vivo</option>
+                <option value="Fallecido">Fallecido</option>
+              </select>
+            </div>
+
+            {/* Foto de la mascota */}
+            <div>
+              <Label htmlFor="foto_mascota" className="text-base font-semibold text-gray-700 block mb-2">Foto de la mascota</Label>
+              <Input
+                id="foto_mascota"
+                type="file"
+                accept="image/*"
+                onChange={e => setNuevaMascotaForm(f => ({ ...f, foto: e.target.files[0] }))}
+                className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="flex justify-center space-x-6 pt-6">
+              <Button type="button" variant="outline" onClick={() => setIsNuevaMascotaDialogOpen(false)} className="border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-2">
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-green-600 hover:bg-green-700 px-8 py-2">
+                Agregar Mascota
               </Button>
             </div>
           </form>

@@ -86,38 +86,59 @@ export async function GET() {
 // POST - Crear nueva mascota
 export async function POST(request) {
     try {
-        const { nombre, especie, raza, edad, peso, foto, id_cliente } = await request.json();
+        // Detectar el tipo de contenido
+        const contentType = request.headers.get('content-type');
+        let data;
+        
+        if (contentType && contentType.includes('multipart/form-data')) {
+            // Manejar FormData
+            const formData = await request.formData();
+            data = {
+                nombre: formData.get('nombre'),
+                especie: formData.get('especie'),
+                raza: formData.get('raza') || '',
+                sexo: formData.get('sexo'),
+                edad: formData.get('edad') || 0,
+                peso: formData.get('peso') || 0,
+                estado_reproductivo: formData.get('estado_reproductivo') === 'true',
+                id_cliente: formData.get('id_cliente'),
+                foto: formData.get('foto')
+            };
+        } else {
+            // Manejar JSON
+            data = await request.json();
+        }
+        
+        const { nombre, especie, raza = '', sexo, edad = 0, peso = 0, estado_reproductivo = false, id_cliente, foto } = data;
         
         // Validaciones básicas
-        if (!nombre || !especie) {
-            return new Response(JSON.stringify({ error: 'Nombre y especie son requeridos' }), {
+        if (!nombre || !especie || !sexo) {
+            return new Response(JSON.stringify({ error: 'Nombre, especie y sexo son requeridos' }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
 
-        // Validar tamaño de la foto (máximo 5MB en Base64)
-        if (foto && foto.length > 7 * 1024 * 1024) { // ~5MB en Base64
-            return new Response(JSON.stringify({ error: 'La imagen es demasiado grande. Máximo 5MB.' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
-
-        // Convertir Base64 a Buffer para almacenar como BYTEA
+        // Procesar la foto
         let fotoBuffer = null;
         if (foto) {
-            // Remover el prefijo data:image/...;base64, si existe
-            const base64Data = foto.includes(',') ? foto.split(',')[1] : foto;
-            fotoBuffer = Buffer.from(base64Data, 'base64');
+            if (typeof foto === 'string') {
+                // Es Base64 (JSON)
+                const base64Data = foto.includes(',') ? foto.split(',')[1] : foto;
+                fotoBuffer = Buffer.from(base64Data, 'base64');
+            } else {
+                // Es un archivo (FormData)
+                const arrayBuffer = await foto.arrayBuffer();
+                fotoBuffer = Buffer.from(arrayBuffer);
+            }
         }
 
         // Insertar en la base de datos
         const result = await pool.query(`
-            INSERT INTO mascota (nombre, especie, raza, edad, peso, foto, id_cliente, fecha_registro)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            INSERT INTO mascota (nombre, especie, raza, sexo, edad, peso, estado_reproductivo, foto, id_cliente, dia, mes, anio)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, EXTRACT(DAY FROM NOW()), EXTRACT(MONTH FROM NOW()), EXTRACT(YEAR FROM NOW()))
             RETURNING id_mascota
-        `, [nombre, especie, raza, edad, peso, fotoBuffer, id_cliente]);
+        `, [nombre, especie, raza, sexo, edad, peso, estado_reproductivo, fotoBuffer, id_cliente]);
 
         return new Response(JSON.stringify({ 
             success: true, 
@@ -130,6 +151,12 @@ export async function POST(request) {
 
     } catch (err) {
         console.error('Error al crear mascota:', err);
+        console.error('Error details:', {
+            message: err.message,
+            code: err.code,
+            detail: err.detail,
+            hint: err.hint
+        });
         
         // Verificar si es un error de restricción de clave foránea
         if (err.code === '23503') {
@@ -139,7 +166,11 @@ export async function POST(request) {
             });
         }
 
-        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+        return new Response(JSON.stringify({ 
+            error: 'Error interno del servidor',
+            details: err.message,
+            code: err.code
+        }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
         });

@@ -38,48 +38,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Verificar autenticación desde el servidor
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData.user);
-          setIsAuthenticated(true);
-        } else {
-          // Fallback a localStorage si el servidor no responde
-          const storedUser = localStorage.getItem('user');
-          const storedAuth = localStorage.getItem('isAuthenticated');
-
-          if (storedUser && storedAuth === 'true') {
-            try {
-              const userData = JSON.parse(storedUser);
-              setUser(userData);
-              setIsAuthenticated(true);
-            } catch (error) {
-              console.error('Error parsing stored user:', error);
-              localStorage.removeItem('user');
-              localStorage.removeItem('isAuthenticated');
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error checking auth:', error);
-        // Fallback a localStorage
+        // Primero verificar si hay datos en localStorage
         const storedUser = localStorage.getItem('user');
         const storedAuth = localStorage.getItem('isAuthenticated');
 
         if (storedUser && storedAuth === 'true') {
           try {
             const userData = JSON.parse(storedUser);
-            setUser(userData);
-            setIsAuthenticated(true);
+            
+            // Verificar con el servidor usando el ID del usuario
+            const response = await fetch(`/api/auth/me?id=${userData.id_usuario}`, {
+              credentials: 'include'
+            });
+            
+            if (response.ok) {
+              const serverUserData = await response.json();
+              setUser(serverUserData.user);
+              setIsAuthenticated(true);
+            } else {
+              // Si el servidor no responde bien, usar datos locales
+              setUser(userData);
+              setIsAuthenticated(true);
+            }
           } catch (error) {
             console.error('Error parsing stored user:', error);
             localStorage.removeItem('user');
             localStorage.removeItem('isAuthenticated');
+            setUser(null);
+            setIsAuthenticated(false);
           }
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
         }
+      } catch (error) {
+        console.error('Error checking auth:', error);
+        setUser(null);
+        setIsAuthenticated(false);
+        localStorage.removeItem('user');
+        localStorage.removeItem('isAuthenticated');
       } finally {
         setLoading(false);
       }

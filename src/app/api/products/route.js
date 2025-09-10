@@ -16,6 +16,7 @@ export async function GET(request) {
       const page = parseInt(searchParams.get('page')) || 1;
       const limit = parseInt(searchParams.get('limit')) || 20;
       const search = searchParams.get('search') || '';
+      const searchType = searchParams.get('searchType') || 'nombre';
       const tipo = searchParams.get('tipo') || '';
       const stockFilter = searchParams.get('stock') || '';
       
@@ -28,8 +29,15 @@ export async function GET(request) {
       
       if (search) {
         paramCount++;
-        whereConditions.push(`p.nombre ILIKE $${paramCount}`);
-        queryParams.push(`%${search}%`);
+        if (searchType === 'codigo') {
+          // Buscar por ID del producto
+          whereConditions.push(`p.id_producto::text ILIKE $${paramCount}`);
+          queryParams.push(`%${search}%`);
+        } else {
+          // Buscar por nombre del producto (por defecto)
+          whereConditions.push(`p.nombre ILIKE $${paramCount}`);
+          queryParams.push(`%${search}%`);
+        }
       }
       
       if (tipo) {

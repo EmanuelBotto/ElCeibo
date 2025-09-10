@@ -30,6 +30,7 @@ export default function Producto() {
   const [productoEditando, setProductoEditando] = useState(null);
   const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState(false);
   const [busqueda, setBusqueda] = useState('');
+  const [tipoBusqueda, setTipoBusqueda] = useState('nombre'); // 'nombre' o 'codigo'
   const [paginaActual, setPaginaActual] = useState(1);
   const [tipoCliente, setTipoCliente] = useState('cliente final');
   const productosPorPagina = 10;
@@ -49,7 +50,7 @@ export default function Producto() {
   };
 
   // Cargar productos desde la API
-  const cargarProductos = async (pagina = 1, busqueda = '') => {
+  const cargarProductos = async (pagina = 1, busqueda = '', tipoBusqueda = 'nombre') => {
     try {
       setCargando(true);
       const params = new URLSearchParams({
@@ -59,6 +60,7 @@ export default function Producto() {
       
       if (busqueda) {
         params.append('search', busqueda);
+        params.append('searchType', tipoBusqueda);
       }
       
       const res = await fetch(`/api/products?${params}`);
@@ -97,7 +99,7 @@ export default function Producto() {
     await new Promise(resolve => setTimeout(resolve, 150));
     
     try {
-      await cargarProductos(nuevaPagina, busqueda);
+      await cargarProductos(nuevaPagina, busqueda, tipoBusqueda);
     } finally {
       setCargandoPagina(false);
     }
@@ -112,14 +114,14 @@ export default function Producto() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (busqueda !== '') {
-        cargarProductos(1, busqueda);
+        cargarProductos(1, busqueda, tipoBusqueda);
       } else {
         cargarProductos(1);
       }
     }, 500); // Debounce de 500ms
 
     return () => clearTimeout(timeoutId);
-  }, [busqueda]);
+  }, [busqueda, tipoBusqueda]);
 
   // Crear producto
   const crearProducto = async () => {
@@ -342,28 +344,60 @@ export default function Producto() {
           </div>
         </div>
 
-        <div className="mb-6 flex flex-col md:flex-row md:items-end gap-6">
-          <div className="flex flex-col gap-2 w-full md:w-1/2">
-            <Label htmlFor="busqueda" className="text-base font-semibold">Buscar</Label>
-            <Input
-              id="busqueda"
-              placeholder="Buscar por descripción o código..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12"
-            />
-          </div>
-          <div className="flex flex-col gap-2 w-full md:w-1/2">
-            <Label htmlFor="tipoCliente" className="text-base font-semibold">Tipo de Cliente</Label>
-            <select
-              id="tipoCliente"
-              value={tipoCliente}
-              onChange={(e) => setTipoCliente(e.target.value)}
-              className="border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold bg-white text-black focus:border-purple-400 h-12"
-            >
-              <option value="cliente final">Cliente Final</option>
-              <option value="mayorista">Mayorista</option>
-            </select>
+        {/* Sección de búsqueda y filtros */}
+        <div className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+            <div className="flex flex-col gap-3 w-full lg:w-1/2">
+              <Label htmlFor="busqueda" className="text-base font-semibold text-gray-700">Buscar Producto</Label>
+              <Input
+                id="busqueda"
+                placeholder={tipoBusqueda === 'nombre' ? "Buscar por nombre del producto..." : "Buscar por código (ID)..."}
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12 shadow-sm bg-white"
+              />
+              
+              {/* Radio buttons para tipo de búsqueda */}
+              <div className="flex gap-6 mt-1">
+                <label className="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded-md transition-colors">
+                  <input
+                    type="radio"
+                    name="tipoBusqueda"
+                    value="nombre"
+                    checked={tipoBusqueda === 'nombre'}
+                    onChange={(e) => setTipoBusqueda(e.target.value)}
+                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Por Nombre</span>
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded-md transition-colors">
+                  <input
+                    type="radio"
+                    name="tipoBusqueda"
+                    value="codigo"
+                    checked={tipoBusqueda === 'codigo'}
+                    onChange={(e) => setTipoBusqueda(e.target.value)}
+                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Por Código (ID)</span>
+                </label>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 w-full lg:w-1/2">
+              <Label htmlFor="tipoCliente" className="text-base font-semibold text-gray-700">Tipo de Cliente</Label>
+              <select
+                id="tipoCliente"
+                value={tipoCliente}
+                onChange={(e) => setTipoCliente(e.target.value)}
+                className="border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold bg-white text-black focus:border-purple-400 h-12 shadow-sm"
+              >
+                <option value="cliente final">Cliente Final</option>
+                <option value="mayorista">Mayorista</option>
+              </select>
+              {/* Espacio vacío para mantener alineación */}
+              <div className="h-8"></div>
+            </div>
           </div>
         </div>
 
