@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use } from 'react'
+import React from 'react'
 import { useEgreso } from '@/lib/modales';
 import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/modal';
@@ -19,28 +19,29 @@ import {
 export default function Caja() {
     const [facturas, setFacturas] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [cargando, setCargando] = useState(true);
-    const [busqueda, setBusqueda] = useState('');
-    const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
-    const { title, renderContent } = useEgreso();
+
+    
+    const obtenerFacturas = async () => {
+        try {
+            const res = await fetch('/api/caja');
+            const data = await res.json();
+            
+            // Verificar si la respuesta es un array
+            if (Array.isArray(data)) {
+                setFacturas(data);
+            } else {
+                console.error('La API no devolvió un array:', data);
+                setFacturas([]);
+            }
+        } catch (error) {
+            console.error('Error al obtener facturas:', error);
+            setFacturas([]);
+        }
+    };
+    
+    const { title, renderContent } = useEgreso({ onEgresoSuccess: obtenerFacturas });
 
     useEffect(() => {
-        const obtenerFacturas = async () => {
-            try {
-                setCargando(true);
-                const res = await fetch('/api/caja');
-                if (!res.ok) {
-                    throw new Error('Error al cargar facturas');
-                }
-                const data = await res.json();
-                setFacturas(Array.isArray(data) ? data : []);
-            } catch (err) {
-                console.error('Error al cargar facturas:', err);
-                setFacturas([]);
-            } finally {
-                setCargando(false);
-            }
-        }
         obtenerFacturas();
     }, []);
 
@@ -70,9 +71,59 @@ export default function Caja() {
                         <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Caja</h1>
                         <p className="text-gray-600 text-lg">Control de ingresos, egresos y transacciones</p>
                     </div>
-                    <div className="flex gap-2">
-                        <Button onClick={handleOpenModal} className="px-6 py-2">
-                            Nuevo Egreso
+
+                </div>
+
+                <div className="flex flex-col lg:flex-row gap-8 flex-1 min-h-0">
+                    {/* Tabla a la izquierda */}
+                    <div className="flex-1 min-h-0 flex flex-col">
+                        <div className="flex-1 overflow-auto">
+                            <Table>
+                                <TableHeader className="sticky top-0 z-10">
+                                    <TableRow className="bg-purple-600">
+                                        <TableHead className="font-bold text-white">Fecha</TableHead>
+                                        <TableHead className="font-bold text-white">Hora</TableHead>
+                                        <TableHead className="font-bold text-white">Tipo</TableHead>
+                                        <TableHead className="font-bold text-white">Forma de Pago</TableHead>
+                                        <TableHead className="font-bold text-white">Total</TableHead>
+                                        <TableHead className="font-bold text-white">Usuario</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {Array.isArray(facturas) && facturas.map((factura) => (
+                                        <TableRow key={factura.id_factura} className="hover:bg-gray-100 transition-colors">
+                                            <TableCell className="text-center">
+                                                {`${factura.dia}/${factura.mes}/${factura.anio}`}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {`${factura.hora}`}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {factura.tipo_factura || 'N/A'}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {`${factura.forma_de_pago}`}
+                                            </TableCell>
+                                            <TableCell className="text-center font-semibold">
+                                                {`$${factura.monto_total}`}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {factura.usuario || 'N/A'}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+
+                    {/* Botones a la derecha */}
+                    <div className="flex flex-col gap-4 w-full lg:w-64 flex-shrink-0">
+                        <Button 
+                            onClick={handleOpenModal}
+                            className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 font-semibold text-lg"
+                        >
+                            NUEVO EGRESO
                         </Button>
                         <Button
                             variant="outline"

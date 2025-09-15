@@ -62,11 +62,16 @@ export async function GET(request) {
           p.id_producto,
           p.stock,
           p.nombre AS nombre_producto,
+          p.marca,
+          p.id_tipo,
           p.precio_costo,
           p.modificado,
           t.nombre AS nombre_tipo,
+          -- Porcentajes efectivos (por producto) y por defecto (por tipo)
           COALESCE(dl.porcentaje_final, t.porcentaje_final) as porcentaje_final,
-          COALESCE(dl.porcentaje_mayorista, t.porcentaje_mayorista) as porcentaje_mayorista
+          COALESCE(dl.porcentaje_mayorista, t.porcentaje_mayorista) as porcentaje_mayorista,
+          t.porcentaje_final as porcentaje_final_tipo,
+          t.porcentaje_mayorista as porcentaje_mayorista_tipo
         FROM 
           producto p
         INNER JOIN tipo t ON p.id_tipo = t.id_tipo
@@ -111,6 +116,7 @@ export async function GET(request) {
           hasPrev: page > 1
         }
       });
+
     } finally {
       client.release();
     }
