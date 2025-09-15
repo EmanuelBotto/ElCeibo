@@ -6,8 +6,10 @@ import Producto from './Ventana/producto';
 import FichasClientes from './Ventana/fichas-clientes';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
-import Mascota from './Ventana/mascota';
-import ListaPrecios from './Ventana/lista-precios';
+
+import Item from './Ventana/item';
+import ProtectedRoute from '@/components/ProtectedRoute';
+
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -22,18 +24,18 @@ export default function HomePage() {
         return <Caja />;
       case 'fichas':
         return <FichasClientes />;
-      case 'mascota':
-        return <Mascota />;
-      case 'ListaPrecios':
-        return <ListaPrecios />;
+      case 'item':
+        return <Item />;
       default:
         return <DashboardPage />;
     }
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {renderContent()}
-    </DashboardLayout>
+    <ProtectedRoute>
+      <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+        {renderContent()}
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }

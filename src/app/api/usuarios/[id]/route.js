@@ -51,16 +51,60 @@ export async function PUT(request, { params }) {
     const client = await pool.connect();
     try {
       const { id } = params;
-      const body = await request.json();
+      
+      // Detectar si es FormData o JSON
+      const contentType = request.headers.get('content-type');
+      let body;
+      
+      if (contentType && contentType.includes('multipart/form-data')) {
+        // Manejar FormData
+        const formData = await request.formData();
+        body = {
+          nombre: formData.get('nombre'),
+          apellido: formData.get('apellido'),
+          email: formData.get('email'),
+          telefono: formData.get('telefono'),
+          tipo_usuario: formData.get('tipo_usuario'),
+          foto: formData.get('foto')
+        };
+      } else {
+        // Manejar JSON
+        body = await request.json();
+      }
+      
       const { 
         nombre, 
         apellido, 
         email, 
         telefono, 
-        tipo_usuario 
+        tipo_usuario,
+        foto
       } = body;
 
-      // Validaciones
+      // Validaciones - si solo se está actualizando la foto, no requerir otros campos
+      if (foto && !nombre && !apellido && !email) {
+        // Solo actualizar foto
+        const result = await client.query(
+          `UPDATE usuario 
+           SET foto = $1
+           WHERE id_usuario = $2
+           RETURNING id_usuario, usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, tipo_usuario, foto`,
+          [foto, id]
+        );
+
+        if (result.rows.length === 0) {
+          return NextResponse.json({ 
+            error: 'Usuario no encontrado' 
+          }, { status: 404 });
+        }
+
+        return NextResponse.json({
+          message: 'Foto actualizada exitosamente',
+          user: result.rows[0]
+        }, { status: 200 });
+      }
+
+      // Validaciones para actualización completa
       if (!nombre?.trim() || !apellido?.trim() || !email?.trim()) {
         return NextResponse.json({ 
           error: 'Nombre, apellido y email son requeridos' 
@@ -94,8 +138,8 @@ export async function PUT(request, { params }) {
       // Actualizar usuario
       const result = await client.query(
         `UPDATE usuario 
-         SET nombre = $1, apellido = $2, email = $3, telefono = $4, tipo_usuario = $5
-         WHERE id_usuario = $6
+         SET nombre = $1, apellido = $2, email = $3, telefono = $4, tipo_usuario = $5, foto = $6
+         WHERE id_usuario = $7
          RETURNING id_usuario, usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, tipo_usuario, foto`,
         [
           nombre.trim(),
@@ -103,6 +147,7 @@ export async function PUT(request, { params }) {
           email.trim(),
           telefono?.trim() || null,
           tipo_usuario || 'asistente',
+          foto || null,
           id
         ]
       );

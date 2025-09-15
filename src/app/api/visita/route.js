@@ -10,14 +10,15 @@ export async function POST(request) {
     try {
         client = await pool.connect();
         const body = await request.json();
-        const { fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, id_mascota, id_usuario } = body;
+        const { fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, peso, id_mascota, id_usuario } = body;
         const result = await client.query(
-            `INSERT INTO visita (fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, id_mascota, id_usuario)
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, id_mascota, id_usuario]
+            `INSERT INTO visita (fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, peso, id_mascota, id_usuario)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, peso, id_mascota, id_usuario]
         );
         return NextResponse.json(result.rows[0]);
     } catch (error) {
+        console.error('Error en POST /api/visita:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     } finally {
         if (client) client.release();

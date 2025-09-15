@@ -31,7 +31,8 @@ export default function Item() {
   const [busqueda, setBusqueda] = useState('');
   const [paginaActual, setPaginaActual] = useState(1);
   const [rubroSeleccionado, setRubroSeleccionado] = useState('Todos');
-  const itemsPorPagina = 10;
+  const [tipoBusqueda, setTipoBusqueda] = useState('nombre'); // 'nombre' o 'rubro'
+  const itemsPorPagina = 6;
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [itemSeleccionado, setItemSeleccionado] = useState(null);
   const [prospectoSeleccionado, setProspectoSeleccionado] = useState('');
@@ -73,6 +74,11 @@ export default function Item() {
   useEffect(() => {
     cargarItems();
   }, []);
+
+  // Resetear página cuando cambie la búsqueda o filtros
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda, rubroSeleccionado, tipoBusqueda]);
 
   // Crear item
   const crearItem = async () => {
@@ -210,11 +216,14 @@ export default function Item() {
       return false;
     }
     
-    // Filtro por búsqueda
+    // Filtro por búsqueda según el tipo seleccionado
     if (busqueda) {
       const busquedaLower = busqueda.toLowerCase();
-      return item.detalle?.toLowerCase().includes(busquedaLower) ||
-             item.rubro?.toLowerCase().includes(busquedaLower);
+      if (tipoBusqueda === 'nombre') {
+        return item.detalle?.toLowerCase().includes(busquedaLower);
+      } else if (tipoBusqueda === 'rubro') {
+        return item.rubro?.toLowerCase().includes(busquedaLower);
+      }
     }
     
     return true;
@@ -270,16 +279,41 @@ export default function Item() {
           </div>
         </div>
 
-        <div className="mb-8 flex flex-col md:flex-row md:items-end gap-6">
+        <div className="mb-8 flex flex-col md:flex-row gap-6">
           <div className="flex flex-col gap-2 w-full md:w-1/2">
             <Label htmlFor="busqueda" className="text-base font-semibold text-gray-700">Buscar Items</Label>
             <Input
               id="busqueda"
-              placeholder="Buscar por descripción o rubro..."
+              placeholder={tipoBusqueda === 'nombre' ? "Buscar por nombre..." : "Buscar por rubro..."}
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12 shadow-sm"
             />
+            <div className="flex gap-6 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded-md transition-colors">
+                <input
+                  type="radio"
+                  name="tipoBusqueda"
+                  value="nombre"
+                  checked={tipoBusqueda === 'nombre'}
+                  onChange={(e) => setTipoBusqueda(e.target.value)}
+                  className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                />
+                <span className="text-sm font-medium text-gray-700">Por Nombre</span>
+              </label>
+              
+              <label className="flex items-center gap-2 cursor-pointer hover:bg-white px-3 py-2 rounded-md transition-colors">
+                <input
+                  type="radio"
+                  name="tipoBusqueda"
+                  value="rubro"
+                  checked={tipoBusqueda === 'rubro'}
+                  onChange={(e) => setTipoBusqueda(e.target.value)}
+                  className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                />
+                <span className="text-sm font-medium text-gray-700">Por Rubro</span>
+              </label>
+            </div>
           </div>
           <div className="flex flex-col gap-2 w-full md:w-1/2">
             <Label htmlFor="rubro" className="text-base font-semibold text-gray-700">Filtrar por Rubro</Label>
@@ -293,6 +327,8 @@ export default function Item() {
                 <option key={rubro} value={rubro}>{rubro}</option>
               ))}
             </select>
+            {/* Espacio vacío para mantener alineación con los checkboxes */}
+            <div className="h-10"></div>
           </div>
         </div>
 
@@ -313,62 +349,118 @@ export default function Item() {
                   <p className="text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay items que coincidan con la búsqueda.</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50">
-                      <TableHead className="font-bold text-white">Descripción</TableHead>
-                      <TableHead className="font-bold text-white">Rubro</TableHead>
-                      <TableHead className="font-bold text-white text-center">Duración</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {itemsActuales.map((item, idx) => (
-                      <TableRow
-                        key={item.id_item}
-                        className={
-                          itemSeleccionado?.id_item === item.id_item
-                            ? "bg-purple-100 border-l-4 border-purple-500"
-                            : "hover:bg-gray-50 transition-colors"
-                        }
-                        onClick={() => handleItemSeleccionado(item)}
-                        style={{ cursor: "pointer" }}
-                        aria-rowindex={idx}
-                        aria-rowcount={itemsActuales.length}
-                      >
-                        <TableCell className="font-medium">{item.detalle}</TableCell>
-                        <TableCell className="text-purple-600 font-medium">{item.rubro}</TableCell>
-                        <TableCell className="text-center text-gray-600">
-                          {item.duracion ? `${item.duracion} ${parseInt(item.duracion) === 1 ? 'Año' : 'Meses'}` : '-'}
-                        </TableCell>
+                <div className="min-h-[400px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-bold text-white">Descripción</TableHead>
+                        <TableHead className="font-bold text-white">Rubro</TableHead>
+                        <TableHead className="font-bold text-white text-center">Duración</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: 6 }, (_, idx) => {
+                        const item = itemsActuales[idx];
+                        return (
+                          <TableRow
+                            key={item ? item.id_item : `empty-${idx}`}
+                            className={
+                              item && itemSeleccionado?.id_item === item.id_item
+                                ? "bg-purple-100 border-l-4 border-purple-500"
+                                : item
+                                ? "hover:bg-gray-50 transition-colors"
+                                : "h-16" // Altura fija para filas vacías
+                            }
+                            onClick={() => item && handleItemSeleccionado(item)}
+                            style={{ cursor: item ? "pointer" : "default" }}
+                            aria-rowindex={idx}
+                            aria-rowcount={6}
+                          >
+                            <TableCell className="font-medium">
+                              {item ? item.detalle : ''}
+                            </TableCell>
+                            <TableCell className="text-purple-600 font-medium">
+                              {item ? item.rubro : ''}
+                            </TableCell>
+                            <TableCell className="text-center text-gray-600">
+                              {item ? (item.duracion ? `${item.duracion} ${parseInt(item.duracion) === 1 ? 'Año' : 'Meses'}` : '-') : ''}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </div>
 
             {/* Paginación */}
             {itemsFiltrados.length > itemsPorPagina && (
-              <div className="mt-6 flex justify-center items-center gap-4">
+              <div className="mt-6 flex justify-center items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPaginaActual(1)}
+                  disabled={paginaActual === 1}
+                  className="px-3 py-2 text-sm"
+                >
+                  « Primera
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
                   disabled={paginaActual === 1}
-                  className="px-4"
+                  className="px-3 py-2 text-sm"
                 >
                   ← Anterior
                 </Button>
-                <span className="text-gray-700 font-semibold px-4 py-2 bg-white rounded-lg border">
-                  Página {paginaActual} de {totalPaginas}
-                </span>
+                
+                {/* Números de página */}
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
+                    let pageNum;
+                    if (totalPaginas <= 5) {
+                      pageNum = i + 1;
+                    } else if (paginaActual <= 3) {
+                      pageNum = i + 1;
+                    } else if (paginaActual >= totalPaginas - 2) {
+                      pageNum = totalPaginas - 4 + i;
+                    } else {
+                      pageNum = paginaActual - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={paginaActual === pageNum ? "default" : "outline"}
+                        onClick={() => setPaginaActual(pageNum)}
+                        className="px-3 py-2 text-sm min-w-[40px]"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
                 <Button
                   variant="outline"
                   onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
                   disabled={paginaActual === totalPaginas}
-                  className="px-4"
+                  className="px-3 py-2 text-sm"
                 >
                   Siguiente →
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setPaginaActual(totalPaginas)}
+                  disabled={paginaActual === totalPaginas}
+                  className="px-3 py-2 text-sm"
+                >
+                  Última »
+                </Button>
+                
+                <span className="text-gray-600 text-sm ml-4">
+                  {itemsFiltrados.length} items total
+                </span>
               </div>
             )}
           </div>

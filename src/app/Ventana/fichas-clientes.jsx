@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from 'sonner';
-import { Search, Cat, Dog, PawPrint } from 'lucide-react';
+import { Search, Cat, Dog, PawPrint, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // Función debounce para retrasar la ejecución de la búsqueda
@@ -25,12 +25,23 @@ export default function FichasClientes() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isNuevaMascotaDialogOpen, setIsNuevaMascotaDialogOpen] = useState(false);
   const [formState, setFormState] = useState({
     nombre: '',
     apellido: '',
     calle: '',
     numero: '',
     codigo_postal: ''
+  });
+  const [nuevaMascotaForm, setNuevaMascotaForm] = useState({
+    nombre: '',
+    especie: '',
+    raza: '',
+    sexo: '',
+    edad: '',
+    peso: '',
+    estado_reproductivo: false,
+    foto: null
   });
   const router = useRouter();
 
@@ -133,9 +144,64 @@ export default function FichasClientes() {
     router.push(`/mascota/${petId}`);
   };
 
+  // Función para manejar el envío del formulario de nueva mascota
+  const handleNuevaMascotaSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      
+      // Agregar datos del formulario
+      Object.entries(nuevaMascotaForm).forEach(([key, value]) => {
+        if (key !== 'foto' && value !== null && value !== '') {
+          formData.append(key, value);
+        }
+      });
+      
+      // Agregar ID del cliente
+      formData.append('id_cliente', selectedClient?.id_cliente);
+      
+      // Agregar foto si existe
+      if (nuevaMascotaForm.foto) {
+        formData.append('foto', nuevaMascotaForm.foto);
+      }
+      
+      const response = await fetch('/api/mascotas', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear la mascota');
+      }
+
+      toast.success('Mascota agregada exitosamente');
+      setIsNuevaMascotaDialogOpen(false);
+      
+      // Limpiar formulario
+      setNuevaMascotaForm({
+        nombre: '',
+        especie: '',
+        raza: '',
+        sexo: '',
+        edad: '',
+        peso: '',
+        estado_reproductivo: false,
+        foto: null
+      });
+      
+      // Recargar la lista de fichas para mostrar la nueva mascota
+      fetchFichas(searchTerm);
+      
+    } catch (error) {
+      console.error('Error al crear mascota:', error);
+      toast.error(error.message || 'Error al crear la mascota');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-7xl flex flex-col gap-6">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8 px-4">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-6 md:p-10 w-full max-w-6xl mx-auto flex flex-col gap-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
           <div className="text-center md:text-left">
             <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Fichas de Clientes</h1>
@@ -239,10 +305,21 @@ export default function FichasClientes() {
                     </div>
                     
                     <div>
-                      <h4 className="text-lg font-semibold text-purple-800 mb-4 flex items-center">
-                        <PawPrint className="mr-2" size={20} />
-                        Mascotas Registradas
-                      </h4>
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-lg font-semibold text-purple-800 flex items-center">
+                          <PawPrint className="mr-2" size={20} />
+                          Mascotas Registradas
+                        </h4>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setIsNuevaMascotaDialogOpen(true)} 
+                          className="border-green-600 text-green-600 hover:bg-green-50"
+                        >
+                          <PlusCircle size={16} className="mr-1" />
+                          Agregar Mascota
+                        </Button>
+                      </div>
                       {selectedClient.mascotas && selectedClient.mascotas.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {selectedClient.mascotas.map(pet => (
@@ -362,6 +439,135 @@ export default function FichasClientes() {
               </Button>
               <Button type="submit">
                 {selectedClient ? 'Actualizar' : 'Crear'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo para agregar nueva mascota */}
+      <Dialog open={isNuevaMascotaDialogOpen} onOpenChange={setIsNuevaMascotaDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center text-purple-700">Agregar Nueva Mascota</DialogTitle>
+            <DialogDescription className="text-gray-600 text-center">Complete los datos de la nueva mascota para {selectedClient?.nombre} {selectedClient?.apellido}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleNuevaMascotaSubmit} className="space-y-6">
+            {/* Información básica */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="nombre_mascota" className="text-base font-semibold text-gray-700 block mb-2">Nombre *</Label>
+                <Input
+                  id="nombre_mascota"
+                  value={nuevaMascotaForm.nombre}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, nombre: e.target.value }))}
+                  placeholder="Nombre de la mascota"
+                  required
+                  className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <Label htmlFor="especie_mascota" className="text-base font-semibold text-gray-700 block mb-2">Especie *</Label>
+                <select
+                  id="especie_mascota"
+                  value={nuevaMascotaForm.especie}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, especie: e.target.value }))}
+                  required
+                  className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Seleccionar especie...</option>
+                  <option value="Perro">Perro</option>
+                  <option value="Gato">Gato</option>
+                  <option value="Conejo">Conejo</option>
+                  <option value="Ave">Ave</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="raza_mascota" className="text-base font-semibold text-gray-700 block mb-2">Raza</Label>
+                <Input
+                  id="raza_mascota"
+                  value={nuevaMascotaForm.raza}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, raza: e.target.value }))}
+                  placeholder="Raza de la mascota"
+                  className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <Label htmlFor="sexo_mascota" className="text-base font-semibold text-gray-700 block mb-2">Sexo *</Label>
+                <select
+                  id="sexo_mascota"
+                  value={nuevaMascotaForm.sexo}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, sexo: e.target.value }))}
+                  required
+                  className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Seleccionar sexo...</option>
+                  <option value="Macho">Macho</option>
+                  <option value="Hembra">Hembra</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="edad_mascota" className="text-base font-semibold text-gray-700 block mb-2">Edad (años)</Label>
+                <Input
+                  id="edad_mascota"
+                  type="number"
+                  value={nuevaMascotaForm.edad}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, edad: e.target.value }))}
+                  placeholder="Edad en años"
+                  min="0"
+                  step="0.1"
+                  className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <Label htmlFor="peso_mascota" className="text-base font-semibold text-gray-700 block mb-2">Peso (kg)</Label>
+                <Input
+                  id="peso_mascota"
+                  type="number"
+                  value={nuevaMascotaForm.peso}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, peso: e.target.value }))}
+                  placeholder="Peso en kg"
+                  min="0"
+                  step="0.1"
+                  className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Estado reproductivo */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="estado_reproductivo_mascota"
+                checked={nuevaMascotaForm.estado_reproductivo}
+                onChange={e => setNuevaMascotaForm(f => ({ ...f, estado_reproductivo: e.target.checked }))}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <Label htmlFor="estado_reproductivo_mascota" className="text-base font-semibold text-gray-700">
+                Esterilizado/a
+              </Label>
+            </div>
+
+
+            {/* Foto de la mascota */}
+            <div>
+              <Label htmlFor="foto_mascota" className="text-base font-semibold text-gray-700 block mb-2">Foto de la mascota</Label>
+              <Input
+                id="foto_mascota"
+                type="file"
+                accept="image/*"
+                onChange={e => setNuevaMascotaForm(f => ({ ...f, foto: e.target.files[0] }))}
+                className="w-full border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="flex justify-center space-x-6 pt-6">
+              <Button type="button" variant="outline" onClick={() => setIsNuevaMascotaDialogOpen(false)} className="border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-2">
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-green-600 hover:bg-green-700 px-8 py-2">
+                Agregar Mascota
               </Button>
             </div>
           </form>
