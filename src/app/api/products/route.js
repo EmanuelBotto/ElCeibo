@@ -8,10 +8,55 @@ const connectionString = 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-ba
 // Crear pool global para reutilizar conexiones entre requests
 const pool = new Pool({ connectionString });
 
-export async function GET() {
+export async function GET(request) {
   try {
     const client = await pool.connect();
     try {
+      const { searchParams } = new URL(request.url);
+      const page = parseInt(searchParams.get('page')) || 1;
+      const limit = parseInt(searchParams.get('limit')) || 20;
+      const search = searchParams.get('search') || '';
+      const searchType = searchParams.get('searchType') || 'nombre';
+      const tipo = searchParams.get('tipo') || '';
+      const stockFilter = searchParams.get('stock') || '';
+      
+      const offset = (page - 1) * limit;
+      
+      // Construir condiciones WHERE dinámicamente
+      let whereConditions = [];
+      let queryParams = [];
+      let paramCount = 0;
+      
+      if (search) {
+        paramCount++;
+        if (searchType === 'codigo') {
+          // Buscar por ID del producto
+          whereConditions.push(`p.id_producto::text ILIKE $${paramCount}`);
+          queryParams.push(`%${search}%`);
+        } else {
+          // Buscar por nombre del producto (por defecto)
+          whereConditions.push(`p.nombre ILIKE $${paramCount}`);
+          queryParams.push(`%${search}%`);
+        }
+      }
+      
+      if (tipo) {
+        paramCount++;
+        whereConditions.push(`p.id_tipo = $${paramCount}`);
+        queryParams.push(tipo);
+      }
+      
+      if (stockFilter === 'bajo') {
+        whereConditions.push(`p.stock < 10`);
+      } else if (stockFilter === 'agotado') {
+        whereConditions.push(`p.stock = 0`);
+      } else if (stockFilter === 'disponible') {
+        whereConditions.push(`p.stock > 0`);
+      }
+      
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+      
+      // Consulta optimizada con paginación
       const result = await client.query(`
         SELECT 
           p.id_producto,
@@ -29,8 +74,7 @@ export async function GET() {
           t.porcentaje_mayorista as porcentaje_mayorista_tipo
         FROM 
           producto p
-        INNER JOIN
-        tipo t ON p.id_tipo = t.id_tipo
+        INNER JOIN tipo t ON p.id_tipo = t.id_tipo
         LEFT JOIN (
           SELECT 
             id_producto,
@@ -45,10 +89,34 @@ export async function GET() {
             LIMIT 1
           )
         ) dl ON p.id_producto = dl.id_producto AND p.modificado = true
+        ${whereClause}
         ORDER BY p.id_producto
-      `);
+        LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
+      `, [...queryParams, limit, offset]);
+      
+      // Obtener total de registros para paginación
+      const countResult = await client.query(`
+        SELECT COUNT(*) as total
+        FROM producto p
+        INNER JOIN tipo t ON p.id_tipo = t.id_tipo
+        ${whereClause}
+      `, queryParams);
+      
+      const total = parseInt(countResult.rows[0].total);
+      const totalPages = Math.ceil(total / limit);
+      
+      return NextResponse.json({
+        data: result.rows,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      });
 
-      return NextResponse.json({ productos: result.rows });
     } finally {
       client.release();
     }
@@ -93,11 +161,19 @@ export async function POST(request) {
          RETURNING id_producto`,
         [nombre.trim(), marca?.trim() || '', precio_costo, stock, id_tipo]
       );
+
+      return NextResponse.json({
+        success: true,
+        id: result.rows[0].id_producto,
+        message: 'Producto creado exitosamente'
+      }, { status: 201 });
     
     } finally {
       client.release();
     }
   } catch (err) {
     console.error('Error al crear producto:', err);
+    
+    return NextResponse.json({ error: 'Error interno del servidor: ' + err.message }, { status: 500 });
   }
 }

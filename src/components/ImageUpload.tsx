@@ -25,7 +25,7 @@ export default function ImageUpload({
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const base64 = (e.target?.result as string).split(',')[1];
+        const base64 = e.target?.result as string;
         setPreview(base64);
         onImageChange(base64);
       };

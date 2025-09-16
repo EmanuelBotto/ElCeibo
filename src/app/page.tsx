@@ -32,8 +32,10 @@ export default function HomePage() {
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {renderContent()}
-    </DashboardLayout>
+    <ProtectedRoute>
+      <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+        {renderContent()}
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }

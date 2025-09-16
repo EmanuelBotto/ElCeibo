@@ -145,7 +145,6 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
            })}
          </nav>
        </div>
-
         {/* Footer con información del usuario */}
        <div className="flex-1 p-4 flex flex-col min-h-0">
          {/* Área principal del footer */}

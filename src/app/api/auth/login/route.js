@@ -53,10 +53,28 @@ export async function POST(request) {
       // Retornar datos del usuario (sin contraseña)
       const { contrasenia: password, ...userData } = user;
       
-      return NextResponse.json({
+      // Crear respuesta con cookies HTTP-only
+      const response = NextResponse.json({
         message: 'Login exitoso',
         user: userData
       }, { status: 200 });
+
+      // Establecer cookies HTTP-only para mayor seguridad
+      response.cookies.set('auth-token', 'authenticated', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7 // 7 días
+      });
+
+      response.cookies.set('isAuthenticated', 'true', {
+        httpOnly: false, // Necesario para el cliente
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7 // 7 días
+      });
+
+      return response;
 
     } finally {
       client.release();
