@@ -30,14 +30,13 @@ export default function Ingreso({ onVolver }) {
     try {
       setCargando(true);
       const res = await fetch('/api/products');
-      if (!res.ok) throw new Error(`Error al cargar productos: ${res.status}`);
+      if (!res.ok) throw new Error('Error al cargar productos');
       const data = await res.json();
       const lista = Array.isArray(data) ? data : Array.isArray(data?.productos) ? data.productos : [];
       setProductos(lista);
     } catch (err) {
-      console.error('Error cargando productos:', err);
+      console.error(err);
       setProductos([]);
-      // Optional: Show user-friendly error message
     } finally {
       setCargando(false);
     }

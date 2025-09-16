@@ -8,7 +8,6 @@ import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
 import Item from './Ventana/item';
 import Ingreso from './Ventana/ingreso';
-import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -33,10 +32,8 @@ export default function HomePage() {
   };
 
   return (
-    <ProtectedRoute>
-      <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-        {renderContent()}
-      </DashboardLayout>
-    </ProtectedRoute>
+    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {renderContent()}
+    </DashboardLayout>
   );
 }

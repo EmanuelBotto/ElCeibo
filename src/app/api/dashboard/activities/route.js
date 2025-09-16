@@ -13,40 +13,40 @@ export async function GET() {
   try {
     const client = await pool.connect();
     try {
-      // Obtener actividades recientes de forma simplificada
+      // Obtener actividades recientes de diferentes fuentes
       const activities = [];
 
-      // 1. Ventas recientes (últimas 3) - solo facturas de tipo ingreso
-      const ventasRecientes = await client.query(`
+      // 1. Clientes recientes (últimos 5)
+      const clientesRecientes = await client.query(`
         SELECT 
-          id_factura,
-          monto_total,
-          forma_de_pago
-        FROM factura 
-        WHERE tipo_factura = 'ingreso'
-        ORDER BY id_factura DESC 
-        LIMIT 3
+          id_clinete,
+          nombre,
+          apellido,
+          'cliente' as tipo
+        FROM cliente 
+        ORDER BY id_clinete DESC 
+        LIMIT 5
       `);
 
-      ventasRecientes.rows.forEach(venta => {
-        const monto = parseFloat(venta.monto_total) || 0;
+      clientesRecientes.rows.forEach(cliente => {
         activities.push({
-          id: `venta_${venta.id_factura}`,
-          type: "venta",
-          message: `Venta realizada: $${monto.toFixed(2)} (${venta.forma_de_pago})`,
+          id: `cliente_${cliente.id_clinete}`,
+          type: "cliente",
+          message: `Nuevo cliente registrado: ${cliente.nombre} ${cliente.apellido}`,
           time: "Reciente",
-          icon: "DollarSign"
+          icon: "Users"
         });
       });
 
-      // 2. Productos recientes (últimos 2)
+      // 2. Productos recientes (últimos 3)
       const productosRecientes = await client.query(`
         SELECT 
           id_producto,
-          nombre
+          nombre,
+          'producto' as tipo
         FROM producto 
         ORDER BY id_producto DESC 
-        LIMIT 2
+        LIMIT 3
       `);
 
       productosRecientes.rows.forEach(producto => {
@@ -59,17 +59,18 @@ export async function GET() {
         });
       });
 
-      // 3. Mascotas recientes (últimas 2)
+      // 3. Mascotas recientes (últimas 3)
       const mascotasRecientes = await client.query(`
         SELECT 
           m.id_mascota,
           m.nombre,
           c.nombre as nombre_cliente,
-          c.apellido as apellido_cliente
+          c.apellido as apellido_cliente,
+          'mascota' as tipo
         FROM mascota m
         JOIN cliente c ON m.id_cliente = c.id_clinete
         ORDER BY m.id_mascota DESC 
-        LIMIT 2
+        LIMIT 3
       `);
 
       mascotasRecientes.rows.forEach(mascota => {
@@ -82,14 +83,35 @@ export async function GET() {
         });
       });
 
-      // Ordenar por ID (más reciente primero) y limitar a 6 actividades
+      // 4. Ventas recientes (últimas 3)
+      const ventasRecientes = await client.query(`
+        SELECT 
+          id_factura,
+          monto_total,
+          'venta' as tipo
+        FROM factura 
+        ORDER BY id_factura DESC 
+        LIMIT 3
+      `);
+
+      ventasRecientes.rows.forEach(venta => {
+        activities.push({
+          id: `venta_${venta.id_factura}`,
+          type: "venta",
+          message: `Venta realizada: $${venta.monto_total?.toFixed(2) || '0.00'}`,
+          time: "Reciente",
+          icon: "DollarSign"
+        });
+      });
+
+      // Ordenar por ID (más reciente primero) y limitar a 8 actividades
       const actividadesOrdenadas = activities
         .sort((a, b) => {
           const idA = parseInt(a.id.split('_')[1]);
           const idB = parseInt(b.id.split('_')[1]);
           return idB - idA;
         })
-        .slice(0, 6);
+        .slice(0, 8);
 
       return NextResponse.json(actividadesOrdenadas);
     } finally {

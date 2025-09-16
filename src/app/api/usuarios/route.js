@@ -16,21 +16,18 @@ export async function GET() {
                 apellido,
                 email,
                 telefono,
-                calle,
-                numero,
-                codigo_postal,
+                direccion,
                 foto,
                 tipo_usuario,
-                usuario
+                fecha_registro
             FROM usuario 
             ORDER BY apellido, nombre
             LIMIT 100
         `);
 
-        // Convertir las fotos BYTEA a Base64 para el frontend y crear campo direccion combinado
+        // Convertir las fotos BYTEA a Base64 para el frontend
         const usuariosConFotos = result.rows.map(usuario => ({
             ...usuario,
-            direccion: `${usuario.calle} ${usuario.numero}, CP: ${usuario.codigo_postal}`,
             foto: usuario.foto ? `data:image/jpeg;base64,${usuario.foto.toString('base64')}` : null
         }));
 
@@ -50,8 +47,8 @@ export async function GET() {
 // POST - Crear nuevo usuario
 export async function POST(request) {
     try {
-        const { nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, password, usuario } = await request.json();
-
+        const { nombre, apellido, email, telefono, direccion, foto, tipo_usuario, password } = await request.json();
+        
         // Validaciones básicas
         if (!nombre || !apellido || !email || !tipo_usuario) {
             return new Response(JSON.stringify({ error: 'Nombre, apellido, email y tipo de usuario son requeridos' }), {
@@ -78,10 +75,10 @@ export async function POST(request) {
 
         // Insertar en la base de datos
         const result = await pool.query(`
-            INSERT INTO usuario (nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, contrasenia, usuario)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO usuario (nombre, apellido, email, telefono, direccion, foto, tipo_usuario, password, fecha_registro)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
             RETURNING id_usuario
-        `, [nombre, apellido, email, telefono, calle, numero, codigo_postal, fotoBuffer, tipo_usuario, password, usuario]);
+        `, [nombre, apellido, email, telefono, direccion, fotoBuffer, tipo_usuario, password]);
 
         return new Response(JSON.stringify({ 
             success: true, 
@@ -113,7 +110,7 @@ export async function POST(request) {
 // PUT - Actualizar usuario existente
 export async function PUT(request) {
     try {
-        const { id_usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, password, usuario } = await request.json();
+        const { id_usuario, nombre, apellido, email, telefono, direccion, foto, tipo_usuario, password } = await request.json();
         
         if (!id_usuario) {
             return new Response(JSON.stringify({ error: 'ID de usuario es requerido' }), {
@@ -159,17 +156,9 @@ export async function PUT(request) {
             updateFields.push(`telefono = $${paramIndex++}`);
             values.push(telefono);
         }
-        if (calle !== undefined) {
-            updateFields.push(`calle = $${paramIndex++}`);
-            values.push(calle);
-        }
-        if (numero !== undefined) {
-            updateFields.push(`numero = $${paramIndex++}`);
-            values.push(numero);
-        }
-        if (codigo_postal !== undefined) {
-            updateFields.push(`codigo_postal = $${paramIndex++}`);
-            values.push(codigo_postal);
+        if (direccion !== undefined) {
+            updateFields.push(`direccion = $${paramIndex++}`);
+            values.push(direccion);
         }
         if (foto !== undefined) {
             updateFields.push(`foto = $${paramIndex++}`);
@@ -180,12 +169,8 @@ export async function PUT(request) {
             values.push(tipo_usuario);
         }
         if (password !== undefined) {
-            updateFields.push(`contrasenia = $${paramIndex++}`);
+            updateFields.push(`password = $${paramIndex++}`);
             values.push(password);
-        }
-        if (usuario !== undefined) {
-            updateFields.push(`usuario = $${paramIndex++}`);
-            values.push(usuario);
         }
 
         if (updateFields.length === 0) {

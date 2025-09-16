@@ -23,7 +23,6 @@ import {
 import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
-import ImageDisplay from '@/components/ImageDisplay';
 
 interface User {
   id_usuario: number;
@@ -47,9 +46,6 @@ export default function UsuariosPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [isFotoDialogOpen, setIsFotoDialogOpen] = useState(false);
-  const [nuevaFoto, setNuevaFoto] = useState<string>('');
-  const [isActualizandoFoto, setIsActualizandoFoto] = useState(false);
   const { user: currentUser } = useAuth();
   const router = useRouter();
 
@@ -66,26 +62,26 @@ export default function UsuariosPage() {
     contrasenia: ''
   });
 
+  // Verificar si el usuario actual es administrador
+  if (currentUser?.tipo_usuario !== 'admin') {
+    return (
+      <ProtectedRoute requiredRole="admin">
+        <div className="min-h-screen bg-gray-50" style={{ backgroundColor: '#f9fafb' }}>
+          <div className="p-8">
+            <div className="text-center">
+              <Shield className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Acceso Denegado</h2>
+              <p className="text-gray-600">Solo los administradores pueden acceder a esta página.</p>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
   useEffect(() => {
     fetchUsers();
   }, []);
-
-  // Scroll automático al formulario cuando se abre
-  useEffect(() => {
-    if (showCreateForm) {
-      // Pequeño delay para asegurar que el DOM se haya actualizado
-      setTimeout(() => {
-        const formElement = document.querySelector('[data-form="user-form"]');
-        if (formElement) {
-          formElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start',
-            inline: 'nearest'
-          });
-        }
-      }, 100);
-    }
-  }, [showCreateForm]);
 
   const fetchUsers = async () => {
     try {
@@ -94,11 +90,10 @@ export default function UsuariosPage() {
         throw new Error('Error al cargar usuarios');
       }
       const data = await response.json();
-      setUsers(data || []);
+      setUsers(data.users);
     } catch (error) {
       toast.error('Error al cargar usuarios');
       console.error('Error:', error);
-      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -119,44 +114,25 @@ export default function UsuariosPage() {
       const url = editingUser ? `/api/usuarios/${editingUser.id_usuario}` : '/api/usuarios';
       const method = editingUser ? 'PUT' : 'POST';
       
-      let response;
+      // Crear FormData para enviar archivos
+      const formDataToSend = new FormData();
       
+      // Agregar datos del formulario
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== '') {
+          formDataToSend.append(key, value);
+        }
+      });
+      
+      // Agregar archivo si existe
       if (selectedFile) {
-        // Si hay archivo, usar FormData
-        const formDataToSend = new FormData();
-        
-        // Agregar datos del formulario
-        Object.entries(formData).forEach(([key, value]) => {
-          if (value !== '') {
-            formDataToSend.append(key, value);
-          }
-        });
-        
-        // Agregar archivo
         formDataToSend.append('foto', selectedFile);
-        
-        response = await fetch(url, {
-          method,
-          body: formDataToSend,
-        });
-      } else {
-        // Si no hay archivo, usar JSON
-        const jsonData = {
-          ...formData,
-          // Remover campos vacíos
-          ...Object.fromEntries(
-            Object.entries(formData).filter(([_, value]) => value !== '')
-          )
-        };
-        
-        response = await fetch(url, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(jsonData),
-        });
       }
+      
+      const response = await fetch(url, {
+        method,
+        body: formDataToSend,
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -246,55 +222,7 @@ export default function UsuariosPage() {
     router.push('/');
   };
 
-  const handleFotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNuevaFoto(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleFotoSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nuevaFoto || !editingUser) {
-      toast.error('Por favor selecciona una foto');
-      return;
-    }
-
-    setIsActualizandoFoto(true);
-    try {
-      const response = await fetch(`/api/usuarios/${editingUser.id_usuario}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ foto: nuevaFoto })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al actualizar la foto');
-      }
-
-      // Actualizar el estado local
-      setUsers(prev => prev.map(user => 
-        user.id_usuario === editingUser.id_usuario 
-          ? { ...user, foto: nuevaFoto }
-          : user
-      ));
-
-      setIsFotoDialogOpen(false);
-      setNuevaFoto('');
-      toast.success('Foto actualizada exitosamente');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al actualizar la foto');
-    } finally {
-      setIsActualizandoFoto(false);
-    }
-  };
-
-  const filteredUsers = (users || []).filter(user =>
+  const filteredUsers = users.filter(user =>
     user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -311,24 +239,6 @@ export default function UsuariosPage() {
           </div>
         </div>
       </div>
-    );
-  }
-
-
-  // Verificar si el usuario actual es administrador
-  if (currentUser?.tipo_usuario !== 'admin') {
-    return (
-      <ProtectedRoute requiredRole="admin">
-        <div className="min-h-screen bg-gray-50" style={{ backgroundColor: '#f9fafb' }}>
-          <div className="p-8">
-            <div className="text-center">
-              <Shield className="mx-auto h-12 w-12 text-red-500 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Acceso Denegado</h2>
-              <p className="text-gray-600">Solo los administradores pueden acceder a esta página.</p>
-            </div>
-          </div>
-        </div>
-      </ProtectedRoute>
     );
   }
 
@@ -379,29 +289,12 @@ export default function UsuariosPage() {
 
             {/* Formulario de creación/edición */}
             {showCreateForm && (
-              <div 
-                data-form="user-form"
-                className="bg-white border-2 border-purple-300 rounded-lg shadow-xl overflow-hidden mb-6 animate-in slide-in-from-top-4 duration-300 ring-2 ring-purple-100"
-              >
-                <div className="bg-[#a06ba5] px-6 py-4 flex justify-between items-center">
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-6">
+                <div className="bg-[#a06ba5] px-6 py-4">
                   <h2 className="text-xl font-bold text-white flex items-center space-x-2">
                     <Edit className="h-5 w-5" />
                     <span>{editingUser ? 'Editar Usuario' : 'Crear Nuevo Usuario'}</span>
                   </h2>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowCreateForm(false);
-                      setEditingUser(null);
-                      resetForm();
-                      setSelectedFile(null);
-                      setPreviewUrl('');
-                    }}
-                    className="bg-white text-purple-600 border-white hover:bg-gray-100"
-                  >
-                    ✕ Cerrar
-                  </Button>
                 </div>
                 <div className="p-6">
                   <form onSubmit={handleSubmit} className="space-y-4">
@@ -594,26 +487,16 @@ export default function UsuariosPage() {
                   <div className="p-6">
                     <div className="flex items-start space-x-4">
                       {/* Foto de perfil */}
-                      <div className="relative w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 group">
+                      <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
                         {user.foto ? (
-                          <ImageDisplay
+                          <img
                             src={user.foto}
                             alt={`${user.nombre} ${user.apellido}`}
-                            className="w-full h-full"
-                            showControls={false}
+                            className="w-full h-full object-cover"
                           />
                         ) : (
                           <User className="h-8 w-8 text-purple-600" />
                         )}
-                        <button
-                          onClick={() => {
-                            setEditingUser(user);
-                            setIsFotoDialogOpen(true);
-                          }}
-                          className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-200 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100"
-                        >
-                          <Camera className="h-4 w-4 text-white" />
-                        </button>
                       </div>
                       
                       {/* Información del usuario */}
@@ -703,71 +586,6 @@ export default function UsuariosPage() {
           </div>
         </div>
       </div>
-
-      {/* Dialogo Cambiar Foto */}
-      {isFotoDialogOpen && editingUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Cambiar Foto de {editingUser.nombre} {editingUser.apellido}
-              </h3>
-              <p className="text-gray-600">Selecciona una nueva foto para el usuario.</p>
-            </div>
-            
-            <form onSubmit={handleFotoSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="foto_usuario" className="block text-sm font-medium text-gray-700 mb-2">
-                  Foto del usuario
-                </label>
-                <input 
-                  type="file" 
-                  id="foto_usuario"
-                  accept="image/*" 
-                  onChange={handleFotoFileChange}
-                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  required
-                />
-              </div>
-              
-              {nuevaFoto && (
-                <div className="text-center">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Vista previa:</label>
-                  <div className="flex justify-center">
-                    <ImageDisplay 
-                      src={nuevaFoto} 
-                      alt="Vista previa" 
-                      className="w-24 h-24 rounded-lg border-2 border-purple-300"
-                      showControls={false}
-                    />
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setIsFotoDialogOpen(false);
-                    setNuevaFoto('');
-                  }}
-                  disabled={isActualizandoFoto}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={!nuevaFoto || isActualizandoFoto}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {isActualizandoFoto ? 'Actualizando...' : 'Actualizar Foto'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </ProtectedRoute>
   );
 }

@@ -12,17 +12,6 @@ const pool = new Pool({ connectionString });
 // GET current user info
 export async function GET(request) {
   try {
-    // Verificar si hay cookies de autenticación
-    const authToken = request.cookies.get('auth-token');
-    const isAuthenticated = request.cookies.get('isAuthenticated');
-
-    if (!authToken || !isAuthenticated) {
-      return NextResponse.json({ 
-        error: 'No autenticado' 
-      }, { status: 401 });
-    }
-
-    // Obtener el ID del usuario desde los parámetros de la URL o desde las cookies
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('id');
 

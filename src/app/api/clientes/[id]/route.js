@@ -9,7 +9,7 @@ const connectionString = 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-ba
 
 const pool = new Pool({ connectionString });
 
-// GET (Obtener) un cliente por ID
+// GET client by ID
 export async function GET(request, { params }) {
   const { id } = await params;
   try {
@@ -28,7 +28,7 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT (Actualizar) un cliente
+// PUT (update) a client
 export async function PUT(request, { params }) {
   const { id } = await params;
   try {
@@ -47,9 +47,8 @@ export async function PUT(request, { params }) {
            apellido = $2, 
            calle = $3, 
            numero = $4, 
-           codigo_postal = $5,
-           celular = $6
-         WHERE id_clinete = $7
+           codigo_postal = $5
+         WHERE id_clinete = $6
          RETURNING *`,
         [
           nombre.trim(),
@@ -57,7 +56,6 @@ export async function PUT(request, { params }) {
           calle.trim(),
           parseInt(numero, 10),
           parseInt(codigo_postal, 10),
-          parseInt(celular, 10),
           id
         ]
       );
@@ -75,7 +73,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE (Eliminar) un cliente
+// DELETE a client
 export async function DELETE(request, { params }) {
   const { id } = await params;
   try {

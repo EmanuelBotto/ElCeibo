@@ -21,7 +21,6 @@ export default function Caja({ onTabChange }) {
     const [cargando, setCargando] = useState(true);
     const [busqueda, setBusqueda] = useState('');
     const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
-
     
 
     const obtenerFacturas = async () => {
@@ -76,11 +75,9 @@ export default function Caja({ onTabChange }) {
                         <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Caja</h1>
                         <p className="text-gray-600 text-lg">Control de ingresos, egresos y transacciones</p>
                     </div>
-
                     <div className="flex gap-2">
                         <Button onClick={handleOpenModal} className="px-6 py-2">
                             Nuevo Egreso
-
                         </Button>
                         <Button
                             variant="outline"
@@ -143,7 +140,7 @@ export default function Caja({ onTabChange }) {
                         <TableBody>
                             {facturasFiltradas.map((factura, idx) => (
                                 <TableRow
-                                    key={factura.id_factura ? `factura-${factura.id_factura}` : `factura-${idx}`}
+                                    key={factura.id_factura}
                                     className={
                                         facturaSeleccionada?.id_factura === factura.id_factura
                                             ? "bg-gray-200 !border-2 !border-gray-500"
@@ -179,7 +176,6 @@ export default function Caja({ onTabChange }) {
                                     </TableCell>
                                     <TableCell className="text-center">
                                         {factura.nombre_usuario || 'N/A'}
-
                                     </TableCell>
                                 </TableRow>
                             ))}

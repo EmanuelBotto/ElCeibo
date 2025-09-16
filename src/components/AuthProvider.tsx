@@ -35,54 +35,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Verificar autenticación desde el servidor
-    const checkAuth = async () => {
-      try {
-        // Primero verificar si hay datos en localStorage
-        const storedUser = localStorage.getItem('user');
-        const storedAuth = localStorage.getItem('isAuthenticated');
+    // Verificar si hay un usuario guardado en localStorage
+    const storedUser = localStorage.getItem('user');
+    const storedAuth = localStorage.getItem('isAuthenticated');
 
-        if (storedUser && storedAuth === 'true') {
-          try {
-            const userData = JSON.parse(storedUser);
-            
-            // Verificar con el servidor usando el ID del usuario
-            const response = await fetch(`/api/auth/me?id=${userData.id_usuario}`, {
-              credentials: 'include'
-            });
-            
-            if (response.ok) {
-              const serverUserData = await response.json();
-              setUser(serverUserData.user);
-              setIsAuthenticated(true);
-            } else {
-              // Si el servidor no responde bien, usar datos locales
-              setUser(userData);
-              setIsAuthenticated(true);
-            }
-          } catch (error) {
-            console.error('Error parsing stored user:', error);
-            localStorage.removeItem('user');
-            localStorage.removeItem('isAuthenticated');
-            setUser(null);
-            setIsAuthenticated(false);
-          }
-        } else {
-          setUser(null);
-          setIsAuthenticated(false);
-        }
+    if (storedUser && storedAuth === 'true') {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        setIsAuthenticated(true);
       } catch (error) {
-        console.error('Error checking auth:', error);
-        setUser(null);
-        setIsAuthenticated(false);
+        console.error('Error parsing stored user:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
-      } finally {
-        setLoading(false);
       }
-    };
-
-    checkAuth();
+    }
+    setLoading(false);
   }, []);
 
   const login = (userData: User) => {
@@ -92,23 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('isAuthenticated', 'true');
   };
 
-  const logout = async () => {
-    try {
-      // Llamar al endpoint de logout para limpiar cookies del servidor
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-    } catch (error) {
-      console.error('Error al hacer logout:', error);
-    } finally {
-      // Limpiar estado local
-      setUser(null);
-      setIsAuthenticated(false);
-      localStorage.removeItem('user');
-      localStorage.removeItem('isAuthenticated');
-      router.push('/login');
-    }
+  const logout = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('user');
+    localStorage.removeItem('isAuthenticated');
+    router.push('/login');
   };
 
   const updateUser = (userData: User) => {
