@@ -31,7 +31,8 @@ export default function FichasClientes() {
     apellido: '',
     calle: '',
     numero: '',
-    codigo_postal: ''
+    codigo_postal: '',
+    celular: ''
   });
   const [nuevaMascotaForm, setNuevaMascotaForm] = useState({
     nombre: '',
@@ -83,7 +84,8 @@ export default function FichasClientes() {
         apellido: client.apellido || '',
         calle: client.calle || '',
         numero: client.numero?.toString() || '',
-        codigo_postal: client.codigo_postal?.toString() || ''
+        codigo_postal: client.codigo_postal?.toString() || '',
+        celular: client.celular?.toString() || ''
       });
     } else {
       resetForm();
@@ -147,6 +149,13 @@ export default function FichasClientes() {
   // Función para manejar el envío del formulario de nueva mascota
   const handleNuevaMascotaSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validar que hay un cliente seleccionado
+    if (!selectedClient || !selectedClient.id_clinete) {
+      toast.error('Debe seleccionar un cliente primero');
+      return;
+    }
+    
     try {
       const formData = new FormData();
       
@@ -158,7 +167,7 @@ export default function FichasClientes() {
       });
       
       // Agregar ID del cliente
-      formData.append('id_cliente', selectedClient?.id_cliente);
+      formData.append('id_cliente', selectedClient?.id_clinete);
       
       // Agregar foto si existe
       if (nuevaMascotaForm.foto) {
@@ -172,6 +181,7 @@ export default function FichasClientes() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error del servidor:', errorData);
         throw new Error(errorData.error || 'Error al crear la mascota');
       }
 
@@ -205,7 +215,6 @@ export default function FichasClientes() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
           <div className="text-center md:text-left">
             <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Fichas de Clientes</h1>
-            <p className="text-gray-600 text-lg">Gestiona la información de clientes y sus mascotas</p>
           </div>
           <div className="flex gap-2">
             <Button onClick={() => handleOpenForm()} className="px-6 py-2">
@@ -362,82 +371,126 @@ export default function FichasClientes() {
 
       {/* Dialogo para Crear/Editar Cliente */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[700px] max-h-[95vh] overflow-hidden">
+          <DialogHeader className="text-center pb-4">
+            <div className="mx-auto w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center mb-3">
+              <PawPrint className="text-white" size={24} />
+            </div>
             <DialogTitle className="text-xl font-bold text-purple-800">
               {selectedClient ? 'Modificar Cliente' : 'Crear Nuevo Cliente'}
             </DialogTitle>
-            <DialogDescription className="text-gray-600">
+            <DialogDescription className="text-gray-600 text-sm">
               {selectedClient ? 'Actualiza los datos del cliente.' : 'Completa el formulario para crear un nuevo cliente.'}
             </DialogDescription>
           </DialogHeader>
+          
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="nombre" className="text-gray-700 font-semibold">Nombre</Label>
-                <Input 
-                  id="nombre" 
-                  name="nombre" 
-                  value={formState.nombre} 
-                  onChange={handleFormChange} 
-                  required 
-                  className="mt-1 h-12"
-                />
-              </div>
-              <div>
-                <Label htmlFor="apellido" className="text-gray-700 font-semibold">Apellido</Label>
-                <Input 
-                  id="apellido" 
-                  name="apellido" 
-                  value={formState.apellido} 
-                  onChange={handleFormChange} 
-                  required 
-                  className="mt-1 h-12"
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="calle" className="text-gray-700 font-semibold">Calle</Label>
-              <Input 
-                id="calle" 
-                name="calle" 
-                value={formState.calle} 
-                onChange={handleFormChange} 
-                required 
-                className="mt-1 h-12"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="numero" className="text-gray-700 font-semibold">Número</Label>
-                <Input 
-                  id="numero" 
-                  name="numero" 
-                  type="number" 
-                  value={formState.numero} 
-                  onChange={handleFormChange} 
-                  required 
-                  className="mt-1 h-12"
-                />
-              </div>
-              <div>
-                <Label htmlFor="codigo_postal" className="text-gray-700 font-semibold">Código Postal</Label>
-                <Input 
-                  id="codigo_postal" 
-                  name="codigo_postal" 
-                  type="number" 
-                  value={formState.codigo_postal} 
-                  onChange={handleFormChange} 
-                  required 
-                  className="mt-1 h-12"
-                />
+            {/* Información Personal */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg">
+              <h3 className="text-base font-semibold text-purple-800 mb-3 flex items-center">
+                <PawPrint className="mr-2" size={16} />
+                Información Personal
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="nombre" className="text-gray-700 font-semibold text-sm">Nombre *</Label>
+                  <Input 
+                    id="nombre" 
+                    name="nombre" 
+                    value={formState.nombre} 
+                    onChange={handleFormChange} 
+                    required 
+                    placeholder="Ingrese el nombre"
+                    className="h-10 border-2 border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="apellido" className="text-gray-700 font-semibold text-sm">Apellido *</Label>
+                  <Input 
+                    id="apellido" 
+                    name="apellido" 
+                    value={formState.apellido} 
+                    onChange={handleFormChange} 
+                    required 
+                    placeholder="Ingrese el apellido"
+                    className="h-10 border-2 border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>
+
+            {/* Información de Contacto */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg">
+              <h3 className="text-base font-semibold text-blue-800 mb-3 flex items-center">
+                <Search className="mr-2" size={16} />
+                Información de Contacto
+              </h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="calle" className="text-gray-700 font-semibold text-sm">Calle</Label>
+                  <Input 
+                    id="calle" 
+                    name="calle" 
+                    value={formState.calle} 
+                    onChange={handleFormChange} 
+                    placeholder="Nombre de la calle"
+                    className="h-10 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="numero" className="text-gray-700 font-semibold text-sm">Número</Label>
+                    <Input 
+                      id="numero" 
+                      name="numero" 
+                      type="number" 
+                      value={formState.numero} 
+                      onChange={handleFormChange} 
+                      placeholder="Número"
+                      className="h-10 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="codigo_postal" className="text-gray-700 font-semibold text-sm">Código Postal</Label>
+                    <Input 
+                      id="codigo_postal" 
+                      name="codigo_postal" 
+                      type="number" 
+                      value={formState.codigo_postal} 
+                      onChange={handleFormChange} 
+                      placeholder="CP"
+                      className="h-10 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="celular" className="text-gray-700 font-semibold text-sm">Celular</Label>
+                    <Input 
+                      id="celular" 
+                      name="celular" 
+                      value={formState.celular} 
+                      onChange={handleFormChange} 
+                      placeholder="Celular"
+                      className="h-10 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de Acción */}
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-3 border-t border-gray-200">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsFormOpen(false)}
+                className="h-10 px-6 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+              >
                 Cancelar
               </Button>
-              <Button type="submit">
+              <Button 
+                type="submit"
+                className="h-10 px-6 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              >
                 {selectedClient ? 'Actualizar' : 'Crear'}
               </Button>
             </div>

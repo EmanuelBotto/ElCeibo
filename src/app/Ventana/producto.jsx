@@ -121,7 +121,7 @@ export default function Producto() {
     }, 500); // Debounce de 500ms
 
     return () => clearTimeout(timeoutId);
-  }, [busqueda, tipoBusqueda]);
+  }, [busqueda]); // Solo se ejecuta cuando cambia la búsqueda, no el tipo
 
   // Crear producto
   const crearProducto = async () => {
@@ -308,14 +308,10 @@ export default function Producto() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-4xl flex flex-col gap-6">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-8 w-full max-w-6xl flex flex-col gap-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-          <div className="text-center md:text-left">
-            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Productos</h1>
-            <p className="text-gray-600 text-lg">Administra el inventario y precios</p>
-          </div>
           <div className="flex gap-2">
-            <Button onClick={() => setMostrarFormulario(true)} className="px-6 py-2">
+            <Button onClick={() => setMostrarFormulario(true)} className="px-6 py-2 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200" style={{backgroundColor: '#a06ba5'}}>
               Agregar
             </Button>
             <Button
@@ -327,7 +323,8 @@ export default function Producto() {
                   setMostrarFormularioEdicion(true);
                 }
               }}
-              className="px-6 py-2"
+              className={`px-6 py-2 ${productoSeleccionado ? 'text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200' : ''}`}
+              style={productoSeleccionado ? {backgroundColor: '#a06ba5'} : {}}
             >
               Modificar
             </Button>
@@ -556,59 +553,93 @@ export default function Producto() {
 
       {/* Modal de nuevo producto */}
       {mostrarFormulario && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-[350px]">
-            <h2 className="text-xl font-bold mb-4">Nuevo Producto</h2>
-            <div className="flex flex-col gap-2 mb-4">
-              <Label htmlFor="nombre">Nombre</Label>
-              <Input
-                id="nombre"
-                value={nuevoProducto.nombre}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })}
-                placeholder="Nombre"
-              />
-              <Label htmlFor="marca">Marca</Label>
-              <Input
-                id="marca"
-                value={nuevoProducto.marca}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, marca: e.target.value })}
-                placeholder="Marca"
-              />
-              <Label htmlFor="precio">Precio</Label>
-              <Input
-                id="precio"
-                type="number"
-                value={nuevoProducto.precio_costo}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio_costo: e.target.value })}
-                placeholder="Precio"
-              />
-              <Label htmlFor="stock">Stock</Label>
-              <Input
-                id="stock"
-                type="number"
-                value={nuevoProducto.stock}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, stock: e.target.value })}
-                placeholder="Stock"
-              />
-              <Label htmlFor="tipo">Tipo</Label>
-              <select
-                id="tipo"
-                value={nuevoProducto.id_tipo}
-                onChange={(e) => setNuevoProducto({ ...nuevoProducto, id_tipo: e.target.value })}
-                className="border px-2 py-1 rounded"
-              >
-                <option value="1">Balanceado</option>
-                <option value="2">Medicamento</option>
-                <option value="3">Accesorio</option>
-                <option value="4">Acuario</option>
-              </select>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="from-purple-500 to-purple-700 px-6 py-4 rounded-t-xl">
+              <h2 className="text-xl font-bold text-white text-center">Nuevo Producto</h2>
+              <p className="text-purple-100 text-sm text-center">Completa los datos del producto</p>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setMostrarFormulario(false)}>
+            
+            <div className="p-6 space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="nombre" className="text-gray-700 font-semibold text-sm">Nombre del Producto</Label>
+                <Input
+                  id="nombre"
+                  value={nuevoProducto.nombre}
+                  onChange={(e) => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })}
+                  placeholder="Ingrese el nombre del producto"
+                  className="h-10 border-2 border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="marca" className="text-gray-700 font-semibold text-sm">Marca</Label>
+                <Input
+                  id="marca"
+                  value={nuevoProducto.marca}
+                  onChange={(e) => setNuevoProducto({ ...nuevoProducto, marca: e.target.value })}
+                  placeholder="Ingrese la marca"
+                  className="h-10 border-2 border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="precio" className="text-gray-700 font-semibold text-sm">Precio Costo</Label>
+                  <Input
+                    id="precio"
+                    type="number"
+                    value={nuevoProducto.precio_costo}
+                    onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio_costo: e.target.value })}
+                    placeholder="0.00"
+                    className="h-10 border-2 border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <Label htmlFor="stock" className="text-gray-700 font-semibold text-sm">Stock Inicial</Label>
+                  <Input
+                    id="stock"
+                    type="number"
+                    value={nuevoProducto.stock}
+                    onChange={(e) => setNuevoProducto({ ...nuevoProducto, stock: e.target.value })}
+                    placeholder="0"
+                    className="h-10 border-2 border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="tipo" className="text-gray-700 font-semibold text-sm">Categoría</Label>
+                <select
+                  id="tipo"
+                  value={nuevoProducto.id_tipo}
+                  onChange={(e) => setNuevoProducto({ ...nuevoProducto, id_tipo: e.target.value })}
+                  className="w-full h-10 border-2 border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200 rounded-md px-3 bg-white text-gray-800"
+                >
+                  <option value="">Seleccione una categoría</option>
+                  <option value="1">Balanceado</option>
+                  <option value="2">Medicamento</option>
+                  <option value="3">Accesorio</option>
+                  <option value="4">Acuario</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-xl">
+              <Button 
+                variant="outline" 
+                onClick={() => setMostrarFormulario(false)}
+                className="h-10 px-6 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+              >
                 Cancelar
               </Button>
-              <Button onClick={crearProducto}>
-                Guardar
+              <Button 
+                onClick={crearProducto}
+                className="h-10 px-6 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                style={{backgroundColor: '#a06ba5'}}
+              >
+                Crear Producto
               </Button>
             </div>
           </div>
@@ -617,43 +648,77 @@ export default function Producto() {
 
       {/* Modal de edición de producto */}
       {mostrarFormularioEdicion && productoEditando && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-[400px]">
-            <h2 className="text-xl font-bold mb-4">Editar Producto</h2>
-            <div className="flex flex-col gap-2 mb-4">
-              <Label htmlFor="nombreEdit">Nombre</Label>
-              <Input
-                id="nombreEdit"
-                value={productoEditando.nombre_producto || ''}
-                onChange={(e) => setProductoEditando({ ...productoEditando, nombre_producto: e.target.value })}
-                placeholder="Nombre"
-              />
-              <Label htmlFor="precioEdit">Precio Costo</Label>
-              <Input
-                id="precioEdit"
-                type="number"
-                value={productoEditando.precio_costo || ''}
-                onChange={(e) => setProductoEditando({ ...productoEditando, precio_costo: e.target.value })}
-                placeholder="Precio"
-              />
-              <Label htmlFor="stockEdit">Stock</Label>
-              <Input
-                id="stockEdit"
-                type="number"
-                value={productoEditando.stock || ''}
-                onChange={(e) => setProductoEditando({ ...productoEditando, stock: e.target.value })}
-                placeholder="Stock"
-              />
-              {/* Aquí puedes agregar más campos si lo deseas */}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-700 px-6 py-4 rounded-t-xl">
+              <h2 className="text-xl font-bold text-white text-center">Editar Producto</h2>
+              <p className="text-blue-100 text-sm text-center">Modifica los datos del producto</p>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => {
-                setMostrarFormularioEdicion(false);
-                setProductoEditando(null);
-              }}>
+            
+            <div className="p-6 space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="nombreEdit" className="text-gray-700 font-semibold text-sm">Nombre del Producto</Label>
+                <Input
+                  id="nombreEdit"
+                  value={productoEditando.nombre_producto || ''}
+                  onChange={(e) => setProductoEditando({ ...productoEditando, nombre_producto: e.target.value })}
+                  placeholder="Ingrese el nombre del producto"
+                  className="h-10 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="precioEdit" className="text-gray-700 font-semibold text-sm">Precio Costo</Label>
+                  <Input
+                    id="precioEdit"
+                    type="number"
+                    value={productoEditando.precio_costo || ''}
+                    onChange={(e) => setProductoEditando({ ...productoEditando, precio_costo: e.target.value })}
+                    placeholder="0.00"
+                    className="h-10 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <Label htmlFor="stockEdit" className="text-gray-700 font-semibold text-sm">Stock Actual</Label>
+                  <Input
+                    id="stockEdit"
+                    type="number"
+                    value={productoEditando.stock || ''}
+                    onChange={(e) => setProductoEditando({ ...productoEditando, stock: e.target.value })}
+                    placeholder="0"
+                    className="h-10 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-700">
+                  <strong>ID del Producto:</strong> #{productoEditando.id_producto}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  El ID no se puede modificar
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-xl">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setMostrarFormularioEdicion(false);
+                  setProductoEditando(null);
+                }}
+                className="h-10 px-6 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+              >
                 Cancelar
               </Button>
-              <Button onClick={actualizarProducto}>
+              <Button 
+                onClick={actualizarProducto}
+                className="h-10 px-6 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                style={{backgroundColor: '#a06ba5'}}
+              >
                 Guardar Cambios
               </Button>
             </div>

@@ -111,9 +111,20 @@ export async function POST(request) {
         
         const { nombre, especie, raza = '', sexo, edad = 0, peso = 0, estado_reproductivo = false, id_cliente, foto } = data;
         
+        console.log('Datos recibidos para crear mascota:', {
+            nombre, especie, raza, sexo, edad, peso, estado_reproductivo, id_cliente, foto: foto ? 'presente' : 'ausente'
+        });
+        
         // Validaciones básicas
         if (!nombre || !especie || !sexo) {
             return new Response(JSON.stringify({ error: 'Nombre, especie y sexo son requeridos' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        if (!id_cliente) {
+            return new Response(JSON.stringify({ error: 'ID del cliente es requerido' }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' }
             });

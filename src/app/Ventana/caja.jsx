@@ -134,7 +134,7 @@ export default function Caja() {
                         <TableBody>
                             {facturasFiltradas.map((factura, idx) => (
                                 <TableRow
-                                    key={factura.id_factura}
+                                    key={factura.id_factura ? `factura-${factura.id_factura}` : `factura-${idx}`}
                                     className={
                                         facturaSeleccionada?.id_factura === factura.id_factura
                                             ? "bg-gray-200 !border-2 !border-gray-500"
