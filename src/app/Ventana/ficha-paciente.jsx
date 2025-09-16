@@ -591,6 +591,7 @@ export default function FichaPaciente({ mascotaId }) {
               <p className="text-gray-800 text-2xl">No hay visitas registradas para este paciente.</p>
             </div>
           ) : (
+
             <div className="space-y-2 mb-4">
               {historial.map((visita, idx) => {
                 const isAbierta = estaCarpetaAbierta(visita.id_visita);

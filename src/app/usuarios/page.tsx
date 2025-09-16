@@ -314,6 +314,7 @@ export default function UsuariosPage() {
     );
   }
 
+
   // Verificar si el usuario actual es administrador
   if (currentUser?.tipo_usuario !== 'admin') {
     return (

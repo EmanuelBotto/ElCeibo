@@ -173,6 +173,7 @@ export async function POST(request) {
     }
   } catch (err) {
     console.error('Error al crear producto:', err);
+    
     return NextResponse.json({ error: 'Error interno del servidor: ' + err.message }, { status: 500 });
   }
 }

@@ -33,8 +33,8 @@ export async function POST(request) {
             const query = `
                 INSERT INTO factura (
                     dia, mes, anio, hora, tipo_factura, forma_de_pago, 
-                    monto_total, detalle, id_distribuidor, id_usuario
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    monto_total, detalle, id_distribuidor, id_usuario, num_factura
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 RETURNING *
             `;
 
@@ -47,8 +47,9 @@ export async function POST(request) {
                 formaPago,
                 egresoData.monto,
                 egresoData.detalle || null,
-                egresoData.id_distribuidor || null,
-                egresoData.id_usuario || 1 // Usuario por defecto si no se especifica
+                egresoData.distribuidor || egresoData.id_distribuidor || null,
+                egresoData.id_usuario || 1, // Usuario por defecto si no se especifica
+                egresoData.numeroRecibo || null
             ];
 
             const result = await client.query(query, values);

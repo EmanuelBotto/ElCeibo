@@ -163,13 +163,49 @@ export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } 
             const result = await response.json();
             console.log("Egreso de distribuidor guardado:", result);
             
+            // Actualizar la deuda del distribuidor
+            try {
+                // Obtener la información actual del distribuidor
+                const distribuidorResponse = await fetch(`/api/distribuidores/${distribuidorSeleccionado}`);
+                if (distribuidorResponse.ok) {
+                    const distribuidorActual = await distribuidorResponse.json();
+                    
+                    // Calcular la nueva deuda (deuda actual + monto del egreso)
+                    const deudaActual = distribuidorActual.deuda || 0;
+                    const nuevaDeuda = deudaActual - parseFloat(monto) || 0;
+                    
+                    // Actualizar la deuda del distribuidor
+                    const updateResponse = await fetch(`/api/distribuidores/${distribuidorSeleccionado}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            ...distribuidorActual,
+                            deuda: nuevaDeuda
+                        })
+                    });
+                    
+                    if (updateResponse.ok) {
+                        console.log("Deuda del distribuidor actualizada exitosamente");
+                        // Recargar la lista de distribuidores para mostrar la deuda actualizada
+                        await cargarDistribuidores();
+                    } else {
+                        console.error("Error al actualizar la deuda del distribuidor");
+                    }
+                }
+            } catch (error) {
+                console.error("Error al actualizar la deuda del distribuidor:", error);
+                // No mostrar error al usuario ya que el egreso se guardó correctamente
+            }
+            
             // Limpiar el formulario después de guardar
             setNumeroRecibo("");
             setMonto("");
             setFormasPago([]);
             setDistribuidorSeleccionado("");
             
-            alert("Egreso de distribuidor registrado exitosamente");
+            alert("Egreso de distribuidor registrado exitosamente y deuda actualizada");
             
             // Llamar la función de callback si existe
             if (onEgresoSuccess) {

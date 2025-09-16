@@ -57,7 +57,7 @@ export default function DashboardPage() {
           console.error('activitiesData no es un array:', activitiesData);
           throw new Error('Formato de datos de actividades inválido');
         }
-
+        
         // Mapear estadísticas con iconos
         const statsWithIcons: StatItem[] = [
           {
@@ -95,7 +95,7 @@ export default function DashboardPage() {
         ];
 
         // Mapear actividades con iconos
-        const activitiesWithIcons: ActivityItem[] = activitiesData.map((activity: any) => {
+        const activitiesWithIcons: ActivityItem[] = activitiesArray.map((activity: any) => {
           const iconMap: { [key: string]: React.ComponentType<any> } = {
             'Users': Users,
             'Package': Package,

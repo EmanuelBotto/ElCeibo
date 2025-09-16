@@ -51,7 +51,7 @@ export async function GET() {
 export async function POST(request) {
     try {
         const { nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, password, usuario } = await request.json();
-        
+
         // Validaciones básicas
         if (!nombre || !apellido || !email || !tipo_usuario) {
             return new Response(JSON.stringify({ error: 'Nombre, apellido, email y tipo de usuario son requeridos' }), {
