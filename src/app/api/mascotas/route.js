@@ -118,7 +118,7 @@ export async function POST(request) {
                 headers: { 'Content-Type': 'application/json' }
             });
         }
-
+      
         // Procesar la foto
         let fotoBuffer = null;
         if (foto) {

@@ -9,18 +9,20 @@ export async function GET() {
     try {
         const result = await pool.query(`
             SELECT 
-                id_factura,
-                tipo_factura,
-                dia,
-                mes,
-                anio,
-                hora,
-                forma_de_pago,
-                monto_total,
-                detalle,
-                id_usuario
-                FROM factura
-                ORDER BY anio DESC, mes DESC, dia DESC, hora DESC
+                f.id_factura,
+                f.tipo_factura,
+                f.dia,
+                f.mes,
+                f.anio,
+                f.hora,
+                f.forma_de_pago,
+                f.monto_total,
+                f.detalle,
+                f.id_usuario,
+                CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario
+            FROM factura f
+            LEFT JOIN usuario u ON f.id_usuario = u.id_usuario
+            ORDER BY f.anio DESC, f.mes DESC, f.dia DESC, f.hora DESC
         `); 
 
         return NextResponse.json(result.rows);
