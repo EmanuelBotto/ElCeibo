@@ -46,7 +46,7 @@ export async function PUT(request, { params }) {
     try {
       const { id } = await params;
       const body = await request.json();
-      console.log('Datos recibidos para actualización:', body);
+      //console.log('Datos recibidos para actualización:', body);
 
       const {
         cuit,

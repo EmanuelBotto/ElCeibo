@@ -1,125 +1,256 @@
 "use server";
 
-import { NextResponse } from 'next/server';
-import pkg from 'pg';
-import bcrypt from 'bcryptjs';
+import { Pool } from "pg";
 
-const { Pool } = pkg;
-
-const connectionString = 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-base-ac7ax3c8-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require';
-
-const pool = new Pool({ connectionString });
+const pool = new Pool({
+    connectionString: 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-base-ac7ax3c8-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require'
+});
 
 // GET - Obtener todos los usuarios
 export async function GET() {
-  try {
-    const client = await pool.connect();
     try {
-      const result = await client.query(
-        `SELECT id_usuario, usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, tipo_usuario, foto
-         FROM usuario 
-         ORDER BY nombre, apellido`
-      );
+        const result = await pool.query(`
+            SELECT 
+                id_usuario,
+                nombre,
+                apellido,
+                email,
+                telefono,
+                direccion,
+                foto,
+                tipo_usuario,
+                fecha_registro
+            FROM usuario 
+            ORDER BY apellido, nombre
+            LIMIT 100
+        `);
 
-      return NextResponse.json({
-        users: result.rows
-      }, { status: 200 });
+        // Convertir las fotos BYTEA a Base64 para el frontend
+        const usuariosConFotos = result.rows.map(usuario => ({
+            ...usuario,
+            foto: usuario.foto ? `data:image/jpeg;base64,${usuario.foto.toString('base64')}` : null
+        }));
 
-    } finally {
-      client.release();
+        return new Response(JSON.stringify(usuariosConFotos), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (err) {
+        console.error('Error al obtener usuarios:', err);
+        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
-  } catch (err) {
-    console.error('Error al obtener usuarios:', err);
-    return NextResponse.json({ 
-      error: 'Error en el servidor: ' + err.message 
-    }, { status: 500 });
-  }
 }
 
 // POST - Crear nuevo usuario
 export async function POST(request) {
-  try {
-    const client = await pool.connect();
     try {
-      const body = await request.json();
-      const { 
-        usuario, 
-        nombre, 
-        apellido, 
-        email, 
-        telefono, 
-        direccion, 
-        tipo_usuario, 
-        contrasenia 
-      } = body;
+        const { nombre, apellido, email, telefono, direccion, foto, tipo_usuario, password } = await request.json();
+        
+        // Validaciones básicas
+        if (!nombre || !apellido || !email || !tipo_usuario) {
+            return new Response(JSON.stringify({ error: 'Nombre, apellido, email y tipo de usuario son requeridos' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
 
-      // Validaciones
-      if (!usuario?.trim() || !nombre?.trim() || !apellido?.trim() || !email?.trim() || !contrasenia?.trim()) {
-        return NextResponse.json({ 
-          error: 'Todos los campos obligatorios son requeridos' 
-        }, { status: 400 });
-      }
+        // Validar tamaño de la foto (máximo 5MB en Base64)
+        if (foto && foto.length > 7 * 1024 * 1024) { // ~5MB en Base64
+            return new Response(JSON.stringify({ error: 'La imagen es demasiado grande. Máximo 5MB.' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
 
-      // Validar que el usuario no exista
-      const existingUser = await client.query(
-        'SELECT id FROM usuario WHERE usuario = $1',
-        [usuario.trim()]
-      );
+        // Convertir Base64 a Buffer para almacenar como BYTEA
+        let fotoBuffer = null;
+        if (foto) {
+            // Remover el prefijo data:image/...;base64, si existe
+            const base64Data = foto.includes(',') ? foto.split(',')[1] : foto;
+            fotoBuffer = Buffer.from(base64Data, 'base64');
+        }
 
-      if (existingUser.rows.length > 0) {
-        return NextResponse.json({ 
-          error: 'El nombre de usuario ya existe' 
-        }, { status: 409 });
-      }
+        // Insertar en la base de datos
+        const result = await pool.query(`
+            INSERT INTO usuario (nombre, apellido, email, telefono, direccion, foto, tipo_usuario, password, fecha_registro)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+            RETURNING id_usuario
+        `, [nombre, apellido, email, telefono, direccion, fotoBuffer, tipo_usuario, password]);
 
-      // Validar que el email no exista
-      const existingEmail = await client.query(
-        'SELECT id FROM usuario WHERE email = $1',
-        [email.trim()]
-      );
+        return new Response(JSON.stringify({ 
+            success: true, 
+            id: result.rows[0].id_usuario,
+            message: 'Usuario creado exitosamente'
+        }), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' }
+        });
 
-      if (existingEmail.rows.length > 0) {
-        return NextResponse.json({ 
-          error: 'El email ya está registrado' 
-        }, { status: 409 });
-      }
+    } catch (err) {
+        console.error('Error al crear usuario:', err);
+        
+        // Verificar si es un error de email duplicado
+        if (err.code === '23505' && err.constraint?.includes('email')) {
+            return new Response(JSON.stringify({ error: 'El email ya está registrado' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
 
-      // Hash de la contraseña
-      const hashedPassword = await bcrypt.hash(contrasenia, 10);
-
-      // Insertar nuevo usuario
-      const result = await client.query(
-        `INSERT INTO usuario (usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, tipo_usuario, contrasenia)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         RETURNING id_usuario, usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, tipo_usuario, foto`,
-        [
-          usuario.trim(),
-          nombre.trim(),
-          apellido.trim(),
-          email.trim(),
-          telefono?.trim() || null,
-          'Calle Principal', // calle por defecto
-          123, // numero por defecto
-          12345, // codigo_postal por defecto
-          tipo_usuario || 'asistente',
-          hashedPassword
-        ]
-      );
-
-      const newUser = result.rows[0];
-
-      return NextResponse.json({
-        message: 'Usuario creado exitosamente',
-        user: newUser
-      }, { status: 201 });
-
-    } finally {
-      client.release();
+        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
-  } catch (err) {
-    console.error('Error al crear usuario:', err);
-    return NextResponse.json({ 
-      error: 'Error en el servidor: ' + err.message 
-    }, { status: 500 });
-  }
+}
+
+// PUT - Actualizar usuario existente
+export async function PUT(request) {
+    try {
+        const { id_usuario, nombre, apellido, email, telefono, direccion, foto, tipo_usuario, password } = await request.json();
+        
+        if (!id_usuario) {
+            return new Response(JSON.stringify({ error: 'ID de usuario es requerido' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Validar tamaño de la foto
+        if (foto && foto.length > 7 * 1024 * 1024) {
+            return new Response(JSON.stringify({ error: 'La imagen es demasiado grande. Máximo 5MB.' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Convertir Base64 a Buffer para almacenar como BYTEA
+        let fotoBuffer = null;
+        if (foto) {
+            // Remover el prefijo data:image/...;base64, si existe
+            const base64Data = foto.includes(',') ? foto.split(',')[1] : foto;
+            fotoBuffer = Buffer.from(base64Data, 'base64');
+        }
+
+        // Construir query dinámico para campos opcionales
+        let updateFields = [];
+        let values = [];
+        let paramIndex = 1;
+
+        if (nombre !== undefined) {
+            updateFields.push(`nombre = $${paramIndex++}`);
+            values.push(nombre);
+        }
+        if (apellido !== undefined) {
+            updateFields.push(`apellido = $${paramIndex++}`);
+            values.push(apellido);
+        }
+        if (email !== undefined) {
+            updateFields.push(`email = $${paramIndex++}`);
+            values.push(email);
+        }
+        if (telefono !== undefined) {
+            updateFields.push(`telefono = $${paramIndex++}`);
+            values.push(telefono);
+        }
+        if (direccion !== undefined) {
+            updateFields.push(`direccion = $${paramIndex++}`);
+            values.push(direccion);
+        }
+        if (foto !== undefined) {
+            updateFields.push(`foto = $${paramIndex++}`);
+            values.push(fotoBuffer);
+        }
+        if (tipo_usuario !== undefined) {
+            updateFields.push(`tipo_usuario = $${paramIndex++}`);
+            values.push(tipo_usuario);
+        }
+        if (password !== undefined) {
+            updateFields.push(`password = $${paramIndex++}`);
+            values.push(password);
+        }
+
+        if (updateFields.length === 0) {
+            return new Response(JSON.stringify({ error: 'No hay campos para actualizar' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        values.push(id_usuario);
+        const query = `
+            UPDATE usuario 
+            SET ${updateFields.join(', ')}
+            WHERE id_usuario = $${paramIndex}
+            RETURNING id_usuario
+        `;
+
+        const result = await pool.query(query, values);
+
+        if (result.rowCount === 0) {
+            return new Response(JSON.stringify({ error: 'Usuario no encontrado' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        return new Response(JSON.stringify({ 
+            success: true, 
+            message: 'Usuario actualizado exitosamente'
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+    } catch (err) {
+        console.error('Error al actualizar usuario:', err);
+        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+}
+
+// DELETE - Eliminar usuario
+export async function DELETE(request) {
+    try {
+        const { id_usuario } = await request.json();
+        
+        if (!id_usuario) {
+            return new Response(JSON.stringify({ error: 'ID de usuario es requerido' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        const result = await pool.query(`
+            DELETE FROM usuario 
+            WHERE id_usuario = $1
+        `, [id_usuario]);
+
+        if (result.rowCount === 0) {
+            return new Response(JSON.stringify({ error: 'Usuario no encontrado' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        return new Response(JSON.stringify({ 
+            success: true, 
+            message: 'Usuario eliminado exitosamente'
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+    } catch (err) {
+        console.error('Error al eliminar usuario:', err);
+        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
 } 

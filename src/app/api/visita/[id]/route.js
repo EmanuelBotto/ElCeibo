@@ -28,13 +28,20 @@ export async function PUT(request, { params }) {
         client = await pool.connect();
         const { id } = await params;
         const body = await request.json();
-        const { fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, id_mascota, id_usuario, peso } = body;
+        const { fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, peso, id_mascota, id_usuario } = body;
+        
         const result = await client.query(
-            `UPDATE visita SET fecha = $1, diagnostico = $2, frecuencia_cardiaca = $3, frecuencia_respiratoria = $4, id_mascota = $5, id_usuario = $6 WHERE id_visita = $7 RETURNING *`,
-            [fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, id_mascota, id_usuario, id]
+            `UPDATE visita SET fecha = $1, diagnostico = $2, frecuencia_cardiaca = $3, frecuencia_respiratoria = $4, peso = $5, id_mascota = $6, id_usuario = $7 WHERE id_visita = $8 RETURNING *`,
+            [fecha, diagnostico, frecuencia_cardiaca, frecuencia_respiratoria, peso, id_mascota, id_usuario, id]
         );
+        
+        if (result.rows.length === 0) {
+            return NextResponse.json({ error: 'Visita no encontrada' }, { status: 404 });
+        }
+        
         return NextResponse.json(result.rows[0]);
     } catch (error) {
+        console.error('Error en PUT /api/visita/[id]:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     } finally {
         if (client) client.release();

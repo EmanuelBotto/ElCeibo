@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from 'sonner';
 import { PawPrint, Syringe, FolderOpen, FileText, PlusCircle, Cat, Dog, ArrowLeft, Camera, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ImageDisplay from '@/components/ImageDisplay';
 
 const InfoCard = ({ title, children, className, headerAction }) => (
   <div className={`bg-white border border-gray-200 rounded-lg p-4 flex flex-col ${className}`}>
@@ -36,7 +37,13 @@ export default function FichaPaciente({ mascotaId }) {
   const [isVacunaDialogOpen, setIsVacunaDialogOpen] = useState(false);
   const [isFotoDialogOpen, setIsFotoDialogOpen] = useState(false);
   const [historial, setHistorial] = useState([]);
-  const [visitaForm, setVisitaForm] = useState({ fecha: '', diagnostico: '', frecuencia_cardiaca: '', frecuencia_respiratoria: '', peso: '' });
+  const [visitaForm, setVisitaForm] = useState({ 
+    fecha: '', 
+    diagnostico: '', 
+    frecuencia_cardiaca: '', 
+    frecuencia_respiratoria: '', 
+    peso: '' 
+  });
   const [nuevaVisitaId, setNuevaVisitaId] = useState(null);
   const [vacunaForm, setVacunaForm] = useState({ nombre_vacuna: '', fecha_aplicacion: '', duracion_meses: '', observaciones: '', id_item: '' });
   const [itemsVacunas, setItemsVacunas] = useState([]);
@@ -114,7 +121,7 @@ export default function FichaPaciente({ mascotaId }) {
       diagnostico: visita.diagnostico,
       frecuencia_cardiaca: visita.frecuencia_cardiaca,
       frecuencia_respiratoria: visita.frecuencia_respiratoria,
-      peso: ficha?.mascota?.peso?.toString() || ''
+      peso: visita.peso?.toString() || ficha?.mascota?.peso?.toString() || ''
     });
     setModoEdicion(true);
     setIsVisitaDialogOpen(true);
@@ -131,7 +138,15 @@ export default function FichaPaciente({ mascotaId }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(mascotaActualizada)
         });
+        
+        // Refrescar también la ficha completa para asegurar sincronización
+        const fichaRes = await fetch(`/api/fichas-paciente/${mascotaId}`);
+        if (fichaRes.ok) {
+          const nuevaFicha = await fichaRes.json();
+          setFicha(nuevaFicha);
+        }
       }
+      
       if (modoEdicion && visitaSeleccionada) {
         // Modificar visita
         const res = await fetch(`/api/visita/${visitaSeleccionada.id_visita}`, {
@@ -144,8 +159,30 @@ export default function FichaPaciente({ mascotaId }) {
           })
         });
         if (!res.ok) throw new Error('Error al modificar la visita');
+        
+        // Refrescar historial inmediatamente
+        const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
+        if (histRes.ok) {
+          const nuevoHistorial = await histRes.json();
+          setHistorial(nuevoHistorial);
+          
+          // Actualizar la visita seleccionada con los nuevos datos
+          const visitaActualizada = nuevoHistorial.find(v => v.id_visita === visitaSeleccionada.id_visita);
+          if (visitaActualizada) {
+            setVisitaSeleccionada(visitaActualizada);
+          }
+        }
+        
+        // Refrescar también las próximas vacunas
+        const proxVacRes = await fetch(`/api/vacunas-aplicadas/proximas?id_mascota=${mascotaId}`);
+        if (proxVacRes.ok) {
+          const nuevasProximasVacunas = await proxVacRes.json();
+          setProximasVacunas(nuevasProximasVacunas);
+        }
+        
         setModoEdicion(false);
-        setVisitaSeleccionada(null);
+        setIsVisitaDialogOpen(false);
+        toast.success('Visita modificada exitosamente');
       } else {
         // Guardar visita nueva
         const res = await fetch('/api/visita', {
@@ -161,13 +198,23 @@ export default function FichaPaciente({ mascotaId }) {
         const visita = await res.json();
         setNuevaVisitaId(visita.id_visita);
         setIsVacunaDialogOpen(true);
+        
+        // Refrescar historial inmediatamente
+        const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
+        if (histRes.ok) setHistorial(await histRes.json());
+        
+        // Refrescar también las próximas vacunas
+        const proxVacRes = await fetch(`/api/vacunas-aplicadas/proximas?id_mascota=${mascotaId}`);
+        if (proxVacRes.ok) {
+          const nuevasProximasVacunas = await proxVacRes.json();
+          setProximasVacunas(nuevasProximasVacunas);
+        }
+        
+        toast.success('Visita guardada. Ahora puedes registrar vacunas.');
       }
-      setIsVisitaDialogOpen(false);
+      
+      // Limpiar formulario
       setVisitaForm({ fecha: '', diagnostico: '', frecuencia_cardiaca: '', frecuencia_respiratoria: '', peso: '' });
-      // Refrescar historial
-      const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
-      if (histRes.ok) setHistorial(await histRes.json());
-      toast.success(modoEdicion ? 'Visita modificada' : 'Visita guardada. Ahora puedes registrar vacunas.');
     } catch (err) {
       toast.error(err.message);
     }
@@ -179,13 +226,25 @@ export default function FichaPaciente({ mascotaId }) {
     try {
       const res = await fetch(`/api/visita/${visitaSeleccionada.id_visita}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al eliminar la visita');
+      
+      // Refrescar historial inmediatamente
+      const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
+      if (histRes.ok) {
+        const nuevoHistorial = await histRes.json();
+        setHistorial(nuevoHistorial);
+      }
+      
+      // Refrescar también las próximas vacunas
+      const proxVacRes = await fetch(`/api/vacunas-aplicadas/proximas?id_mascota=${mascotaId}`);
+      if (proxVacRes.ok) {
+        const nuevasProximasVacunas = await proxVacRes.json();
+        setProximasVacunas(nuevasProximasVacunas);
+      }
+      
       setVisitaSeleccionada(null);
       setModoEdicion(false);
       setIsVisitaDialogOpen(false);
-      // Refrescar historial
-      const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
-      if (histRes.ok) setHistorial(await histRes.json());
-      toast.success('Visita eliminada');
+      toast.success('Visita eliminada exitosamente');
     } catch (err) {
       toast.error(err.message);
     }
@@ -223,6 +282,7 @@ export default function FichaPaciente({ mascotaId }) {
         const itemCreado = await resItem.json();
         id_item = itemCreado.item.id_item;
       }
+      
       if (modoEdicionVacuna && vacunaSeleccionada) {
         // Modificar vacuna
         const res = await fetch(`/api/vacunas-aplicadas/${vacunaSeleccionada.id_vacuna_aplicada}`, {
@@ -234,8 +294,30 @@ export default function FichaPaciente({ mascotaId }) {
           })
         });
         if (!res.ok) throw new Error('Error al modificar la vacuna');
+        
+        // Refrescar historial inmediatamente
+        const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
+        if (histRes.ok) {
+          const nuevoHistorial = await histRes.json();
+          setHistorial(nuevoHistorial);
+          
+          // Actualizar la vacuna seleccionada con los nuevos datos
+          const vacunaActualizada = nuevoHistorial.flatMap(v => v.vacunas || []).find(vac => vac.id_vacuna_aplicada === vacunaSeleccionada.id_vacuna_aplicada);
+          if (vacunaActualizada) {
+            setVacunaSeleccionada(vacunaActualizada);
+          }
+        }
+        
+        // Refrescar también las próximas vacunas
+        const proxVacRes = await fetch(`/api/vacunas-aplicadas/proximas?id_mascota=${mascotaId}`);
+        if (proxVacRes.ok) {
+          const nuevasProximasVacunas = await proxVacRes.json();
+          setProximasVacunas(nuevasProximasVacunas);
+        }
+        
         setModoEdicionVacuna(false);
-        setVacunaSeleccionada(null);
+        setIsVacunaDialogOpen(false);
+        toast.success('Vacuna modificada exitosamente');
       } else {
         // Nueva vacuna
         if (!nuevaVisitaId) throw new Error('No hay visita asociada');
@@ -250,14 +332,24 @@ export default function FichaPaciente({ mascotaId }) {
           })
         });
         if (!res.ok) throw new Error('Error al guardar la vacuna');
+        
+        // Refrescar historial inmediatamente
+        const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
+        if (histRes.ok) setHistorial(await histRes.json());
+        
+        // Refrescar también las próximas vacunas
+        const proxVacRes = await fetch(`/api/vacunas-aplicadas/proximas?id_mascota=${mascotaId}`);
+        if (proxVacRes.ok) {
+          const nuevasProximasVacunas = await proxVacRes.json();
+          setProximasVacunas(nuevasProximasVacunas);
+        }
+        
+        toast.success('Vacuna registrada exitosamente');
       }
+      
+      // Limpiar formulario
       setVacunaForm({ nombre_vacuna: '', fecha_aplicacion: '', duracion_meses: '', observaciones: '', id_item: '' });
       setVacunaManual(false);
-      setIsVacunaDialogOpen(false);
-      // Refrescar historial
-      const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
-      if (histRes.ok) setHistorial(await histRes.json());
-      toast.success(modoEdicionVacuna ? 'Vacuna modificada' : 'Vacuna registrada');
     } catch (err) {
       toast.error(err.message);
     }
@@ -269,13 +361,25 @@ export default function FichaPaciente({ mascotaId }) {
     try {
       const res = await fetch(`/api/vacunas-aplicadas/${vacunaSeleccionada.id_vacuna_aplicada}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al eliminar la vacuna');
+      
+      // Refrescar historial inmediatamente
+      const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
+      if (histRes.ok) {
+        const nuevoHistorial = await histRes.json();
+        setHistorial(nuevoHistorial);
+      }
+      
+      // Refrescar también las próximas vacunas
+      const proxVacRes = await fetch(`/api/vacunas-aplicadas/proximas?id_mascota=${mascotaId}`);
+      if (proxVacRes.ok) {
+        const nuevasProximasVacunas = await proxVacRes.json();
+        setProximasVacunas(nuevasProximasVacunas);
+      }
+      
       setVacunaSeleccionada(null);
       setModoEdicionVacuna(false);
       setIsVacunaDialogOpen(false);
-      // Refrescar historial
-      const histRes = await fetch(`/api/historial-mascota/${mascotaId}`);
-      if (histRes.ok) setHistorial(await histRes.json());
-      toast.success('Vacuna eliminada');
+      toast.success('Vacuna eliminada exitosamente');
     } catch (err) {
       toast.error(err.message);
     }
@@ -319,6 +423,13 @@ export default function FichaPaciente({ mascotaId }) {
         mascota: { ...prev.mascota, foto: nuevaFoto }
       }));
 
+      // Refrescar también la ficha completa para asegurar sincronización
+      const fichaRes = await fetch(`/api/fichas-paciente/${mascotaId}`);
+      if (fichaRes.ok) {
+        const nuevaFicha = await fichaRes.json();
+        setFicha(nuevaFicha);
+      }
+
       setIsFotoDialogOpen(false);
       setNuevaFoto('');
       toast.success('Foto actualizada exitosamente');
@@ -350,46 +461,90 @@ export default function FichaPaciente({ mascotaId }) {
           ) : (
             <div className="space-y-4 mb-4">
               {historial.map((visita, idx) => (
-                <div key={visita.id_visita} className={`border rounded-lg p-3 bg-gray-50 ${visitaSeleccionada?.id_visita === visita.id_visita ? 'ring-2 ring-purple-400' : ''}`}
+                <div key={`${visita.id_visita}-${visita.fecha}-${visita.diagnostico}`} className={`border rounded-lg p-4 bg-gray-50 ${visitaSeleccionada?.id_visita === visita.id_visita ? 'ring-2 ring-purple-400' : ''}`}
                   onClick={() => setVisitaSeleccionada(visita)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <div className="flex items-center text-lg font-semibold text-purple-600">
-                    <FolderOpen className="mr-2 text-purple-600" />
-                    {visita.fecha}
+                  {/* Fecha y veterinario */}
+                  <div className="flex items-center justify-between text-lg font-semibold text-purple-600 mb-3">
+                    <div className="flex items-center">
+                      <FolderOpen className="mr-2 text-purple-600" />
+                      {visita.fecha}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <span className="font-semibold">Atendió:</span> {visita.nombre && visita.apellido ? `${visita.nombre} ${visita.apellido}` : 'No registrado'}
+                    </div>
                   </div>
-                  <ul className="ml-8 mt-2 space-y-1 text-gray-800">
-                    <li className="flex items-center"><FileText className="mr-2 text-purple-500" size={16} /> Diagnóstico: {visita.diagnostico}</li>
-                    <li className="flex items-center"><FileText className="mr-2 text-purple-500" size={16} /> Frecuencia cardíaca: {visita.frecuencia_cardiaca}</li>
-                    <li className="flex items-center"><FileText className="mr-2 text-purple-500" size={16} /> Frecuencia respiratoria: {visita.frecuencia_respiratoria}</li>
-                    {visita.vacunas && visita.vacunas.length > 0 && (
-                      <li className="flex items-center">
+                  
+                  {/* Diagnóstico prominente */}
+                  <div className="mb-3">
+                    <div className="font-semibold text-gray-800 mb-2">Diagnóstico:</div>
+                    <div className="bg-white border border-gray-300 rounded-md p-3 min-h-[60px] text-gray-800">
+                      {visita.diagnostico ? visita.diagnostico : 'Sin diagnóstico registrado'}
+                    </div>
+                  </div>
+                  
+                  {/* Información médica en dos columnas */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center text-gray-800">
+                        <FileText className="mr-2 text-purple-500" size={16} />
+                        <span className="font-semibold">Frecuencia cardíaca: </span> {visita.frecuencia_cardiaca || 'No registrada'}
+                      </div>
+                      <div className="flex items-center text-gray-800">
+                        <FileText className="mr-2 text-purple-500" size={16} />
+                        <span className="font-semibold">Frecuencia respiratoria: </span> {visita.frecuencia_respiratoria || 'No registrada'}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center text-gray-800">
+                        <FileText className="mr-2 text-purple-500" size={16} />
+                        <span className="font-semibold">Peso: </span> {visita.peso ? `${visita.peso} kg` : 'No registrado'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Vacunas aplicadas */}
+                  {visita.vacunas && visita.vacunas.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center mb-2">
                         <Syringe className="mr-2 text-purple-500" size={16} />
-                        <span>Vacunas aplicadas:</span>
-                        <ul className="ml-4">
-                          {visita.vacunas.map(vac => (
-                            <li key={vac.id_vacuna_aplicada} className={`flex items-center gap-2 ${vacunaSeleccionada?.id_vacuna_aplicada === vac.id_vacuna_aplicada ? 'ring-2 ring-purple-400' : ''}`}
-                              onClick={() => setVacunaSeleccionada(vac)}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              <Syringe className="mr-1 text-purple-400" size={14} />
-                              <span className="text-gray-800">{vac.nombre_vacuna} - {vac.fecha_aplicacion} ({vac.duracion_meses} meses)</span>
-                              <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); abrirEdicionVacuna(vac); }}>Editar</Button>
-                              <Button size="sm" variant="destructive" onClick={e => { e.stopPropagation(); setVacunaSeleccionada(vac); handleEliminarVacuna(); }}>Eliminar</Button>
-                            </li>
-                          ))}
-                        </ul>
-                      </li>
-                    )}
-                  </ul>
+                        <span className="font-semibold text-gray-800">Vacunas aplicadas:</span>
+                      </div>
+                      <ul className="ml-4 space-y-1">
+                        {visita.vacunas.map(vac => (
+                          <li key={`${vac.id_vacuna_aplicada}-${vac.nombre_vacuna}-${vac.fecha_aplicacion}`} className={`flex items-center gap-2 ${vacunaSeleccionada?.id_vacuna_aplicada === vac.id_vacuna_aplicada ? 'ring-2 ring-purple-400' : ''}`}
+                            onClick={() => setVacunaSeleccionada(vac)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <Syringe className="mr-1 text-purple-400" size={14} />
+                            <span className="text-gray-800">{vac.nombre_vacuna} - {vac.fecha_aplicacion} ({vac.duracion_meses} meses)</span>
+                            <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); abrirEdicionVacuna(vac); }} className="border-blue-600 text-blue-600 hover:bg-blue-50">Editar</Button>
+                            <Button size="sm" variant="destructive" onClick={e => { e.stopPropagation(); setVacunaSeleccionada(vac); handleEliminarVacuna(); }} className="bg-red-600 hover:bg-red-700">Eliminar</Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
           <div className="flex justify-start space-x-2 mt-4">
-            <Button onClick={() => { setModoEdicion(false); setVisitaSeleccionada(null); setIsVisitaDialogOpen(true); }}>Nueva Visita</Button>
-            <Button variant="outline" onClick={() => visitaSeleccionada && abrirEdicionVisita(visitaSeleccionada)} disabled={!visitaSeleccionada}>Modificar Visita</Button>
-            <Button variant="destructive" onClick={handleEliminarVisita} disabled={!visitaSeleccionada}>Eliminar Visita</Button>
+            <Button onClick={() => { 
+              setModoEdicion(false); 
+              setVisitaSeleccionada(null); 
+              setVisitaForm({
+                fecha: new Date().toISOString().split('T')[0],
+                diagnostico: '',
+                frecuencia_cardiaca: '',
+                frecuencia_respiratoria: '',
+                peso: ficha?.mascota?.peso?.toString() || ''
+              });
+              setIsVisitaDialogOpen(true); 
+            }} className="bg-purple-600 hover:bg-purple-700">Nueva Visita</Button>
+            <Button variant="outline" onClick={() => visitaSeleccionada && abrirEdicionVisita(visitaSeleccionada)} disabled={!visitaSeleccionada} className="border-blue-600 text-blue-600 hover:bg-blue-50">Modificar Visita</Button>
+            <Button variant="destructive" onClick={handleEliminarVisita} disabled={!visitaSeleccionada} className="bg-red-600 hover:bg-red-700">Eliminar Visita</Button>
           </div>
         </div>
 
@@ -403,36 +558,34 @@ export default function FichaPaciente({ mascotaId }) {
               </Button>
             }
           >
-            <div className="flex flex-col items-center text-center">
-              <div className="relative w-32 h-32 bg-gray-200 rounded-full mb-4 flex items-center justify-center overflow-hidden group">
-                {mascota.foto ? (
-                  <img src={mascota.foto} alt="Foto mascota" className="w-full h-full object-cover" />
-                ) : (
-                  <PawPrint size={64} className="text-purple-600" />
-                )}
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/80 hover:bg-white"
-                    onClick={() => setIsFotoDialogOpen(true)}
-                  >
-                    <Edit size={16} className="text-gray-700" />
-                  </Button>
-                </div>
+            <div className="flex flex-col items-center text-center p-5">
+              <ImageDisplay 
+                src={mascota.foto} 
+                alt="Foto mascota" 
+                className="w-32 h-32 rounded-full"
+                showControls={false}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 p-4">
+              <div className="space-y-2">
+                <p className="text-black"><b>Especie:</b> {mascota.especie}</p>
+                <p className="text-black"><b>Raza:</b> {mascota.raza}</p>
+                <p className="text-black"><b>Sexo:</b> {mascota.sexo}</p>
+                <p className="text-black"><b>Esterilizado/a:</b> {mascota.estado_reproductivo? 'Si' : 'No'}</p>
               </div>
-              <p className="text-black"><b>Especie:</b> {mascota.especie}</p>
-              <p className="text-black"><b>Raza:</b> {mascota.raza}</p>
-              <p className="text-black"><b>Sexo:</b> {mascota.sexo}</p>
-              <p className="text-black"><b>Edad:</b> {mascota.edad} años</p>
-              <p className="text-black"><b>Dueño:</b> {owner?.nombre} {owner?.apellido}</p>
+              <div className="space-y-2 max-w-48">
+                <p className="text-black"><b>Edad:</b> {mascota.edad} años</p>
+                <p className="text-black"><b>Último peso:</b> {historial.length > 0 && historial[0].peso ? `${historial[0].peso} kg` : mascota.peso ? `${mascota.peso} kg` : 'No registrado'}</p>
+                <p className="text-black"><b>Estado:</b> <span className={`font-semibold ${mascota.estado === 'Vivo' ? 'text-green-600' : 'text-red-600'}`}>{mascota.estado || 'Vivo'}</span></p>
+                <p className="text-black"><b>Dueño:</b> {owner?.nombre} {owner?.apellido}</p>
+              </div>
             </div>
           </InfoCard>
 
           <InfoCard title="Otras mascotas">
             <ul className="space-y-2">
               {otrasMascotas.map(pet => (
-                  <li key={pet.id_mascota} className="flex items-center cursor-pointer hover:text-purple-700 p-1 rounded hover:bg-gray-100" onClick={() => router.push(`/mascota/${pet.id_mascota}`)}>
+                  <li key={`${pet.id_mascota}-${pet.nombre}-${pet.especie}`} className="flex items-center cursor-pointer hover:text-purple-700 p-1 rounded hover:bg-gray-100" onClick={() => router.push(`/mascota/${pet.id_mascota}`)}>
                       {getPetIcon(pet.especie)} <span className="font-semibold text-black">{pet.nombre}</span> - <span className="text-gray-700 ml-1">{pet.especie}</span>
                   </li>
               ))}
@@ -461,7 +614,7 @@ export default function FichaPaciente({ mascotaId }) {
                 else if (diff <= 7) { color = 'text-orange-500 font-bold'; aviso = ' (¡Muy próxima!)'; }
                 else if (diff <= 30) { color = 'text-yellow-600'; aviso = ' (Próxima)'; }
                 return (
-                  <li key={vac.id_vacuna_aplicada} className="flex items-center justify-between">
+                  <li key={`${vac.id_vacuna_aplicada}-${vac.nombre_vacuna}-${vac.fecha_proxima}`} className="flex items-center justify-between">
                     <div><Syringe size={16} className="inline-block mr-2 text-purple-500" /> <span className="text-gray-800">{vac.nombre_vacuna}</span></div>
                     <span className={color}>{fechaProxima.toLocaleDateString()} {aviso}</span>
                   </li>
@@ -474,37 +627,90 @@ export default function FichaPaciente({ mascotaId }) {
 
       {/* Dialogo Nueva Visita */}
       <Dialog open={isVisitaDialogOpen} onOpenChange={setIsVisitaDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Añadir Nueva Visita</DialogTitle>
-            <DialogDescription>Complete los datos de la visita médica.</DialogDescription>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-bold text-purple-800">{modoEdicion ? 'Modificar Visita' : 'Añadir Nueva Visita'}</DialogTitle>
+            <DialogDescription className="text-gray-600">Complete los datos de la visita médica.</DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleVisitaSubmit}>
-            <div>
-              <Label htmlFor="fecha_visita">Fecha de la Visita</Label>
-              <Input id="fecha_visita" type="date" value={visitaForm.fecha} onChange={e => setVisitaForm(f => ({ ...f, fecha: e.target.value }))} required />
-            </div>
-            <div>
-              <Label htmlFor="diagnostico_visita">Diagnóstico</Label>
-              <textarea id="diagnostico_visita" rows="2" className="w-full border rounded-md p-2" value={visitaForm.diagnostico} onChange={e => setVisitaForm(f => ({ ...f, diagnostico: e.target.value }))} required></textarea>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Label htmlFor="fc_visita">Frecuencia Cardíaca</Label>
-                <Input id="fc_visita" type="number" value={visitaForm.frecuencia_cardiaca} onChange={e => setVisitaForm(f => ({ ...f, frecuencia_cardiaca: e.target.value }))} required />
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="fr_visita">Frecuencia Respiratoria</Label>
-                <Input id="fr_visita" type="number" value={visitaForm.frecuencia_respiratoria} onChange={e => setVisitaForm(f => ({ ...f, frecuencia_respiratoria: e.target.value }))} required />
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="peso_visita">Peso (kg)</Label>
-                <Input id="peso_visita" type="number" value={visitaForm.peso} onChange={e => setVisitaForm(f => ({ ...f, peso: e.target.value }))} required />
+          <form className="space-y-6" onSubmit={handleVisitaSubmit}>
+            {/* Fecha */}
+            <div className="text-center">
+              <Label htmlFor="fecha_visita" className="text-base font-semibold text-gray-700 block mb-2">Fecha de la Visita</Label>
+              <div className="flex justify-center">
+                <Input 
+                  id="fecha_visita" 
+                  type="date" 
+                  value={visitaForm.fecha} 
+                  onChange={e => setVisitaForm(f => ({ ...f, fecha: e.target.value }))} 
+                  required 
+                  className="w-48 text-center border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
               </div>
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setIsVisitaDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit">Guardar Visita</Button>
+            
+            {/* Diagnóstico prominente */}
+            <div className="text-center">
+              <Label htmlFor="diagnostico_visita" className="text-base font-semibold text-gray-700 block mb-2">Diagnóstico</Label>
+              <textarea 
+                id="diagnostico_visita" 
+                rows="4" 
+                className="w-full max-w-2xl mx-auto border border-gray-300 rounded-md p-4 resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-left" 
+                value={visitaForm.diagnostico} 
+                onChange={e => setVisitaForm(f => ({ ...f, diagnostico: e.target.value }))} 
+                placeholder="Describa el diagnóstico de la visita..."
+                required 
+              />
+            </div>
+            
+            {/* Campos médicos en tres columnas */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
+              <div className="text-center">
+                <Label htmlFor="fc_visita" className="text-base font-semibold text-gray-700 block mb-2">Frecuencia Cardíaca</Label>
+                <Input 
+                  id="fc_visita" 
+                  type="number" 
+                  value={visitaForm.frecuencia_cardiaca} 
+                  onChange={e => setVisitaForm(f => ({ ...f, frecuencia_cardiaca: e.target.value }))} 
+                  required 
+                  className="w-full text-center border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ej: 80"
+                />
+              </div>
+              <div className="text-center">
+                <Label htmlFor="fr_visita" className="text-base font-semibold text-gray-700 block mb-2">Frecuencia Respiratoria</Label>
+                <Input 
+                  id="fr_visita" 
+                  type="number" 
+                  value={visitaForm.frecuencia_respiratoria} 
+                  onChange={e => setVisitaForm(f => ({ ...f, frecuencia_respiratoria: e.target.value }))} 
+                  required 
+                  className="w-full text-center border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ej: 20"
+                />
+              </div>
+              <div className="text-center">
+                <Label htmlFor="peso_visita" className="text-base font-semibold text-gray-700 block mb-2">Peso (kg)</Label>
+                <Input 
+                  id="peso_visita" 
+                  type="number" 
+                  step="0.1" 
+                  value={visitaForm.peso} 
+                  onChange={e => setVisitaForm(f => ({ ...f, peso: e.target.value }))} 
+                  required 
+                  className="w-full text-center border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ej: 25.5"
+                />
+              </div>
+            </div>
+            
+            {/* Botones */}
+            <div className="flex justify-center space-x-6 pt-6">
+              <Button type="button" variant="outline" onClick={() => setIsVisitaDialogOpen(false)} className="border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-2">
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-purple-600 hover:bg-purple-700 px-8 py-2">
+                {modoEdicion ? 'Actualizar Visita' : 'Guardar Visita'}
+              </Button>
             </div>
           </form>
         </DialogContent>
@@ -512,14 +718,14 @@ export default function FichaPaciente({ mascotaId }) {
 
       {/* Dialogo Nueva Vacuna */}
       <Dialog open={isVacunaDialogOpen} onOpenChange={setIsVacunaDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Añadir Vacuna Aplicada</DialogTitle>
-            <DialogDescription>Registre una vacuna aplicada en esta visita.</DialogDescription>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-bold text-purple-800">Añadir Vacuna Aplicada</DialogTitle>
+            <DialogDescription className="text-gray-600">Registre una vacuna aplicada en esta visita.</DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleVacunaSubmit}>
-            <div>
-              <Label htmlFor="nombre_vacuna">Vacuna</Label>
+          <form className="space-y-6" onSubmit={handleVacunaSubmit}>
+            <div className="text-center">
+              <Label htmlFor="nombre_vacuna" className="text-base font-semibold text-gray-700 block mb-2">Vacuna</Label>
               {!vacunaManual ? (
                 <select
                   id="nombre_vacuna"
@@ -534,7 +740,7 @@ export default function FichaPaciente({ mascotaId }) {
                     }
                   }}
                   required
-                  className="w-full border rounded-md p-2"
+                  className="w-full max-w-md mx-auto border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">Seleccionar vacuna...</option>
                   {itemsVacunas.map(item => (
@@ -543,33 +749,63 @@ export default function FichaPaciente({ mascotaId }) {
                   <option value="manual">Otra (agregar manualmente)</option>
                 </select>
               ) : (
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-3 items-center justify-center">
                   <Input
                     id="nombre_vacuna"
                     value={vacunaForm.nombre_vacuna}
                     onChange={e => setVacunaForm(f => ({ ...f, nombre_vacuna: e.target.value }))}
                     placeholder="Nombre de la vacuna"
                     required
+                    className="max-w-md border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
-                  <Button type="button" variant="outline" onClick={() => { setVacunaManual(false); setVacunaForm(f => ({ ...f, nombre_vacuna: '', id_item: '' })); }}>Volver</Button>
+                  <Button type="button" variant="outline" onClick={() => { setVacunaManual(false); setVacunaForm(f => ({ ...f, nombre_vacuna: '', id_item: '' })); }} className="border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2">Volver</Button>
                 </div>
               )}
             </div>
-            <div>
-              <Label htmlFor="fecha_vacuna">Fecha de Aplicación</Label>
-              <Input id="fecha_vacuna" type="date" value={vacunaForm.fecha_aplicacion} onChange={e => setVacunaForm(f => ({ ...f, fecha_aplicacion: e.target.value }))} required />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+              <div className="text-center">
+                <Label htmlFor="fecha_vacuna" className="text-base font-semibold text-gray-700 block mb-2">Fecha de Aplicación</Label>
+                <Input 
+                  id="fecha_vacuna" 
+                  type="date" 
+                  value={vacunaForm.fecha_aplicacion} 
+                  onChange={e => setVacunaForm(f => ({ ...f, fecha_aplicacion: e.target.value }))} 
+                  required 
+                  className="w-full text-center border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div className="text-center">
+                <Label htmlFor="duracion_meses" className="text-base font-semibold text-gray-700 block mb-2">Duración (meses)</Label>
+                <Input 
+                  id="duracion_meses" 
+                  type="number" 
+                  value={vacunaForm.duracion_meses} 
+                  onChange={e => setVacunaForm(f => ({ ...f, duracion_meses: e.target.value }))} 
+                  required 
+                  className="w-full text-center border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Ej: 12"
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="duracion_meses">Duración (meses)</Label>
-              <Input id="duracion_meses" type="number" value={vacunaForm.duracion_meses} onChange={e => setVacunaForm(f => ({ ...f, duracion_meses: e.target.value }))} required />
+            
+            <div className="text-center">
+              <Label htmlFor="observaciones_vacuna" className="text-base font-semibold text-gray-700 block mb-2">Observaciones</Label>
+              <textarea 
+                id="observaciones_vacuna" 
+                rows="3" 
+                className="w-full max-w-2xl mx-auto border border-gray-300 rounded-md p-3 resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-left" 
+                value={vacunaForm.observaciones} 
+                onChange={e => setVacunaForm(f => ({ ...f, observaciones: e.target.value }))}
+                placeholder="Observaciones adicionales..."
+              />
             </div>
-            <div>
-              <Label htmlFor="observaciones_vacuna">Observaciones</Label>
-              <textarea id="observaciones_vacuna" rows="2" className="w-full border rounded-md p-2" value={vacunaForm.observaciones} onChange={e => setVacunaForm(f => ({ ...f, observaciones: e.target.value }))}></textarea>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setIsVacunaDialogOpen(false)}>Finalizar</Button>
-              <Button type="submit">Agregar otra vacuna</Button>
+            
+            <div className="flex justify-center space-x-6 pt-6">
+              <Button type="button" variant="outline" onClick={() => setIsVacunaDialogOpen(false)} className="border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-2">
+                Finalizar
+              </Button>
+              <Button type="submit" className="bg-green-600 hover:bg-green-700 px-8 py-2">Agregar otra vacuna</Button>
             </div>
           </form>
         </DialogContent>
@@ -577,34 +813,41 @@ export default function FichaPaciente({ mascotaId }) {
 
       {/* Dialogo Cambiar Foto */}
       <Dialog open={isFotoDialogOpen} onOpenChange={setIsFotoDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cambiar Foto de {mascota?.nombre}</DialogTitle>
-            <DialogDescription>Selecciona una nueva foto para la mascota.</DialogDescription>
+        <DialogContent className="max-w-md">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-bold text-purple-800">Cambiar Foto de {mascota?.nombre}</DialogTitle>
+            <DialogDescription className="text-gray-600">Selecciona una nueva foto para la mascota.</DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleFotoSubmit}>
-            <div>
-              <Label htmlFor="foto_mascota">Foto de la mascota</Label>
+          <form className="space-y-6" onSubmit={handleFotoSubmit}>
+            <div className="text-center">
+              <Label htmlFor="foto_mascota" className="text-base font-semibold text-gray-700 block mb-2">Foto de la mascota</Label>
               <input 
                 type="file" 
                 id="foto_mascota"
                 accept="image/*" 
                 onChange={handleFileChange}
-                className="w-full border rounded-md p-2"
+                className="w-full max-w-md mx-auto border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 required
               />
               {nuevaFoto && (
-                <div className="mt-2">
-                  <Label>Vista previa:</Label>
-                  <img src={nuevaFoto} alt="Vista previa" className="mt-2 rounded w-32 h-32 object-cover border" />
+                <div className="mt-6 text-center">
+                  <Label className="text-base font-semibold text-gray-700 block mb-3">Vista previa:</Label>
+                  <div className="flex justify-center">
+                    <ImageDisplay 
+                      src={nuevaFoto} 
+                      alt="Vista previa" 
+                      className="w-32 h-32 rounded-lg border-2 border-purple-300"
+                      showControls={false}
+                    />
+                  </div>
                 </div>
               )}
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => { setIsFotoDialogOpen(false); setNuevaFoto(''); }}>
+            <div className="flex justify-center space-x-6 pt-6">
+              <Button type="button" variant="outline" onClick={() => { setIsFotoDialogOpen(false); setNuevaFoto(''); }} className="border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-2">
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isActualizandoFoto || !nuevaFoto}>
+              <Button type="submit" disabled={isActualizandoFoto || !nuevaFoto} className="bg-purple-600 hover:bg-purple-700 px-8 py-2">
                 {isActualizandoFoto ? 'Actualizando...' : 'Actualizar Foto'}
               </Button>
             </div>

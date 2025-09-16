@@ -93,19 +93,11 @@ export async function POST(request) {
          RETURNING id_producto`,
         [nombre.trim(), marca?.trim() || '', precio_costo, stock, id_tipo]
       );
-
-      return NextResponse.json({
-        message: 'Producto creado exitosamente',
-        id_producto: result.rows[0].id_producto
-      });
+    
     } finally {
       client.release();
     }
   } catch (err) {
     console.error('Error al crear producto:', err);
-    return NextResponse.json(
-      { error: 'Error al crear el producto: ' + err.message },
-      { status: 500 }
-    );
   }
 }

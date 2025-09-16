@@ -50,7 +50,8 @@ export default function DashboardPage() {
         // Obtener actividades recientes
         const activitiesResponse = await fetch('/api/dashboard/activities');
         const activitiesData = await activitiesResponse.json();
-
+        const activitiesArray = Array.isArray(activitiesData) ? activitiesData : [];
+        
         // Mapear estadísticas con iconos
         const statsWithIcons: StatItem[] = [
           {
@@ -88,7 +89,7 @@ export default function DashboardPage() {
         ];
 
         // Mapear actividades con iconos
-        const activitiesWithIcons: ActivityItem[] = activitiesData.map((activity: any) => {
+        const activitiesWithIcons: ActivityItem[] = activitiesArray.map((activity: any) => {
           const iconMap: { [key: string]: React.ComponentType<any> } = {
             'Users': Users,
             'Package': Package,

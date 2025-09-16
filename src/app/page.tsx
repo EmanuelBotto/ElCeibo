@@ -6,8 +6,8 @@ import Producto from './Ventana/producto';
 import FichasClientes from './Ventana/fichas-clientes';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
-import Mascota from './Ventana/mascota';
-import ListaPrecios from './Ventana/lista-precios';
+import Item from './Ventana/item';
+import Ingreso from './Ventana/ingreso';
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -19,13 +19,13 @@ export default function HomePage() {
       case 'productos':
         return <Producto />;
       case 'caja':
-        return <Caja />;
+        return <Caja onTabChange={setActiveTab} />;
       case 'fichas':
         return <FichasClientes />;
-      case 'mascota':
-        return <Mascota />;
-      case 'ListaPrecios':
-        return <ListaPrecios />;
+      case 'item':
+        return <Item />;
+      case 'ingreso':
+        return <Ingreso onVolver={() => setActiveTab('caja')} />;
       default:
         return <DashboardPage />;
     }
