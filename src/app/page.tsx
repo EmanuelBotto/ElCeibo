@@ -6,8 +6,10 @@ import Producto from './Ventana/producto';
 import FichasClientes from './Ventana/fichas-clientes';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
+
 import Item from './Ventana/item';
 import ProtectedRoute from '@/components/ProtectedRoute';
+
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('inicio');

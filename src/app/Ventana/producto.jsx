@@ -13,10 +13,13 @@ import {
   TableCell,
   TableCaption,
 } from "@/components/ui/table";
+import Modal from "@/components/ui/modal";
+import { buildProductoFormContent } from "@/lib/modales";
 
 export default function Producto() {
-  // Llista de productos
+  // Lista de productos
   const [productos, setProductos] = useState([]);
+  const [tipos, setTipos] = useState([]);
   // Estado de carga
   const [cargando, setCargando] = useState(true);
   // Nuevo producto a crear
@@ -78,6 +81,7 @@ export default function Producto() {
         setPagination(response.pagination);
       } else {
         console.error('Los datos recibidos no tienen la estructura esperada:', response);
+
         setProductos([]);
         setPagination(null);
       }
@@ -222,6 +226,7 @@ export default function Producto() {
 
       const datosActualizacion = {
         nombre: productoEditando.nombre_producto.trim(),
+        marca: productoEditando.marca?.trim() || '',
         precio_costo: precio_costo,
         stock: stock,
         id_tipo: productoEditando.id_tipo,
