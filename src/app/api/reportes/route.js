@@ -8,9 +8,7 @@ const pool = new Pool({
 export async function POST(request) {
     try {
         // Probar conexión a la base de datos
-        console.log('Probando conexión a la base de datos...');
         await pool.query('SELECT NOW()');
-        console.log('Conexión exitosa a la base de datos');
         
         const { tipoReporte, fechaInicio, fechaFin } = await request.json();
         
@@ -68,9 +66,7 @@ export async function POST(request) {
                 try {
                     await pool.query('SELECT 1 FROM producto LIMIT 1');
                     query = `SELECT * FROM producto ORDER BY 1 LIMIT 100`;
-                    console.log('Tabla producto encontrada, usando SELECT *');
                 } catch (tableErr) {
-                    console.log('Tabla producto no existe, usando datos de ejemplo');
                     query = `
                         SELECT 
                             1 as id,
@@ -90,9 +86,7 @@ export async function POST(request) {
                 try {
                     await pool.query('SELECT 1 FROM cliente LIMIT 1');
                     query = `SELECT * FROM cliente ORDER BY 1 LIMIT 100`;
-                    console.log('Tabla cliente encontrada, usando SELECT *');
                 } catch (tableErr) {
-                    console.log('Tabla cliente no existe, usando datos de ejemplo');
                     query = `
                         SELECT 
                             1 as id,
@@ -112,9 +106,7 @@ export async function POST(request) {
                 try {
                     await pool.query('SELECT 1 FROM mascota LIMIT 1');
                     query = `SELECT * FROM mascota ORDER BY 1 LIMIT 100`;
-                    console.log('Tabla mascota encontrada, usando SELECT *');
                 } catch (tableErr) {
-                    console.log('Tabla mascota no existe, usando datos de ejemplo');
                     query = `
                         SELECT 
                             1 as id,
@@ -137,15 +129,7 @@ export async function POST(request) {
                 });
         }
         
-        console.log('Ejecutando query:', query);
         const result = await pool.query(query);
-        console.log('Resultado de la query:', result.rows.length, 'filas');
-        
-        // Mostrar las columnas disponibles para debugging
-        if (result.rows.length > 0) {
-            console.log('Columnas disponibles:', Object.keys(result.rows[0]));
-            console.log('Primera fila de ejemplo:', result.rows[0]);
-        }
         
         if (result.rows.length === 0) {
             return new Response(JSON.stringify({ error: 'No hay datos para generar el reporte' }), { 

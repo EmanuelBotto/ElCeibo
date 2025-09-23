@@ -57,15 +57,7 @@ export default function ImageDisplay({
     setImageError(false);
   }, [src]);
 
-  // Log simple para debug
-  console.log('🖼️ ImageDisplay renderizado con:', { 
-    originalSrc: src ? src.substring(0, 50) : 'null',
-    normalizedSrc: normalizedSrc ? normalizedSrc.substring(0, 50) : 'null',
-    alt, 
-    className,
-    srcType: typeof src,
-    imageError
-  });
+  // Normalizar la fuente de la imagen
 
   // Si no hay src o hay error, mostrar placeholder
   if (!normalizedSrc || imageError) {
@@ -93,7 +85,6 @@ export default function ImageDisplay({
             setImageError(true);
           }}
           onLoad={() => {
-            console.log('Image loaded successfully');
             setImageError(false);
           }}
         />

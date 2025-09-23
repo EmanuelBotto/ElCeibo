@@ -28,8 +28,6 @@ export async function POST(request) {
                 ? egresoData.formasPago.join(' - ') 
                 : egresoData.formasPago || '';
 
-                console.log(formaPago);
-
             const query = `
                 INSERT INTO factura (
                     dia, mes, anio, hora, tipo_factura, forma_de_pago, 

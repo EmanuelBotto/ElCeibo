@@ -14,20 +14,35 @@ export async function GET(request) {
         if (!id_mascota) {
             return NextResponse.json({ error: 'Falta id_mascota' }, { status: 400 });
         }
-        // Vacunas cuya próxima aplicación es en los próximos 30 días o ya vencidas
+        // Obtener todas las vacunas con su fecha próxima
         const result = await client.query(`
             SELECT *, 
                 (fecha_aplicacion + (duracion_meses || ' months')::interval) AS fecha_proxima
             FROM vacuna_aplicada
             WHERE id_mascota = $1
-            ORDER BY fecha_proxima ASC
+            ORDER BY fecha_aplicacion DESC, fecha_proxima ASC
         `, [id_mascota]);
-        // Filtrar en JS las que están próximas (próximos 30 días o vencidas)
+        
         const hoy = new Date();
-        const proximas = result.rows.filter(row => {
+        const proximas = result.rows.map(row => {
             const fechaProxima = new Date(row.fecha_proxima);
+            const fechaAplicacion = new Date(row.fecha_aplicacion);
             const diff = (fechaProxima - hoy) / (1000 * 60 * 60 * 24);
-            return diff <= 30; // próximas 30 días o vencidas
+            const diasDesdeAplicacion = (hoy - fechaAplicacion) / (1000 * 60 * 60 * 24);
+            
+            // Agregar información sobre el estado
+            row.estado = 'normal';
+            if (diff < 0) {
+                row.estado = 'vencida';
+            } else if (diff <= 7) {
+                row.estado = 'muy_proxima';
+            } else if (diff <= 30) {
+                row.estado = 'proxima';
+            } else if (diasDesdeAplicacion <= 7) {
+                row.estado = 'reciente';
+            }
+            
+            return row;
         });
         return NextResponse.json(proximas);
     } catch (error) {

@@ -12,17 +12,7 @@ const pool = new Pool({ connectionString });
 // GET current user info
 export async function GET(request) {
   try {
-    // Verificar si hay cookies de autenticación
-    const authToken = request.cookies.get('auth-token');
-    const isAuthenticated = request.cookies.get('isAuthenticated');
-
-    if (!authToken || !isAuthenticated) {
-      return NextResponse.json({ 
-        error: 'No autenticado' 
-      }, { status: 401 });
-    }
-
-    // Obtener el ID del usuario desde los parámetros de la URL o desde las cookies
+    // Obtener el ID del usuario desde los parámetros de la URL
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('id');
 
@@ -30,6 +20,20 @@ export async function GET(request) {
       return NextResponse.json({ 
         error: 'ID de usuario requerido' 
       }, { status: 400 });
+    }
+
+    // Verificar si hay cookies de autenticación (opcional para compatibilidad)
+    const authToken = request.cookies.get('auth-token');
+    const isAuthenticated = request.cookies.get('isAuthenticated');
+
+    // Si no hay cookies, permitir acceso con ID válido (para compatibilidad con localStorage)
+    if (!authToken || !isAuthenticated) {
+      // Solo verificar que el ID sea numérico
+      if (isNaN(parseInt(userId, 10))) {
+        return NextResponse.json({ 
+          error: 'ID de usuario inválido' 
+        }, { status: 400 });
+      }
     }
 
     const client = await pool.connect();

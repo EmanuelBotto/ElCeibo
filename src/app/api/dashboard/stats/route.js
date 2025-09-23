@@ -17,6 +17,10 @@ export async function GET() {
       const mesActual = new Date().getMonth() + 1;
       const anioActual = new Date().getFullYear();
       
+      // Calcular mes anterior
+      const mesAnterior = mesActual === 1 ? 12 : mesActual - 1;
+      const anioAnterior = mesActual === 1 ? anioActual - 1 : anioActual;
+
       const result = await client.query(`
         WITH stats AS (
           SELECT 
@@ -30,14 +34,28 @@ export async function GET() {
              AND anio = $2) as ingresos_mes,
             (SELECT COALESCE(SUM(CAST(monto_total AS DECIMAL)), 0) 
              FROM factura 
+             WHERE tipo_factura = 'ingreso' 
+             AND mes = $3 
+             AND anio = $4) as ingresos_mes_anterior,
+            (SELECT COALESCE(SUM(CAST(monto_total AS DECIMAL)), 0) 
+             FROM factura 
              WHERE tipo_factura = 'ingreso') as ingresos_totales
         )
         SELECT * FROM stats
-      `, [mesActual, anioActual]);
+      `, [mesActual, anioActual, mesAnterior, anioAnterior]);
       
       const data = result.rows[0];
       const ingresosActual = parseFloat(data.ingresos_mes);
-      const cambioIngresos = ingresosActual > 0 ? Math.round(Math.random() * 30 - 10) : 0;
+      const ingresosAnterior = parseFloat(data.ingresos_mes_anterior);
+      
+      // Calcular porcentaje de cambio real
+      let cambioIngresos = 0;
+      if (ingresosAnterior > 0) {
+        cambioIngresos = Math.round(((ingresosActual - ingresosAnterior) / ingresosAnterior) * 100);
+      } else if (ingresosActual > 0) {
+        // Si no hay ingresos del mes anterior pero sí del actual, es 100% de crecimiento
+        cambioIngresos = 100;
+      }
       
       const stats = {
         totalClientes: {

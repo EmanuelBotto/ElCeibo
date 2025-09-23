@@ -15,8 +15,11 @@ import {
 } from "@/components/ui/table";
 import Modal from "@/components/ui/modal";
 import { buildProductoFormContent } from "@/lib/modales";
+import { useAuth } from '@/components/AuthProvider';
 
 export default function Producto() {
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  
   // Lista de productos
   const [productos, setProductos] = useState([]);
   const [tipos, setTipos] = useState([]);
@@ -56,6 +59,14 @@ export default function Producto() {
   const cargarProductos = async (pagina = 1, busqueda = '', tipoBusqueda = 'nombre') => {
     try {
       setCargando(true);
+      
+      // Verificar autenticación antes de hacer la llamada
+      if (!isAuthenticated) {
+        console.warn('Usuario no autenticado, no se pueden cargar productos');
+        setProductos([]);
+        return;
+      }
+      
       const params = new URLSearchParams({
         page: pagina.toString(),
         limit: productosPorPagina.toString()
@@ -66,13 +77,26 @@ export default function Producto() {
         params.append('searchType', tipoBusqueda);
       }
       
-      const res = await fetch(`/api/products?${params}`);
+      const url = `/api/products?${params}`;
+      
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Incluir cookies para autenticación
+      });
+      
+      console.log('Respuesta de la API:', res.status, res.statusText);
       
       if (!res.ok) {
-        throw new Error('Error al cargar productos');
+        const errorText = await res.text();
+        console.error('Error en la respuesta:', res.status, errorText);
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
 
       const response = await res.json();
+      console.log('Datos recibidos:', response);
       
       // Manejar la nueva estructura con paginación
       if (response.data && Array.isArray(response.data)) {
@@ -81,7 +105,6 @@ export default function Producto() {
         setPagination(response.pagination);
       } else {
         console.error('Los datos recibidos no tienen la estructura esperada:', response);
-
         setProductos([]);
         setPagination(null);
       }
@@ -111,8 +134,11 @@ export default function Producto() {
 
   // Carga los productos en la pagina por primera vez
   useEffect(() => {
-    cargarProductos();
-  }, []);
+    // Solo cargar productos si la autenticación está lista y el usuario está autenticado
+    if (!authLoading && isAuthenticated) {
+      cargarProductos();
+    }
+  }, [authLoading, isAuthenticated]);
 
   // Efecto para manejar la búsqueda con debounce
   useEffect(() => {
@@ -310,6 +336,34 @@ export default function Producto() {
     const precio = precio_base * porcentaje;
     return isNaN(precio) ? 0 : precio;
   };
+
+  // Mostrar loading mientras se verifica la autenticación
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-8">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-8 w-full max-w-6xl flex flex-col items-center justify-center gap-6">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+            <span className="text-lg font-medium text-gray-700">Verificando autenticación...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar mensaje si no está autenticado
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-8">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-8 w-full max-w-6xl flex flex-col items-center justify-center gap-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Acceso no autorizado</h2>
+            <p className="text-gray-600">Debes iniciar sesión para acceder a esta página.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">

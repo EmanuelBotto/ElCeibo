@@ -19,10 +19,14 @@ import {
 export default function Caja() {
     const [facturas, setFacturas] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
+    const [busqueda, setBusqueda] = useState('');
+    const [cargando, setCargando] = useState(true);
 
     
     const obtenerFacturas = async () => {
         try {
+            setCargando(true);
             const res = await fetch('/api/caja');
             const data = await res.json();
             
@@ -36,6 +40,8 @@ export default function Caja() {
         } catch (error) {
             console.error('Error al obtener facturas:', error);
             setFacturas([]);
+        } finally {
+            setCargando(false);
         }
     };
     

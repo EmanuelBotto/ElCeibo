@@ -30,39 +30,24 @@ export async function GET() {
         `);
 
         // Convertir las fotos BYTEA a Base64 para el frontend
-        const mascotasConFotos = result.rows.map((mascota, index) => {
-            console.log(`Mascota ${index + 1} - nombre: ${mascota.nombre}`);
-            console.log(`Mascota ${index + 1} - foto type:`, typeof mascota.foto);
-            console.log(`Mascota ${index + 1} - foto is Buffer:`, Buffer.isBuffer(mascota.foto));
-            
+        const mascotasConFotos = result.rows.map((mascota) => {
             if (mascota.foto) {
-                console.log(`Mascota ${index + 1} - foto length:`, mascota.foto.length);
-                
                 // Verificar que la imagen no sea demasiado grande (máximo 2MB)
                 if (mascota.foto.length > 2 * 1024 * 1024) {
-                    console.log(`Mascota ${index + 1} - imagen demasiado grande, omitiendo`);
                     return {
                         ...mascota,
                         foto: null
                     };
                 }
                 
-                console.log(`Mascota ${index + 1} - foto first 50 bytes:`, mascota.foto.toString('hex').substring(0, 100));
-                
                 const base64String = mascota.foto.toString('base64');
-                console.log(`Mascota ${index + 1} - base64 length:`, base64String.length);
-                console.log(`Mascota ${index + 1} - base64 first 50 chars:`, base64String.substring(0, 50));
-                
                 const finalString = `data:image/jpeg;base64,${base64String}`;
-                console.log(`Mascota ${index + 1} - final string length:`, finalString.length);
-                console.log(`Mascota ${index + 1} - final string starts with:`, finalString.substring(0, 50));
                 
                 return {
                     ...mascota,
                     foto: finalString
                 };
             } else {
-                console.log(`Mascota ${index + 1} - no foto`);
                 return {
                     ...mascota,
                     foto: null
@@ -109,11 +94,7 @@ export async function POST(request) {
             data = await request.json();
         }
         
-        const { nombre, especie, raza = '', sexo, edad = 0, peso = 0, estado_reproductivo = false, id_cliente, foto } = data;
-        
-        console.log('Datos recibidos para crear mascota:', {
-            nombre, especie, raza, sexo, edad, peso, estado_reproductivo, id_cliente, foto: foto ? 'presente' : 'ausente'
-        });
+        const { nombre, especie, raza = '', sexo, edad = 0, peso = 0, estado_reproductivo = false, id_cliente, foto, deceso = false, fecha_seceso = null } = data;
         
         // Validaciones básicas
         if (!nombre || !especie || !sexo) {
@@ -146,10 +127,10 @@ export async function POST(request) {
 
         // Insertar en la base de datos
         const result = await pool.query(`
-            INSERT INTO mascota (nombre, especie, raza, sexo, edad, peso, estado_reproductivo, foto, id_cliente, dia, mes, anio)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, EXTRACT(DAY FROM NOW()), EXTRACT(MONTH FROM NOW()), EXTRACT(YEAR FROM NOW()))
+            INSERT INTO mascota (nombre, especie, raza, sexo, edad, peso, estado_reproductivo, foto, id_cliente, dia, mes, anio, deceso, fecha_seceso)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, EXTRACT(DAY FROM NOW()), EXTRACT(MONTH FROM NOW()), EXTRACT(YEAR FROM NOW()), $10, $11)
             RETURNING id_mascota
-        `, [nombre, especie, raza, sexo, edad, peso, estado_reproductivo, fotoBuffer, id_cliente]);
+        `, [nombre, especie, raza, sexo, edad, peso, estado_reproductivo, fotoBuffer, id_cliente, deceso, fecha_seceso]);
 
         return new Response(JSON.stringify({ 
             success: true, 

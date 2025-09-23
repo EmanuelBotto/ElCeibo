@@ -40,7 +40,6 @@ async function ensureTableExists() {
           deuda DECIMAL(10,2) DEFAULT 0
         )
       `);
-      console.log('Tabla distribuidor creada exitosamente');
     }
   } catch (err) {
     console.error('Error al verificar/crear la tabla distribuidor:', err);
@@ -92,7 +91,6 @@ export async function POST(request) {
     const client = await pool.connect();
     try {
       const body = await request.json();
-      console.log('Datos recibidos:', body);
 
       const {
         cuit,

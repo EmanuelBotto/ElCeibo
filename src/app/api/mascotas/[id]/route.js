@@ -48,7 +48,9 @@ export async function PUT(request, { params }) {
         dia,
         mes,
         anio,
-        id_cliente
+        id_cliente,
+        deceso,
+        fecha_deceso
       } = body;
 
       // Validaciones (similares a POST)
@@ -69,8 +71,10 @@ export async function PUT(request, { params }) {
           dia = $9, 
           mes = $10, 
           anio = $11, 
-          id_cliente = $12
-        WHERE id_mascota = $13
+          id_cliente = $12,
+          deceso = $13,
+          fecha_deceso = $14
+        WHERE id_mascota = $15
         RETURNING *`,
         [
           nombre.trim(),
@@ -85,6 +89,8 @@ export async function PUT(request, { params }) {
           mes.trim(),
           parseInt(anio, 10),
           parseInt(id_cliente, 10),
+          deceso || false,
+          fecha_deceso,
           id
         ]
       );
