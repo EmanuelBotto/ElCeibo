@@ -6,8 +6,8 @@ import Producto from './Ventana/producto';
 import FichasClientes from './Ventana/fichas-clientes';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
-
 import Item from './Ventana/item';
+import Ingreso from './Ventana/ingreso';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function HomePage() {
@@ -20,11 +20,13 @@ export default function HomePage() {
       case 'productos':
         return <Producto />;
       case 'caja':
-        return <Caja />;
+        return <Caja onTabChange={setActiveTab} />;
       case 'fichas':
         return <FichasClientes />;
       case 'item':
         return <Item />;
+      case 'ingreso':
+        return <Ingreso onVolver={() => setActiveTab('caja')} />;
       default:
         return <DashboardPage />;
     }

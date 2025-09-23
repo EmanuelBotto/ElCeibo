@@ -14,7 +14,6 @@ import {
   Clock
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface StatItem {
   title: string;
@@ -51,13 +50,8 @@ export default function DashboardPage() {
         // Obtener actividades recientes
         const activitiesResponse = await fetch('/api/dashboard/activities');
         const activitiesData = await activitiesResponse.json();
-
-        // Validar que activitiesData sea un array
-        if (!Array.isArray(activitiesData)) {
-          console.error('activitiesData no es un array:', activitiesData);
-          throw new Error('Formato de datos de actividades inválido');
-        }
-
+        const activitiesArray = Array.isArray(activitiesData) ? activitiesData : [];
+        
         // Mapear estadísticas con iconos
         const statsWithIcons: StatItem[] = [
           {
@@ -95,7 +89,7 @@ export default function DashboardPage() {
         ];
 
         // Mapear actividades con iconos
-        const activitiesWithIcons: ActivityItem[] = activitiesData.map((activity: any) => {
+        const activitiesWithIcons: ActivityItem[] = activitiesArray.map((activity: any) => {
           const iconMap: { [key: string]: React.ComponentType<any> } = {
             'Users': Users,
             'Package': Package,
@@ -171,8 +165,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <ProtectedRoute>
-      <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6">
       {/* Header del Dashboard */}
       <div className="flex items-center justify-between">
         <div>
@@ -209,28 +202,10 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                {stat.change !== "+0%" ? (
-                  <p className={`text-xs mt-1 ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                    <TrendingUp className="inline h-3 w-3 mr-1" />
-                    {stat.change} desde el mes pasado
-                  </p>
-                ) : (
-                  <div className="mt-2 space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <div className="flex items-center space-x-1">
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      </div>
-                      <span className="text-xs text-gray-600 font-medium">Activo</span>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {stat.title === "Total Clientes" && "Registros en sistema"}
-                      {stat.title === "Productos Activos" && "Con stock disponible"}
-                      {stat.title === "Fichas Creadas" && "Mascotas registradas"}
-                    </div>
-                  </div>
-                )}
+                <p className={`text-xs mt-1 ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                  <TrendingUp className="inline h-3 w-3 mr-1" />
+                  {stat.change} desde el mes pasado
+                </p>
               </CardContent>
             </Card>
           );
@@ -322,7 +297,6 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
-      </div>
-    </ProtectedRoute>
+    </div>
   );
 } 

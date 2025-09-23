@@ -13,6 +13,7 @@ export async function GET() {
   try {
     const client = await pool.connect();
     try {
+
       // Obtener todas las estadísticas en una sola consulta optimizada
       const mesActual = new Date().getMonth() + 1;
       const anioActual = new Date().getFullYear();
@@ -59,24 +60,20 @@ export async function GET() {
       
       const stats = {
         totalClientes: {
-          valor: parseInt(data.total_clientes),
-          cambio: 0
+          valor: totalClientes.rows[0].total,
+          cambio: calcularCambio(totalClientes.rows[0].total, clientesMesAnterior.rows[0].total)
         },
         totalProductos: {
-          valor: parseInt(data.total_productos),
-          cambio: 0
+          valor: totalProductos.rows[0].total,
+          cambio: calcularCambio(totalProductos.rows[0].total, productosMesAnterior.rows[0].total)
         },
         totalMascotas: {
-          valor: parseInt(data.total_mascotas),
-          cambio: 0
+          valor: totalMascotas.rows[0].total,
+          cambio: calcularCambio(totalMascotas.rows[0].total, mascotasMesAnterior.rows[0].total)
         },
         ingresosMes: {
-          valor: ingresosActual,
-          cambio: cambioIngresos
-        },
-        ingresosTotales: {
-          valor: parseFloat(data.ingresos_totales),
-          cambio: 0
+          valor: ingresosMes.rows[0].total,
+          cambio: calcularCambio(ingresosMes.rows[0].total, ingresosMesAnterior.rows[0].total)
         }
       };
 

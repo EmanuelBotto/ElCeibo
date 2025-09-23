@@ -1,4 +1,4 @@
-import { NextResponse }  from "next/server";
+import { NextResponse } from "next/server";
 import pkg from "pg";
 
 const { Pool } = pkg;
@@ -30,42 +30,35 @@ export async function POST(request) {
                 ? ventaData.formasPago.join(' - ') 
                 : ventaData.formasPago || '';
 
-            // Determinar el tipo de factura
-            const tipoFactura = ventaData.productos && ventaData.productos.length > 0 ? 'ingreso' : (ventaData.tipo || 'egreso');
-
-            // Insertar la factura
+            // Insertar la factura como ingreso
             const facturaQuery = `
-
                 INSERT INTO factura (
                     dia, mes, anio, hora, tipo_factura, forma_de_pago, 
-                    monto_total, detalle, id_distribuidor, id_usuario, num_factura
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    monto_total, detalle, id_usuario
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING id_factura
             `;
 
-            const montoTotal = ventaData.monto || ventaData.totalVenta;
             const facturaValues = [
                 dia,
                 mes,
                 anio,
                 hora,
-                tipoFactura,
+                'ingreso', // Tipo de factura para ventas
                 formaPago,
-                Math.round(montoTotal * 100) / 100,
+                Math.round(ventaData.totalVenta * 100) / 100,
                 ventaData.detalle || null,
-                ventaData.distribuidor || ventaData.id_distribuidor || null,
-                ventaData.id_usuario || 1, // Usuario por defecto si no se especifica
-                ventaData.numeroRecibo || null
+                ventaData.id_usuario || 1
             ];
 
             const facturaResult = await client.query(facturaQuery, facturaValues);
             const idFactura = facturaResult.rows[0].id_factura;
 
-            // Si es una venta con productos, insertar los detalles y actualizar stock
+            // Insertar los detalles de la factura y actualizar stock
             if (ventaData.productos && ventaData.productos.length > 0) {
                 for (const producto of ventaData.productos) {
                     // Verificar que el producto existe y tiene stock suficiente
-                    const stockQuery = 'SELECT stock FROM producto WHERE id_producto = $1';
+                    const stockQuery = 'SELECT stock, nombre FROM producto WHERE id_producto = $1';
                     const stockResult = await client.query(stockQuery, [producto.id_producto]);
                     
                     if (stockResult.rows.length === 0) {
@@ -73,8 +66,10 @@ export async function POST(request) {
                     }
                     
                     const stockActual = stockResult.rows[0].stock;
+                    const nombreProducto = stockResult.rows[0].nombre;
+                    
                     if (stockActual < producto.cantidad) {
-                        throw new Error(`Stock insuficiente para el producto ${producto.nombre_producto}. Stock disponible: ${stockActual}, solicitado: ${producto.cantidad}`);
+                        throw new Error(`Stock insuficiente para el producto ${nombreProducto}. Stock disponible: ${stockActual}, solicitado: ${producto.cantidad}`);
                     }
 
                     // Insertar detalle de factura
@@ -107,11 +102,12 @@ export async function POST(request) {
 
             return NextResponse.json({
                 success: true,
-                message: tipoFactura === 'ingreso' ? 'Venta registrada exitosamente' : 'Egreso registrado exitosamente',
+                message: 'Venta registrada exitosamente',
                 data: {
                     id_factura: idFactura,
-                    tipo_factura: tipoFactura,
-                    monto_total: ventaData.monto || ventaData.totalVenta
+                    tipo_factura: 'ingreso',
+                    monto_total: ventaData.totalVenta,
+                    productos_vendidos: ventaData.productos.length
                 }
             });
 
@@ -122,25 +118,7 @@ export async function POST(request) {
             client.release();
         }
     } catch (err) {
-        console.error('Error al registrar venta/egreso:', err);
-        return NextResponse.json({ error: 'Error al registrar la transacción: ' + err.message }, { status: 500 });
-    }
-}
-
-export async function DELETE(_, { params}) {
-    const  { id } = params;
-    try {
-        const client = await pool.connect ()
-        try {
-            const query = 'DELETE FROM factura WHERE id_factura = $1'
-            await client.query(query, [id]);
-            return NextResponse.json({ message: 'Factura eliminada' });
-
-        } finally {
-            client.release();
-        }
-    } catch (err) {
-        console.error('Error detallado al eliminar factura:', err);
-        return NextResponse.json({ error: 'Error al eliminar factura: ' + err.message }, { status: 500 });
+        console.error('Error al registrar venta:', err);
+        return NextResponse.json({ error: 'Error al registrar la venta: ' + err.message }, { status: 500 });
     }
 }

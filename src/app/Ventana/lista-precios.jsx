@@ -63,16 +63,9 @@ export default function ListaPrecios() {
   // Cargar productos
   const cargarProductos = async () => {
     try {
-      const res = await fetch('/api/products?limit=1000'); // Cargar más productos para la lista
-      const response = await res.json();
-      
-      // Manejar la nueva estructura con paginación
-      if (response.data && Array.isArray(response.data)) {
-        setProductos(response.data);
-      } else {
-        console.error('Los datos recibidos no tienen la estructura esperada:', response);
-        setProductos([]);
-      }
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      setProductos(data);
     } catch (err) {
       console.error('Error al cargar productos:', err);
       alert('Error al cargar los productos');

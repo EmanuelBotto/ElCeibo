@@ -12,7 +12,9 @@ const pool = new Pool({ connectionString });
 // GET current user info
 export async function GET(request) {
   try {
+
     // Obtener el ID del usuario desde los parámetros de la URL
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('id');
 
