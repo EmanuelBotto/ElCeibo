@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Modal from "@/components/ui/modal";
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 
 type NuevoProducto = {
   nombre: string;
@@ -854,4 +856,130 @@ export function buildProductoFormContent(args: {
       </div>
     </div>
   );
+}
+
+// ====== Modal de Venta (Error y Éxito) ======
+// 
+// Componente reutilizable para mostrar modales de error y éxito en ventas
+// 
+// Ejemplo de uso:
+// 
+// import { ModalVenta, useModalVenta } from '@/lib/modales';
+// 
+// function MiComponente() {
+//   const { isModalOpen, modalType, modalMessage, showErrorModal, showSuccessModal, closeModal } = useModalVenta();
+//   
+//   const handleError = () => {
+//     showErrorModal('Error al procesar la venta');
+//   };
+//   
+//   const handleSuccess = () => {
+//     showSuccessModal('Venta completada exitosamente');
+//   };
+//   
+//   return (
+//     <>
+//       <button onClick={handleError}>Mostrar Error</button>
+//       <button onClick={handleSuccess}>Mostrar Éxito</button>
+//       
+//       <ModalVenta
+//         isOpen={isModalOpen}
+//         type={modalType}
+//         message={modalMessage}
+//         onClose={closeModal}
+//         onSuccessRedirect={() => console.log('Redirigir a caja')}
+//       />
+//     </>
+//   );
+// }
+
+type ModalVentaType = 'error' | 'success' | '';
+
+interface ModalVentaProps {
+  isOpen: boolean;
+  type: ModalVentaType;
+  message: string;
+  onClose: () => void;
+  onSuccessRedirect?: () => void;
+}
+
+export function ModalVenta({ isOpen, type, message, onClose, onSuccessRedirect }: ModalVentaProps) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="text-center p-6">
+        {type === 'error' ? (
+          <>
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Error</h3>
+            <p className="text-sm text-gray-500 mb-4">{message}</p>
+            <Button
+              onClick={onClose}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+            >
+              Entendido
+            </Button>
+          </>
+        ) : type === 'success' ? (
+          <>
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">¡Venta Exitosa!</h3>
+            <p className="text-sm text-gray-500 mb-4">{message}</p>
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="px-4 py-2"
+              >
+                Continuar Vendiendo
+              </Button>
+              <Button
+                onClick={onSuccessRedirect}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2"
+              >
+                Ir a Caja
+              </Button>
+            </div>
+          </>
+        ) : null}
+      </div>
+    </Modal>
+  );
+}
+
+// Hook para manejar el modal de venta
+export function useModalVenta() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<ModalVentaType>('');
+  const [modalMessage, setModalMessage] = useState('');
+
+  const showErrorModal = (message: string) => {
+    setModalType('error');
+    setModalMessage(message);
+    setIsModalOpen(true);
+  };
+
+  const showSuccessModal = (message: string) => {
+    setModalType('success');
+    setModalMessage(message);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalType('');
+    setModalMessage('');
+  };
+
+  return {
+    isModalOpen,
+    modalType,
+    modalMessage,
+    showErrorModal,
+    showSuccessModal,
+    closeModal
+  };
 }

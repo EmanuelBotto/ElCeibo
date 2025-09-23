@@ -49,6 +49,16 @@ export default function Caja({ onTabChange }) {
         obtenerFacturas();
     }, []);
 
+    // Recargar facturas cuando se regrese a la caja
+    useEffect(() => {
+        const handleFocus = () => {
+            obtenerFacturas();
+        };
+        
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, []);
+
     const handleOpenModal = () => {
         setIsModalOpen(true);
     };
@@ -173,6 +183,11 @@ export default function Caja({ onTabChange }) {
                                         <span className={factura.tipo_factura === 'ingreso' ? 'text-green-600' : 'text-red-600'}>
                                             {factura.tipo_factura === 'ingreso' ? '+' : '-'}${factura.monto_total}
                                         </span>
+                                        {factura.cantidad_productos > 0 && (
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                {factura.cantidad_productos} producto{factura.cantidad_productos !== 1 ? 's' : ''}
+                                            </div>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-center">
                                         {factura.nombre_usuario || 'N/A'}

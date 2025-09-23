@@ -10,6 +10,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { FileText } from 'lucide-react';
+import { ModalVenta, useModalVenta } from '@/lib/modales';
 
 export default function Ingreso({ onVolver }) {
   const [productos, setProductos] = useState([]);
@@ -20,6 +21,17 @@ export default function Ingreso({ onVolver }) {
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
   const [totalVenta, setTotalVenta] = useState(0);
   const [formasPago, setFormasPago] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Hook para el modal de venta
+  const {
+    isModalOpen,
+    modalType,
+    modalMessage,
+    showErrorModal,
+    showSuccessModal,
+    closeModal
+  } = useModalVenta();
 
   const validarNumero = (valor) => {
     const numero = parseFloat(valor);
@@ -123,27 +135,74 @@ export default function Ingreso({ onVolver }) {
     }
   };
 
+
+  // Función para manejar redirección después de venta exitosa
+  const handleSuccessRedirect = () => {
+    closeModal();
+    // Limpiar el formulario
+    setProductosSeleccionados([]);
+    setFormasPago([]);
+    setTotalVenta(0);
+    // Recargar productos para actualizar stock
+    cargarProductos();
+    // Redirigir a caja
+    onVolver('caja');
+  };
+
   // Función para finalizar venta
   const finalizarVenta = async () => {
     if (productosSeleccionados.length === 0) {
-      alert('Debe seleccionar al menos un producto');
+      showErrorModal('Debe seleccionar al menos un producto');
       return;
     }
     
     if (formasPago.length === 0) {
-      alert('Debe seleccionar al menos una forma de pago');
+      showErrorModal('Debe seleccionar al menos una forma de pago');
       return;
     }
 
-    // Aquí se implementará la lógica para conectar con la base de datos
-    console.log('Finalizando venta:', {
-      productos: productosSeleccionados,
-      total: totalVenta,
-      formasPago: formasPago,
-      tipoCliente: tipoCliente
-    });
-    
-    alert('Venta finalizada exitosamente!');
+    setIsProcessing(true);
+
+    try {
+      // Preparar datos de la venta
+      const ventaData = {
+        productos: productosSeleccionados,
+        totalVenta: totalVenta,
+        formasPago: formasPago,
+        tipoCliente: tipoCliente,
+        detalle: `Venta de ${productosSeleccionados.length} productos - Cliente ${tipoCliente}`,
+        id_usuario: 1 // TODO: Obtener del contexto de autenticación
+      };
+
+      console.log('Enviando venta:', ventaData);
+
+      // Enviar a la API
+      const response = await fetch('/api/caja/venta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ventaData)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al procesar la venta');
+      }
+
+      if (result.success) {
+        showSuccessModal(`Venta finalizada exitosamente! Total: $${totalVenta.toFixed(2)}`);
+      } else {
+        throw new Error(result.message || 'Error desconocido');
+      }
+
+    } catch (error) {
+      console.error('Error al finalizar venta:', error);
+      showErrorModal(`Error al finalizar la venta: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -365,9 +424,17 @@ export default function Ingreso({ onVolver }) {
                 <div className="flex justify-center">
                   <Button
                     onClick={finalizarVenta}
-                    className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-8 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 w-full"
+                    disabled={isProcessing}
+                    className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-8 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 w-full disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
-                    Finalizar Venta
+                    {isProcessing ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Procesando...
+                      </div>
+                    ) : (
+                      'Finalizar Venta'
+                    )}
                   </Button>
                 </div>
               </div>
@@ -375,6 +442,15 @@ export default function Ingreso({ onVolver }) {
           </div>
         </div>
       </div>
+
+      {/* Modal reutilizable para errores y éxito */}
+      <ModalVenta
+        isOpen={isModalOpen}
+        type={modalType}
+        message={modalMessage}
+        onClose={closeModal}
+        onSuccessRedirect={handleSuccessRedirect}
+      />
     </div>
   );
 }
