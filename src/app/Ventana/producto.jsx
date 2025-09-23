@@ -36,36 +36,38 @@ export default function Producto() {
   const [productoEditando, setProductoEditando] = useState(null);
   const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState(false);
   const [busqueda, setBusqueda] = useState('');
+  const [tipoBusqueda, setTipoBusqueda] = useState('nombre');
   const [paginaActual, setPaginaActual] = useState(1);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0
+  });
   const [tipoCliente, setTipoCliente] = useState('cliente final');
   const productosPorPagina = 10;
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   
-  // Nuevos estados para los porcentajes
   const [porcentajePersonalizado, setPorcentajePersonalizado] = useState(false);
  
 
-  // Función para validar número
   const validarNumero = (valor) => {
     const numero = parseFloat(valor);
     return isNaN(numero) ? 0 : numero;
   };
 
-  // Cargar productos desde la API
   const cargarProductos = async () => {
     try {
       setCargando(true);
   
-      // Verificar autenticación antes de hacer la llamada
+      
       if (!isAuthenticated) {
-        console.warn('Usuario no autenticado, no se pueden cargar productos');
         setProductos([]);
         return;
       }
       
       const params = new URLSearchParams({
-        page: pagina.toString(),
+        page: paginaActual.toString(),
         limit: productosPorPagina.toString()
       });
       
@@ -84,43 +86,54 @@ export default function Producto() {
         credentials: 'include' // Incluir cookies para autenticación
       });
       
-      console.log('Respuesta de la API:', res.status, res.statusText);
       
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Error en la respuesta:', res.status, errorText);
         throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
 
       const response = await res.json();
-      console.log('Datos recibidos:', response);
       
-      // Manejar la nueva estructura con paginación
-      if (response.data && Array.isArray(response.data)) {
-        setProductos(response.data);
-        setPaginaActual(pagina);
-        setPagination(response.pagination);
+      if (response.productos && Array.isArray(response.productos)) {
+        setProductos(response.productos);
+        setPaginaActual(paginaActual);
+        if (response.pagination) {
+          setPagination(response.pagination);
+        } else {
+          setPagination({
+            currentPage: paginaActual,
+            totalPages: Math.ceil(response.productos.length / productosPorPagina),
+            totalItems: response.productos.length
+          });
+        }
+      } else if (Array.isArray(response)) {
+        setProductos(response);
+        setPaginaActual(paginaActual);
+        setPagination({
+          currentPage: paginaActual,
+          totalPages: Math.ceil(response.length / productosPorPagina),
+          totalItems: response.length
+        });
       } else {
-        console.error('Los datos recibidos no tienen la estructura esperada:', response);
         setProductos([]);
       }
     } catch (err) {
       console.error('Error al cargar productos:', err);
-      setProductos([]); // En caso de error, establecemos un array vacío
+      setProductos([]);
     } finally {
       setCargando(false);
     }
   };
 
-  // Carga los productos en la pagina por primera vez
+  const cambiarPagina = (nuevaPagina) => {
+    setPaginaActual(nuevaPagina);
+  };
+
   useEffect(() => {
-    // Solo cargar productos si la autenticación está lista y el usuario está autenticado
     if (!authLoading && isAuthenticated) {
       cargarProductos();
     }
-  }, [authLoading, isAuthenticated]);
+  }, [authLoading, isAuthenticated, paginaActual, busqueda, tipoBusqueda]);
 
-  // Crear producto
   const crearProducto = async () => {
     try {
       // Validaciones
@@ -285,17 +298,10 @@ export default function Producto() {
   };
 
 
-  // Filtrar productos según la búsqueda y tipo de cliente
-  const productosFiltrados = Array.isArray(productos) ? productos.filter(producto => {
-    if (!producto) return false;
-    return producto.nombre_producto?.toLowerCase().includes(busqueda.toLowerCase());
-  }) : [];
-
-  // Calcular productos para la página actual
-  const indexUltimoProducto = paginaActual * productosPorPagina;
-  const indexPrimerProducto = indexUltimoProducto - productosPorPagina;
-  const productosActuales = productosFiltrados.slice(indexPrimerProducto, indexUltimoProducto);
-  const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
+  // Los productos ya vienen paginados de la API, no necesitamos filtrar localmente
+  const productosActuales = Array.isArray(productos) ? productos : [];
+  const totalPaginas = pagination.totalPages || 1;
+  
 
   // Calcular precio con porcentaje
   const calcularPrecio = (producto, tipoCliente = 'final') => {
@@ -453,27 +459,79 @@ export default function Producto() {
           </Table>
         )}
 
+
         {/* Paginación */}
-        {productosFiltrados.length > productosPorPagina && (
-          <div className="mt-6 flex justify-center items-center gap-4">
+        {totalPaginas > 1 && (
+          <div className="mt-8 flex justify-center items-center space-x-1">
+            {/* Botón Primera página */}
             <Button
               variant="outline"
-              onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+              onClick={() => cambiarPagina(1)}
               disabled={paginaActual === 1}
-              className="px-4"
+              className="px-3 py-2 text-sm font-medium"
+              size="sm"
             >
-              ← Anterior
+              Primera
             </Button>
-            <span className="text-gray-700 font-semibold px-4 py-2 bg-white rounded-lg border">
-              Página {paginaActual} de {totalPaginas}
-            </span>
+            
+            {/* Botón Anterior */}
             <Button
               variant="outline"
-              onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-              disabled={paginaActual === totalPaginas}
-              className="px-4"
+              onClick={() => cambiarPagina(Math.max(paginaActual - 1, 1))}
+              disabled={paginaActual === 1}
+              className="px-3 py-2 text-sm font-medium"
+              size="sm"
             >
-              Siguiente →
+              ‹
+            </Button>
+            
+            {/* Números de página - Solo páginas 1, 2 y 3 */}
+            {(() => {
+              const paginas = [];
+              const maxPaginas = Math.min(3, totalPaginas);
+              
+              // Botones de páginas 1, 2 y 3
+              for (let i = 1; i <= maxPaginas; i++) {
+                paginas.push(
+                  <Button
+                    key={i}
+                    variant={i === paginaActual ? "default" : "outline"}
+                    onClick={() => cambiarPagina(i)}
+                    className={`px-3 py-2 text-sm font-medium ${
+                      i === paginaActual 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                    size="sm"
+                  >
+                    {i}
+                  </Button>
+                );
+              }
+              
+              return paginas;
+            })()}
+            
+            {/* Botón Siguiente */}
+            <Button
+              variant="outline"
+              onClick={() => cambiarPagina(Math.min(paginaActual + 1, totalPaginas))}
+              disabled={paginaActual === totalPaginas}
+              className="px-3 py-2 text-sm font-medium"
+              size="sm"
+            >
+              ›
+            </Button>
+            
+            {/* Botón Última página */}
+            <Button
+              variant="outline"
+              onClick={() => cambiarPagina(totalPaginas)}
+              disabled={paginaActual === totalPaginas}
+              className="px-3 py-2 text-sm font-medium"
+              size="sm"
+            >
+              Última
             </Button>
           </div>
         )}

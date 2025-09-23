@@ -14,7 +14,8 @@
   --border: #222;
 }
 
-@theme inline {
+/* Variables de tema personalizadas */
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);

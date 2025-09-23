@@ -134,9 +134,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
            })}
          </nav>
        </div>
-
-      {/* Footer con información del usuario */}
-
+        {/* Footer con información del usuario */}
        <div className="flex-1 p-4 flex flex-col min-h-0">
          <div className="flex-1"></div>
          
@@ -146,8 +144,20 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
              isCollapsed ? 'opacity-0' : 'opacity-100'
            }`}>
              <div className="flex items-center space-x-3">
-               <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                 <User size={16} className="text-[#a06ba5]" />
+               <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                 {user?.foto && user.foto.trim() !== '' ? (
+                   <img
+                     src={user.foto}
+                     alt={`${user.nombre} ${user.apellido}`}
+                     className="w-full h-full object-cover"
+                     onError={(e) => {
+                       console.error('❌ Error cargando imagen del usuario en sidebar:', user.foto);
+                       e.currentTarget.style.display = 'none';
+                       e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                     }}
+                   />
+                 ) : null}
+                 <User size={16} className={`text-[#a06ba5] ${user?.foto && user.foto.trim() !== '' ? 'hidden' : ''}`} />
                </div>
                <div className="flex-1">
                  <p className="text-sm font-medium text-black">{user?.nombre} {user?.apellido}</p>

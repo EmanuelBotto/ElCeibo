@@ -62,6 +62,12 @@ export default function UsuariosPage() {
     contrasenia: ''
   });
 
+  useEffect(() => {
+    if (currentUser?.tipo_usuario === 'admin') {
+      fetchUsers();
+    }
+  }, [currentUser]);
+
   // Verificar si el usuario actual es administrador
   if (currentUser?.tipo_usuario !== 'admin') {
     return (
@@ -79,10 +85,6 @@ export default function UsuariosPage() {
     );
   }
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   const fetchUsers = async () => {
     try {
       const response = await fetch('/api/usuarios');
@@ -90,6 +92,8 @@ export default function UsuariosPage() {
         throw new Error('Error al cargar usuarios');
       }
       const data = await response.json();
+      console.log('📊 Usuarios recibidos:', data.users);
+      console.log('📊 Primer usuario:', data.users[0]);
       setUsers(data.users);
     } catch (error) {
       toast.error('Error al cargar usuarios');
@@ -488,15 +492,19 @@ export default function UsuariosPage() {
                     <div className="flex items-start space-x-4">
                       {/* Foto de perfil */}
                       <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {user.foto ? (
+                        {user.foto && user.foto.trim() !== '' ? (
                           <img
                             src={user.foto}
                             alt={`${user.nombre} ${user.apellido}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('❌ Error cargando imagen para usuario:', user.id_usuario, user.foto);
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
                           />
-                        ) : (
-                          <User className="h-8 w-8 text-purple-600" />
-                        )}
+                        ) : null}
+                        <User className={`h-8 w-8 text-purple-600 ${user.foto && user.foto.trim() !== '' ? 'hidden' : ''}`} />
                       </div>
                       
                       {/* Información del usuario */}
