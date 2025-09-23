@@ -65,7 +65,7 @@ export default function Producto() {
       }
       
       const params = new URLSearchParams({
-        page: pagina.toString(),
+        page: paginaActual.toString(),
         limit: productosPorPagina.toString()
       });
       
@@ -98,7 +98,7 @@ export default function Producto() {
       // Manejar la nueva estructura con paginación
       if (response.data && Array.isArray(response.data)) {
         setProductos(response.data);
-        setPaginaActual(pagina);
+        setPaginaActual(paginaActual);
         setPagination(response.pagination);
       } else {
         console.error('Los datos recibidos no tienen la estructura esperada:', response);
