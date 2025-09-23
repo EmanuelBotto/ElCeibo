@@ -8,11 +8,49 @@ const connectionString = 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-ba
 // Crear pool global para reutilizar conexiones entre requests
 const pool = new Pool({ connectionString });
 
-export async function GET() {
+export async function GET(request) {
   try {
+    // Obtener parámetros de la URL
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page')) || 1;
+    const limit = parseInt(searchParams.get('limit')) || 10;
+    const search = searchParams.get('search') || '';
+    const searchType = searchParams.get('searchType') || 'nombre';
+    
     const client = await pool.connect();
+    
     try {
-      const result = await client.query(`
+      // Construir consulta con filtros opcionales
+      let whereClause = '';
+      let queryParams = [];
+      
+      if (search) {
+        if (searchType === 'nombre') {
+          whereClause = 'WHERE p.nombre ILIKE $1';
+          queryParams.push(`%${search}%`);
+        } else if (searchType === 'marca') {
+          whereClause = 'WHERE p.marca ILIKE $1';
+          queryParams.push(`%${search}%`);
+        } else if (searchType === 'tipo') {
+          whereClause = 'WHERE t.nombre ILIKE $1';
+          queryParams.push(`%${search}%`);
+        }
+      }
+      
+      // Primero obtener el total de productos para la paginación
+      let countQuery = `
+        SELECT COUNT(*) as total
+        FROM producto p
+        INNER JOIN tipo t ON p.id_tipo = t.id_tipo
+        ${whereClause}
+      `;
+      
+      const countResult = await client.query(countQuery, queryParams);
+      const totalItems = parseInt(countResult.rows[0].total);
+      const totalPages = Math.ceil(totalItems / limit);
+      
+      // Ahora obtener los productos de la página actual
+      const query = `
         SELECT 
           p.id_producto,
           p.stock,
@@ -22,38 +60,34 @@ export async function GET() {
           p.precio_costo,
           p.modificado,
           t.nombre AS nombre_tipo,
-          -- Porcentajes efectivos (por producto) y por defecto (por tipo)
-          COALESCE(dl.porcentaje_final, t.porcentaje_final) as porcentaje_final,
-          COALESCE(dl.porcentaje_mayorista, t.porcentaje_mayorista) as porcentaje_mayorista,
-          t.porcentaje_final as porcentaje_final_tipo,
-          t.porcentaje_mayorista as porcentaje_mayorista_tipo
+          t.porcentaje_final,
+          t.porcentaje_mayorista
         FROM 
           producto p
-        INNER JOIN
-        tipo t ON p.id_tipo = t.id_tipo
-        LEFT JOIN (
-          SELECT 
-            id_producto,
-            porcentaje_mayorista,
-            porcentaje_minorista as porcentaje_final
-          FROM detalle_lista dl1
-          WHERE dl1.id_detalle = (
-            SELECT id_detalle 
-            FROM detalle_lista dl2 
-            WHERE dl2.id_producto = dl1.id_producto 
-            ORDER BY dl2.id_detalle DESC 
-            LIMIT 1
-          )
-        ) dl ON p.id_producto = dl.id_producto AND p.modificado = true
+        INNER JOIN tipo t ON p.id_tipo = t.id_tipo
+        ${whereClause}
         ORDER BY p.id_producto
-      `);
-
-      return NextResponse.json({ productos: result.rows });
+        LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+      `;
+      
+      queryParams.push(limit, (page - 1) * limit);
+      
+      const result = await client.query(query, queryParams);
+      
+      return NextResponse.json({ 
+        productos: result.rows,
+        pagination: {
+          currentPage: page,
+          totalPages: totalPages,
+          totalItems: totalItems,
+          itemsPerPage: limit
+        }
+      });
     } finally {
       client.release();
     }
   } catch (err) {
-    console.error('Error detallado en API /products:', err);
+    console.error('Error en API /products:', err);
     return NextResponse.json({ error: 'Error en la base de datos: ' + err.message }, { status: 500 });
   }
 }

@@ -46,34 +46,36 @@ export async function GET() {
       `, [mesActual, anioActual, mesAnterior, anioAnterior]);
       
       const data = result.rows[0];
-      const ingresosActual = parseFloat(data.ingresos_mes);
-      const ingresosAnterior = parseFloat(data.ingresos_mes_anterior);
+      const ingresosActual = parseFloat(data.ingresos_mes) || 0;
+      const ingresosAnterior = parseFloat(data.ingresos_mes_anterior) || 0;
+      
+      // Función para calcular el cambio porcentual
+      const calcularCambio = (actual, anterior) => {
+        if (anterior === 0) {
+          return actual > 0 ? 100 : 0;
+        }
+        return Math.round(((actual - anterior) / anterior) * 100);
+      };
       
       // Calcular porcentaje de cambio real
-      let cambioIngresos = 0;
-      if (ingresosAnterior > 0) {
-        cambioIngresos = Math.round(((ingresosActual - ingresosAnterior) / ingresosAnterior) * 100);
-      } else if (ingresosActual > 0) {
-        // Si no hay ingresos del mes anterior pero sí del actual, es 100% de crecimiento
-        cambioIngresos = 100;
-      }
+      let cambioIngresos = calcularCambio(ingresosActual, ingresosAnterior);
       
       const stats = {
         totalClientes: {
-          valor: totalClientes.rows[0].total,
-          cambio: calcularCambio(totalClientes.rows[0].total, clientesMesAnterior.rows[0].total)
+          valor: parseInt(data.total_clientes),
+          cambio: 0 // Por simplicidad, no calculamos cambio para clientes
         },
         totalProductos: {
-          valor: totalProductos.rows[0].total,
-          cambio: calcularCambio(totalProductos.rows[0].total, productosMesAnterior.rows[0].total)
+          valor: parseInt(data.total_productos),
+          cambio: 0 // Por simplicidad, no calculamos cambio para productos
         },
         totalMascotas: {
-          valor: totalMascotas.rows[0].total,
-          cambio: calcularCambio(totalMascotas.rows[0].total, mascotasMesAnterior.rows[0].total)
+          valor: parseInt(data.total_mascotas),
+          cambio: 0 // Por simplicidad, no calculamos cambio para mascotas
         },
         ingresosMes: {
-          valor: ingresosMes.rows[0].total,
-          cambio: calcularCambio(ingresosMes.rows[0].total, ingresosMesAnterior.rows[0].total)
+          valor: ingresosActual,
+          cambio: cambioIngresos
         }
       };
 

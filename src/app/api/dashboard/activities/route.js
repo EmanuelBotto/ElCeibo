@@ -16,21 +16,39 @@ export async function GET() {
       // Obtener actividades recientes de diferentes fuentes
       const activities = [];
 
-      // 1. Clientes recientes (últimos 5)
-      const clientesRecientes = await client.query(`
-        SELECT 
-          id_clinete,
-          nombre,
-          apellido,
-          'cliente' as tipo
-        FROM cliente 
-        ORDER BY id_clinete DESC 
-        LIMIT 5
-      `);
+      console.log('🔍 Iniciando consulta de actividades...');
 
+      // Verificar si las tablas existen
+      const tableCheck = await client.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name IN ('cliente', 'producto', 'mascota', 'factura')
+      `);
+      console.log('📋 Tablas encontradas:', tableCheck.rows.map(r => r.table_name));
+
+      // 1. Clientes recientes (últimos 5)
+      let clientesRecientes;
+      try {
+        clientesRecientes = await client.query(`
+          SELECT 
+            id_cliente,
+            nombre,
+            apellido,
+            'cliente' as tipo
+          FROM cliente 
+          ORDER BY id_cliente DESC 
+          LIMIT 5
+        `);
+      } catch (error) {
+        console.error('❌ Error en consulta de clientes:', error.message);
+        clientesRecientes = { rows: [] };
+      }
+
+      console.log('👥 Clientes encontrados:', clientesRecientes.rows.length);
       clientesRecientes.rows.forEach(cliente => {
         activities.push({
-          id: `cliente_${cliente.id_clinete}`,
+          id: `cliente_${cliente.id_cliente}`,
           type: "cliente",
           message: `Nuevo cliente registrado: ${cliente.nombre} ${cliente.apellido}`,
           time: "Reciente",
@@ -39,16 +57,23 @@ export async function GET() {
       });
 
       // 2. Productos recientes (últimos 3)
-      const productosRecientes = await client.query(`
-        SELECT 
-          id_producto,
-          nombre,
-          'producto' as tipo
-        FROM producto 
-        ORDER BY id_producto DESC 
-        LIMIT 3
-      `);
+      let productosRecientes;
+      try {
+        productosRecientes = await client.query(`
+          SELECT 
+            id_producto,
+            nombre,
+            'producto' as tipo
+          FROM producto 
+          ORDER BY id_producto DESC 
+          LIMIT 3
+        `);
+      } catch (error) {
+        console.error('❌ Error en consulta de productos:', error.message);
+        productosRecientes = { rows: [] };
+      }
 
+      console.log('📦 Productos encontrados:', productosRecientes.rows.length);
       productosRecientes.rows.forEach(producto => {
         activities.push({
           id: `producto_${producto.id_producto}`,
@@ -68,11 +93,12 @@ export async function GET() {
           c.apellido as apellido_cliente,
           'mascota' as tipo
         FROM mascota m
-        JOIN cliente c ON m.id_cliente = c.id_clinete
+        JOIN cliente c ON m.id_cliente = c.id_cliente
         ORDER BY m.id_mascota DESC 
         LIMIT 3
       `);
 
+      console.log('🐕 Mascotas encontradas:', mascotasRecientes.rows.length);
       mascotasRecientes.rows.forEach(mascota => {
         activities.push({
           id: `mascota_${mascota.id_mascota}`,
@@ -94,6 +120,7 @@ export async function GET() {
         LIMIT 3
       `);
 
+      console.log('💰 Ventas encontradas:', ventasRecientes.rows.length);
       ventasRecientes.rows.forEach(venta => {
         activities.push({
           id: `venta_${venta.id_factura}`,
@@ -112,6 +139,10 @@ export async function GET() {
           return idB - idA;
         })
         .slice(0, 8);
+
+      console.log('📋 Total actividades encontradas:', activities.length);
+      console.log('📋 Actividades ordenadas:', actividadesOrdenadas.length);
+      console.log('📋 Actividades finales:', actividadesOrdenadas);
 
       return NextResponse.json(actividadesOrdenadas);
     } finally {

@@ -49,15 +49,18 @@ export default function DashboardPage() {
         
         // Obtener actividades recientes
         const activitiesResponse = await fetch('/api/dashboard/activities');
+        console.log('📊 Activities response status:', activitiesResponse.status);
         const activitiesData = await activitiesResponse.json();
+        console.log('📊 Activities data received:', activitiesData);
         const activitiesArray = Array.isArray(activitiesData) ? activitiesData : [];
+        console.log('📊 Activities array:', activitiesArray);
         
         // Mapear estadísticas con iconos
         const statsWithIcons: StatItem[] = [
           {
             title: "Total Clientes",
             value: statsData.totalClientes?.valor?.toLocaleString() || "0",
-            change: `${statsData.totalClientes?.cambio >= 0 ? '+' : ''}${statsData.totalClientes?.cambio || 0}%`,
+            change: "Registrados",
             icon: Users,
             color: "text-blue-600",
             bgColor: "bg-blue-100"
@@ -65,7 +68,7 @@ export default function DashboardPage() {
           {
             title: "Productos Activos",
             value: statsData.totalProductos?.valor?.toLocaleString() || "0",
-            change: `${statsData.totalProductos?.cambio >= 0 ? '+' : ''}${statsData.totalProductos?.cambio || 0}%`,
+            change: "En inventario",
             icon: Package,
             color: "text-green-600",
             bgColor: "bg-green-100"
@@ -73,7 +76,7 @@ export default function DashboardPage() {
           {
             title: "Fichas Creadas",
             value: statsData.totalMascotas?.valor?.toLocaleString() || "0",
-            change: `${statsData.totalMascotas?.cambio >= 0 ? '+' : ''}${statsData.totalMascotas?.cambio || 0}%`,
+            change: "Mascotas atendidas",
             icon: FileText,
             color: "text-purple-600",
             bgColor: "bg-purple-100"
@@ -81,7 +84,9 @@ export default function DashboardPage() {
           {
             title: "Ingresos del Mes",
             value: `$${statsData.ingresosMes?.valor?.toLocaleString() || "0"}`,
-            change: `${statsData.ingresosMes?.cambio >= 0 ? '+' : ''}${statsData.ingresosMes?.cambio || 0}%`,
+            change: statsData.ingresosMes?.cambio !== undefined ? 
+              `${statsData.ingresosMes.cambio >= 0 ? '+' : ''}${statsData.ingresosMes.cambio}%` : 
+              "Sin datos previos",
             icon: DollarSign,
             color: "text-orange-600",
             bgColor: "bg-orange-100"
@@ -112,7 +117,7 @@ export default function DashboardPage() {
           {
             title: "Total Clientes",
             value: "0",
-            change: "0%",
+            change: "Registrados",
             icon: Users,
             color: "text-blue-600",
             bgColor: "bg-blue-100"
@@ -120,7 +125,7 @@ export default function DashboardPage() {
           {
             title: "Productos Activos",
             value: "0",
-            change: "0%",
+            change: "En inventario",
             icon: Package,
             color: "text-green-600",
             bgColor: "bg-green-100"
@@ -128,7 +133,7 @@ export default function DashboardPage() {
           {
             title: "Fichas Creadas",
             value: "0",
-            change: "0%",
+            change: "Mascotas atendidas",
             icon: FileText,
             color: "text-purple-600",
             bgColor: "bg-purple-100"
@@ -136,7 +141,7 @@ export default function DashboardPage() {
           {
             title: "Ingresos del Mes",
             value: "$0",
-            change: "0%",
+            change: "Sin datos previos",
             icon: DollarSign,
             color: "text-orange-600",
             bgColor: "bg-orange-100"
@@ -202,10 +207,16 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                <p className={`text-xs mt-1 ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                  <TrendingUp className="inline h-3 w-3 mr-1" />
-                  {stat.change} desde el mes pasado
-                </p>
+                {stat.title === "Ingresos del Mes" ? (
+                  <p className={`text-xs mt-1 ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                    <TrendingUp className="inline h-3 w-3 mr-1" />
+                    {stat.change} desde el mes pasado
+                  </p>
+                ) : (
+                  <p className="text-xs mt-1 text-gray-500">
+                    {stat.change}
+                  </p>
+                )}
               </CardContent>
             </Card>
           );
