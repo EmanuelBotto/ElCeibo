@@ -257,6 +257,9 @@ export default function FichasClientes() {
                               </div>
                               <div className="text-sm text-gray-600">
                                 <p>{pet.especie} - {pet.raza}</p>
+                                {pet.deceso && (
+                                  <p className="text-red-600 font-medium">Fallecida</p>
+                                )}
                               </div>
                             </div>
                           ))}

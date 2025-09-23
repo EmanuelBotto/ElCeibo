@@ -35,6 +35,7 @@ export async function POST(request) {
 
             // Insertar la factura
             const facturaQuery = `
+
                 INSERT INTO factura (
                     dia, mes, anio, hora, tipo_factura, forma_de_pago, 
                     monto_total, detalle, id_distribuidor, id_usuario, num_factura

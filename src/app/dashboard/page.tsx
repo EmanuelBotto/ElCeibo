@@ -169,12 +169,9 @@ export default function DashboardPage() {
       {/* Header del Dashboard */}
       <div className="flex items-center justify-between">
         <div>
-          {/* <h1 className="text-3xl font-bold text-gray-900">
-            ¡Bienvenido, {user?.nombre}!
-          </h1> */}
-                     <p className="text-2xl text-black mt-1">
-             Resumen de actividades
-           </p>
+          <p className="text-2xl text-black mt-1">
+            Resumen de actividades
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <Calendar className="text-black" size={20} />
@@ -268,10 +265,6 @@ export default function DashboardPage() {
                 <span className="text-sm text-black">Versión del Sistema</span>
                 <span className="text-sm font-medium text-black">v1.0.0</span>
               </div>
-              {/* <div className="flex items-center justify-between">
-                <span className="text-sm text-black">Última Actualización</span>
-                <span className="text-sm font-medium">Hace 2 días</span>
-              </div> */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-black">Estado del Servidor</span>
                 <span className="text-sm font-medium text-green-600">Online</span>

@@ -25,6 +25,7 @@ export default function Caja({ onTabChange }) {
 
     const obtenerFacturas = async () => {
         try {
+            setCargando(true);
             const res = await fetch('/api/caja');
             const data = await res.json();
             

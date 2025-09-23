@@ -21,6 +21,8 @@ interface MascotaFormData {
   mes: string;
   anio: string;
   id_cliente: string;
+  deceso: boolean;
+  fecha_seceso: string;
 }
 
 interface MascotaFormProps {
@@ -48,12 +50,14 @@ export default function MascotaForm({
     dia: initialData?.dia || '',
     mes: initialData?.mes || '',
     anio: initialData?.anio || '',
-    id_cliente: initialData?.id_cliente || ''
+    id_cliente: initialData?.id_cliente || '',
+    deceso: initialData?.deceso || false,
+    fecha_seceso: initialData?.fecha_seceso || ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (field: keyof MascotaFormData, value: string) => {
+  const handleInputChange = (field: keyof MascotaFormData, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -264,6 +268,37 @@ export default function MascotaForm({
               />
             </div>
           </div>
+        </div>
+
+        {/* Estado de deceso */}
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="deceso"
+              checked={formData.deceso}
+              onChange={(e) => handleInputChange('deceso', e.target.checked)}
+              className="h-4 w-4 text-[#a06ba5] focus:ring-[#a06ba5] border-gray-300 rounded"
+            />
+            <Label htmlFor="deceso" className="text-sm font-medium text-gray-700">
+              Marcar como fallecida
+            </Label>
+          </div>
+          
+          {formData.deceso && (
+            <div>
+              <Label htmlFor="fecha_seceso">Fecha de deceso *</Label>
+              <Input
+                id="fecha_seceso"
+                type="date"
+                value={formData.fecha_seceso}
+                onChange={(e) => handleInputChange('fecha_seceso', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                required={formData.deceso}
+                className="mt-1"
+              />
+            </div>
+          )}
         </div>
 
         {/* Subida de imagen */}

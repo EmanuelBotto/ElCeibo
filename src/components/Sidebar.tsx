@@ -10,7 +10,6 @@ import {
   Pill, 
   Settings, 
   User,
-  Users,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -32,8 +31,6 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
-
-
   const menuItems = [
     {
       id: 'inicio',
@@ -42,7 +39,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       description: 'Panel principal'
     },
     {
-      id: 'productos',                       /*Las descripciones estan comentadas para que no se muestren */
+      id: 'productos',
       label: 'Productos',
       icon: Package,
       description: 'Gestión de productos'
@@ -64,12 +61,6 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       label: 'Items',
       icon: Pill,
       description: 'Gestión de medicamentos'
-    },
-    {
-      id: 'ListaPrecios',
-      label: 'lista',
-      icon: Users,
-      description: 'Gestión de listas'
     }
   ];
 
@@ -98,8 +89,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     <div className={`bg-[#a06ba5] text-white transition-all duration-500 ease-out ${
       isCollapsed ? 'w-16' : 'w-64'
     } h-screen flex flex-col`}>
-      
-             {/* Header con logo */}
+      {/* Header con logo */}
        <div className="h-20 p-4 border-b border-purple-400 relative flex items-center">
          <div className="flex items-center">
            <div className={`flex items-center space-x-2 transition-all duration-300 ${
@@ -119,7 +109,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
          </Button>
        </div>
 
-                           {/* Menú principal */}
+      {/* Menú principal */}
        <div className="flex-1 py-4 overflow-hidden">
          <nav className="space-y-2 px-3 h-full overflow-y-auto">
            {menuItems.map((item) => {
@@ -137,7 +127,6 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                  {!isCollapsed && (
                    <div className="flex flex-col items-start">
                      <span className="font-medium text-black">{item.label}</span>
-                     {/*<span className="text-xs text-black opacity-75">{item.description}</span>*/}
                    </div>
                  )}
                </Button>
@@ -146,9 +135,9 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
          </nav>
        </div>
 
-        {/* Footer con información del usuario */}
+      {/* Footer con información del usuario */}
+
        <div className="flex-1 p-4 flex flex-col min-h-0">
-         {/* Área principal del footer */}
          <div className="flex-1"></div>
          
          {/* Información del usuario y botones juntos al final */}
@@ -167,10 +156,10 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
              </div>
            </div>
            
-                                             {/* Línea divisoria */}
-            <div className="border-t border-purple-400 pt-3"></div>
-            
-            {/* Todos los botones del footer juntos */}
+           {/* Línea divisoria */}
+           <div className="border-t border-purple-400 pt-3"></div>
+           
+           {/* Todos los botones del footer juntos */}
             <div className="space-y-1">
              <Button
                variant="ghost"
@@ -204,7 +193,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                } text-black`}
                onClick={handleProfileClick}
              >
-               <User size={20} className={`${isCollapsed ? '': 'mr-3'} text-black`} />
+               <User size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
                {!isCollapsed && <span className="text-black">Mi Perfil</span>}
              </Button>
              
@@ -216,7 +205,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                } text-red-600`}
                onClick={handleLogout}
              >
-               <LogOut size={20} className={`${isCollapsed ? '': 'mr-3'} text-red-600`} />
+               <LogOut size={20} className={`${isCollapsed ? '' : 'mr-3'} text-red-600`} />
                {!isCollapsed && <span>Cerrar Sesión</span>}
              </Button>
            </div>

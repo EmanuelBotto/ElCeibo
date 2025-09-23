@@ -103,7 +103,6 @@ export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } 
             }
 
             const result = await response.json();
-            console.log("Egreso guardado:", result);
             
             // Limpiar el formulario después de guardar
             setMonto("");
@@ -163,7 +162,6 @@ export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } 
             }
 
             const result = await response.json();
-            console.log("Egreso de distribuidor guardado:", result);
             
             // Actualizar la deuda del distribuidor
             try {
