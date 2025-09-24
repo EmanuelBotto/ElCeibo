@@ -92,8 +92,6 @@ export default function UsuariosPage() {
         throw new Error('Error al cargar usuarios');
       }
       const data = await response.json();
-      console.log('📊 Usuarios recibidos:', data.users);
-      console.log('📊 Primer usuario:', data.users[0]);
       setUsers(data.users);
     } catch (error) {
       toast.error('Error al cargar usuarios');

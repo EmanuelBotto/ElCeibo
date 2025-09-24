@@ -121,7 +121,6 @@ export default function Item() {
       try {
         responseData = await res.json();
       } catch (jsonError) {
-        console.warn('La respuesta no contiene JSON válido, pero el item fue creado');
       }
 
       setNuevoItem({

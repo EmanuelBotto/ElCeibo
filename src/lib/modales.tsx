@@ -526,51 +526,26 @@ export function buildProductoFormContent(args: {
 
   const isEdit = mode === "edit";
 
-  type CreateField = "nombre" | "marca" | "precio_costo" | "stock" | "id_tipo" | "porcentaje_final" | "porcentaje_mayorista";
-  type EditField = "nombre" | "precio_costo" | "stock" | "marca" | "id_tipo";
+  // ========================================
+  // FUNCIONES AUXILIARES
+  // ========================================
 
-  const getCreateValue = (field: CreateField): string | number => {
-    if (!nuevoProducto) return "";
-    switch (field) {
-      case "nombre":
-        return nuevoProducto.nombre ?? "";
-      case "marca":
-        return nuevoProducto.marca ?? "";
-      case "precio_costo":
-        return nuevoProducto.precio_costo ?? "";
-      case "stock":
-        return nuevoProducto.stock ?? "";
-      case "id_tipo":
-        return nuevoProducto.id_tipo ?? "";
-      case "porcentaje_final":
-        return nuevoProducto.porcentaje_final ?? "";
-      case "porcentaje_mayorista":
-        return nuevoProducto.porcentaje_mayorista ?? "";
-      default:
-        return "";
-    }
+  const getCreateValue = (field: keyof NuevoProducto): string | number => {
+    return nuevoProducto?.[field] ?? "";
   };
 
-  const handleCreateChange = (field: CreateField, value: string): void => {
+  const handleCreateChange = (field: keyof NuevoProducto, value: string): void => {
     if (!nuevoProducto || !setNuevoProducto) return;
     setNuevoProducto({ ...nuevoProducto, [field]: value });
   };
 
-  const getEditValue = (field: EditField): string | number => {
+  const getEditValue = (field: string): string | number => {
     if (!productoEditando) return "";
-    switch (field) {
-      case "nombre":
-        return productoEditando.nombre_producto ?? "";
-      case "precio_costo":
-        return productoEditando.precio_costo ?? "";
-      case "stock":
-        return productoEditando.stock ?? "";
-      default:
-        return "";
-    }
+    if (field === "nombre") return productoEditando.nombre_producto ?? "";
+    return (productoEditando as any)[field] ?? "";
   };
 
-  const handleEditChange = (field: EditField, value: string): void => {
+  const handleEditChange = (field: string, value: string): void => {
     if (!productoEditando || !setProductoEditando) return;
     if (field === "nombre") {
       setProductoEditando({ ...productoEditando, nombre_producto: value });
@@ -579,20 +554,138 @@ export function buildProductoFormContent(args: {
     setProductoEditando({ ...productoEditando, [field]: value } as ProductoEditando);
   };
 
+  const calcularPrecioFinal = (precioBase: number, porcentaje: number): string => {
+    const resultado = precioBase * porcentaje;
+    return isNaN(resultado) ? "0.00" : resultado.toFixed(2);
+  };
+
+  const handleTipoChange = (selectedTipo: string) => {
+    if (!isEdit && setNuevoProducto) {
+      handleCreateChange("id_tipo", selectedTipo);
+      const tipoSeleccionado = tipos.find((t) => String(t.id_tipo) === selectedTipo);
+      if (tipoSeleccionado) {
+        setNuevoProducto((prev) => ({
+          ...prev,
+          porcentaje_final: tipoSeleccionado.porcentaje_final,
+          porcentaje_mayorista: tipoSeleccionado.porcentaje_mayorista,
+        }));
+      }
+    }
+  };
+
+  // ========================================
+  // COMPONENTES DE CAMPOS
+  // ========================================
+
+  const CampoInput = ({ 
+    id, 
+    label, 
+    value, 
+    onChange, 
+    type = "text", 
+    disabled = false, 
+    required = false,
+    className = "",
+    step
+  }: {
+    id: string;
+    label: string;
+    value: string | number;
+    onChange: (value: string) => void;
+    type?: string;
+    disabled?: boolean;
+    required?: boolean;
+    className?: string;
+    step?: string;
+  }) => (
+    <div>
+      <Label htmlFor={id} className="text-sm">
+        {label} {required && <span className="text-red-500">*</span>}
+      </Label>
+      <Input
+        id={id}
+        type={type}
+        step={step}
+        value={String(value)}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={`rounded-full border-2 border-purple-400 focus:ring-purple-500 ${disabled ? "bg-gray-50 text-gray-500" : ""} ${className}`}
+      />
+    </div>
+  );
+
+  const CampoSelect = ({ 
+    id, 
+    label, 
+    value, 
+    onChange, 
+    options, 
+    disabled = false,
+    required = false
+  }: {
+    id: string;
+    label: string;
+    value: string | number;
+    onChange: (value: string) => void;
+    options: Array<{ value: string | number; label: string }>;
+    disabled?: boolean;
+    required?: boolean;
+  }) => (
+    <div>
+      <Label htmlFor={id} className="text-sm">
+        {label} {required && <span className="text-red-500">*</span>}
+      </Label>
+      <select
+        id={id}
+        value={String(value)}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="w-full border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black disabled:bg-gray-50 disabled:text-gray-500"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
+  // ========================================
+  // OPCIONES DE TIPOS
+  // ========================================
+  const opcionesTipos = tipos.length > 0 
+    ? tipos.map((t) => ({ value: t.id_tipo, label: t.nombre }))
+    : [
+        { value: "1", label: "Balanceado" },
+        { value: "2", label: "Medicamento" },
+        { value: "3", label: "Accesorio" },
+        { value: "4", label: "Acuario" }
+      ];
+
+  // ========================================
+  // RENDERIZADO DEL FORMULARIO
+  // ========================================
   return (
     <div className={isEdit ? "w-full" : "w-full"}>
-      <h2 className="text-center text-base font-semibold mb-4">{isEdit ? "Actualizar Producto" : "Nuevo Producto"}</h2>
-      <div className={isEdit ? "grid grid-cols-3 gap-4" : "grid grid-cols-1 gap-3"}>
+      <h2 className="text-center text-base font-semibold mb-4">
+        {isEdit ? "Actualizar Producto" : "Nuevo Producto"}
+      </h2>
+      
+      <div className="grid grid-cols-3 gap-4">
+        {/* ID Producto */}
         <div>
           <Label className="text-sm" htmlFor="idProducto">ID Producto</Label>
           <Input
             id="idProducto"
-            value={String((isEdit ? ((productoEditando as ProductoEditando & { id_producto?: string | number })?.id_producto) : (nextIdPreview ?? "")) ?? "")}
+            value={String((isEdit ? ((productoEditando as any)?.id_producto) : (nextIdPreview ?? "")) ?? "")}
             disabled
             className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
           />
         </div>
-        <div className={isEdit ? "col-span-1" : ""}>
+
+        {/* Descripción/Nombre */}
+        <div>
           <Label className="text-sm" htmlFor={isEdit ? "nombreEdit" : "nombre"}>Descripción</Label>
           <Input
             id={isEdit ? "nombreEdit" : "nombre"}
@@ -601,12 +694,14 @@ export function buildProductoFormContent(args: {
             className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
           />
         </div>
+
+        {/* Rubro/Tipo (solo en edición) */}
         {isEdit && (
           <div>
             <Label className="text-sm" htmlFor="rubro">Rubro</Label>
             <select
               id="rubro"
-              value={String(((productoEditando as ProductoEditando & { id_tipo?: string })?.id_tipo) ?? "1")}
+              value={String(((productoEditando as any)?.id_tipo) ?? "1")}
               onChange={(e) => handleEditChange("id_tipo", e.target.value)}
               className="w-full border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black"
             >
@@ -626,6 +721,7 @@ export function buildProductoFormContent(args: {
           </div>
         )}
 
+        {/* Stock (solo en edición) */}
         {isEdit && (
           <div>
             <Label htmlFor={"stockEdit"}>Stock</Label>
@@ -639,20 +735,22 @@ export function buildProductoFormContent(args: {
           </div>
         )}
 
+        {/* Marca (solo en edición) */}
         {isEdit && (
           <div>
             <Label className="text-sm" htmlFor="marcaEdit">Marca</Label>
             <Input
               id="marcaEdit"
-              value={String(((productoEditando as ProductoEditando & { marca?: string })?.marca) ?? "")}
+              value={String(((productoEditando as any)?.marca) ?? "")}
               onChange={(e) => handleEditChange("marca", e.target.value)}
               className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
             />
           </div>
         )}
 
+        {/* Marca (solo en creación) */}
         {!isEdit && (
-          <>
+          <div>
             <Label htmlFor="marca">Marca</Label>
             <Input
               id="marca"
@@ -660,34 +758,12 @@ export function buildProductoFormContent(args: {
               onChange={(e) => handleCreateChange("marca", e.target.value)}
               className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
             />
-          </>
-        )}
-        {isEdit ? (
-          <div className="col-start-1 row-start-3">
-            <Label htmlFor="precioEdit">Precio Costo</Label>
-            <Input
-              id="precioEdit"
-              type="number"
-              value={String(getEditValue("precio_costo"))}
-              onChange={(e) => handleEditChange("precio_costo", e.target.value)}
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-            />
           </div>
-        ) : (
-          <>
-            <Label htmlFor="precio">Precio Costo</Label>
-            <Input
-              id="precio"
-              type="number"
-              value={String(getCreateValue("precio_costo"))}
-              onChange={(e) => handleCreateChange("precio_costo", e.target.value)}
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-            />
-          </>
         )}
 
+        {/* Tipo (solo en creación) */}
         {!isEdit && (
-          <>
+          <div>
             <Label htmlFor="tipo">Tipo</Label>
             <select
               id="tipo"
@@ -725,9 +801,35 @@ export function buildProductoFormContent(args: {
                 </>
               )}
             </select>
-          </>
+          </div>
         )}
 
+        {/* Precio Costo */}
+        {isEdit ? (
+          <div className="col-start-1 row-start-3">
+            <Label htmlFor="precioEdit">Precio Costo</Label>
+            <Input
+              id="precioEdit"
+              type="number"
+              value={String(getEditValue("precio_costo"))}
+              onChange={(e) => handleEditChange("precio_costo", e.target.value)}
+              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+            />
+          </div>
+        ) : (
+          <div>
+            <Label htmlFor="precio">Precio Costo</Label>
+            <Input
+              id="precio"
+              type="number"
+              value={String(getCreateValue("precio_costo"))}
+              onChange={(e) => handleCreateChange("precio_costo", e.target.value)}
+              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+            />
+          </div>
+        )}
+
+        {/* Porcentajes y Precios Finales - Solo en creación */}
         {!isEdit && (
           <>
             <div className="col-start-2 row-start-3">
@@ -780,6 +882,8 @@ export function buildProductoFormContent(args: {
             </div>
           </>
         )}
+
+        {/* Porcentajes y Precios Finales - Solo en edición */}
         {isEdit && (
           <>
             <div className="col-start-2 row-start-3">
@@ -788,7 +892,7 @@ export function buildProductoFormContent(args: {
                 id="incCF"
                 type="number"
                 step="0.01"
-                value={String(((productoEditando as ProductoEditando & { porcentaje_final?: string | number })?.porcentaje_final) ?? "")}
+                value={String(((productoEditando as any)?.porcentaje_final) ?? "")}
                 onChange={(e) => handleEditChange("precio_costo", e.target.value)}
                 disabled={!porcentajePersonalizado}
                 className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
@@ -800,8 +904,8 @@ export function buildProductoFormContent(args: {
                 id="incR"
                 type="number"
                 step="0.01"
-                value={String(((productoEditando as ProductoEditando & { porcentaje_mayorista?: string | number })?.porcentaje_mayorista) ?? "")}
-                onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value } as unknown as React.SetStateAction<ProductoEditando | null>)}
+                value={String(((productoEditando as any)?.porcentaje_mayorista) ?? "")}
+                onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value } as any)}
                 disabled={!porcentajePersonalizado}
                 className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
               />
@@ -821,8 +925,8 @@ export function buildProductoFormContent(args: {
               <Input
                 disabled
                 value={(() => {
-                  const base = Number(((productoEditando as ProductoEditando)?.precio_costo ?? 0));
-                  const mult = Number(((productoEditando as ProductoEditando & { porcentaje_final?: string | number })?.porcentaje_final ?? 0));
+                  const base = Number(((productoEditando as any)?.precio_costo ?? 0));
+                  const mult = Number(((productoEditando as any)?.porcentaje_final ?? 0));
                   const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
                   return `$ ${v}`;
                 })()}
@@ -834,8 +938,8 @@ export function buildProductoFormContent(args: {
               <Input
                 disabled
                 value={(() => {
-                  const base = Number(((productoEditando as ProductoEditando)?.precio_costo ?? 0));
-                  const mult = Number(((productoEditando as ProductoEditando & { porcentaje_mayorista?: string | number })?.porcentaje_mayorista ?? 0));
+                  const base = Number(((productoEditando as any)?.precio_costo ?? 0));
+                  const mult = Number(((productoEditando as any)?.porcentaje_mayorista ?? 0));
                   const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
                   return `$ ${v}`;
                 })()}

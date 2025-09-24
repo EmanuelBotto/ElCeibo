@@ -49,11 +49,8 @@ export default function DashboardPage() {
         
         // Obtener actividades recientes
         const activitiesResponse = await fetch('/api/dashboard/activities');
-        console.log('📊 Activities response status:', activitiesResponse.status);
         const activitiesData = await activitiesResponse.json();
-        console.log('📊 Activities data received:', activitiesData);
         const activitiesArray = Array.isArray(activitiesData) ? activitiesData : [];
-        console.log('📊 Activities array:', activitiesArray);
         
         // Mapear estadísticas con iconos
         const statsWithIcons: StatItem[] = [
