@@ -90,20 +90,23 @@ export default function DashboardPage() {
           }
         ];
 
-        // Mapear actividades con iconos
-        const activitiesWithIcons: ActivityItem[] = activitiesArray.map((activity: any) => {
-          const iconMap: { [key: string]: React.ComponentType<any> } = {
-            'Users': Users,
-            'Package': Package,
-            'FileText': FileText,
-            'DollarSign': DollarSign
-          };
-          
-          return {
-            ...activity,
-            icon: iconMap[activity.icon] || Activity
-          };
-        });
+        // Mapear actividades con iconos y filtrar actividades sin ID válido
+        const activitiesWithIcons: ActivityItem[] = activitiesArray
+          .filter((activity: any) => activity.id && activity.id !== 'undefined')
+          .map((activity: any, index: number) => {
+            const iconMap: { [key: string]: React.ComponentType<any> } = {
+              'Users': Users,
+              'Package': Package,
+              'FileText': FileText,
+              'DollarSign': DollarSign
+            };
+            
+            return {
+              ...activity,
+              id: activity.id || `activity_${index}`, // Fallback para IDs undefined
+              icon: iconMap[activity.icon] || Activity
+            };
+          });
 
         setStats(statsWithIcons);
         setRecentActivities(activitiesWithIcons);

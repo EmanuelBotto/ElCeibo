@@ -30,12 +30,12 @@ export async function GET() {
       try {
         clientesRecientes = await client.query(`
           SELECT 
-            id_cliente,
+            id_clinete,
             nombre,
             apellido,
             'cliente' as tipo
           FROM cliente 
-          ORDER BY id_cliente DESC 
+          ORDER BY id_clinete DESC 
           LIMIT 5
         `);
       } catch (error) {
@@ -45,7 +45,7 @@ export async function GET() {
 
       clientesRecientes.rows.forEach(cliente => {
         activities.push({
-          id: `cliente_${cliente.id_cliente}`,
+          id: `cliente_${cliente.id_clinete}`,
           type: "cliente",
           message: `Nuevo cliente registrado: ${cliente.nombre} ${cliente.apellido}`,
           time: "Reciente",
@@ -89,7 +89,7 @@ export async function GET() {
           c.apellido as apellido_cliente,
           'mascota' as tipo
         FROM mascota m
-        JOIN cliente c ON m.id_cliente = c.id_cliente
+        JOIN cliente c ON m.id_cliente = c.id_clinete
         ORDER BY m.id_mascota DESC 
         LIMIT 3
       `);
@@ -119,7 +119,7 @@ export async function GET() {
         activities.push({
           id: `venta_${venta.id_factura}`,
           type: "venta",
-          message: `Venta realizada: $${venta.monto_total?.toFixed(2) || '0.00'}`,
+          message: `Venta realizada: $${venta.monto_total || '0.00'}`,
           time: "Reciente",
           icon: "DollarSign"
         });
