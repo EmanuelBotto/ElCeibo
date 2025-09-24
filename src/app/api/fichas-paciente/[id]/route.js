@@ -33,12 +33,10 @@ export async function GET(request, { params }) {
         
         // Si ya es una data URL válida, usarla tal como está
         if (mascota.foto.startsWith('data:image/')) {
-          console.log(`API /fichas-paciente/${id} - Foto ya es data URL válida`);
           // No hacer nada, ya está en el formato correcto
         } 
         // Si es solo base64 sin prefijo, agregar el prefijo
         else if (!mascota.foto.startsWith('data:')) {
-          console.log(`API /fichas-paciente/${id} - Agregando prefijo data URL a base64`);
           mascota.foto = `data:image/jpeg;base64,${mascota.foto}`;
         }
         
@@ -48,7 +46,6 @@ export async function GET(request, { params }) {
           startsWith: mascota.foto.substring(0, 50)
         });
       } else {
-        console.log(`API /fichas-paciente/${id} - No hay foto`);
       }*/
       // 2. Obtener datos del cliente (dueño)
       const clienteRes = await client.query('SELECT * FROM cliente WHERE id_clinete = $1', [id_cliente]);

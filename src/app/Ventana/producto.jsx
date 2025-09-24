@@ -189,7 +189,6 @@ export default function Producto() {
       try {
         responseData = await res.json();
       } catch (jsonError) {
-        console.warn('La respuesta no contiene JSON válido, pero el producto fue creado');
       }
 
       setNuevoProducto({ 
@@ -382,28 +381,93 @@ export default function Producto() {
           </div>
         </div>
 
-        <div className="mb-6 flex flex-col md:flex-row md:items-end gap-6">
-          <div className="flex flex-col gap-2 w-full md:w-1/2">
-            <Label htmlFor="busqueda" className="text-base font-semibold">Buscar</Label>
-            <Input
-              id="busqueda"
-              placeholder="Buscar por descripción o código..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12"
-            />
-          </div>
-          <div className="flex flex-col gap-2 w-full md:w-1/2">
-            <Label htmlFor="tipoCliente" className="text-base font-semibold">Tipo de Cliente</Label>
-            <select
-              id="tipoCliente"
-              value={tipoCliente}
-              onChange={(e) => setTipoCliente(e.target.value)}
-              className="border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold bg-white text-black focus:border-purple-400 h-12"
-            >
-              <option value="cliente final">Cliente Final</option>
-              <option value="mayorista">Mayorista</option>
-            </select>
+        <div className="mb-6 bg-gray-50 rounded-xl p-6 border border-gray-200">
+          <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-start">
+            {/* Sección de búsqueda */}
+            <div className="flex flex-col gap-4 w-full lg:w-1/2">
+              <Label className="text-base font-semibold text-gray-800">Buscar Producto</Label>
+              
+              {/* Campo de búsqueda */}
+              <Input
+                id="busqueda"
+                placeholder={tipoBusqueda === 'codigo' ? "Buscar por código..." : "Buscar por descripción..."}
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12 transition-colors"
+              />
+              
+              {/* Radio buttons para tipo de búsqueda - Debajo del buscador */}
+              <div className="flex items-center gap-6">
+                <label className="inline-flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="tipoBusqueda"
+                    checked={tipoBusqueda === 'nombre'}
+                    onChange={() => setTipoBusqueda('nombre')}
+                    className="w-5 h-5 text-purple-600 focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                    Por Descripción
+                  </span>
+                </label>
+                <label className="inline-flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="tipoBusqueda"
+                    checked={tipoBusqueda === 'codigo'}
+                    onChange={() => setTipoBusqueda('codigo')}
+                    className="w-5 h-5 text-purple-600 focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                    Por Código
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Sección de tipo de cliente */}
+            <div className="flex flex-col gap-4 w-full lg:w-1/2">
+              <Label className="text-base font-semibold text-gray-800">Tipo de Cliente</Label>
+              
+              {/* Radio buttons para tipo de cliente */}
+              <div className="flex items-center gap-6">
+                <label className="inline-flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="tipoCliente"
+                    checked={tipoCliente === 'cliente final'}
+                    onChange={() => setTipoCliente('cliente final')}
+                    className="w-5 h-5 text-purple-600 focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                    Cliente Final
+                  </span>
+                </label>
+                <label className="inline-flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="tipoCliente"
+                    checked={tipoCliente === 'mayorista'}
+                    onChange={() => setTipoCliente('mayorista')}
+                    className="w-5 h-5 text-purple-600 focus:ring-purple-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                    Mayorista
+                  </span>
+                </label>
+              </div>
+
+              {/* Select como respaldo (oculto) */}
+              <select
+                id="tipoCliente"
+                value={tipoCliente}
+                onChange={(e) => setTipoCliente(e.target.value)}
+                className="hidden"
+              >
+                <option value="cliente final">Cliente Final</option>
+                <option value="mayorista">Mayorista</option>
+              </select>
+            </div>
           </div>
         </div>
 

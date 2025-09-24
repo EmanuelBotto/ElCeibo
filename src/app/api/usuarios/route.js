@@ -9,7 +9,6 @@ const pool = new Pool({
 // GET - Obtener todos los usuarios
 export async function GET() {
     try {
-        console.log('🔍 Consultando usuarios...');
         
         // Primero verificar qué tablas existen
         const tables = await pool.query(`
@@ -19,7 +18,6 @@ export async function GET() {
             AND table_name LIKE '%usuario%' OR table_name LIKE '%user%'
             ORDER BY table_name;
         `);
-        console.log('📋 Tablas relacionadas con usuarios:', tables.rows.map(r => r.table_name));
         
         // Verificar si la tabla usuario existe
         const tableExists = await pool.query(`
@@ -29,7 +27,6 @@ export async function GET() {
                 AND table_name = 'usuario'
             );
         `);
-        console.log('📋 Tabla usuario existe:', tableExists.rows[0].exists);
         
         if (!tableExists.rows[0].exists) {
             // Intentar con otras posibles variaciones
@@ -40,7 +37,6 @@ export async function GET() {
                 AND (table_name = 'usuarios' OR table_name = 'users' OR table_name = 'usuario')
                 ORDER BY table_name;
             `);
-            console.log('📋 Tablas alternativas encontradas:', altTables.rows.map(r => r.table_name));
             throw new Error('La tabla usuario no existe. Tablas disponibles: ' + tables.rows.map(r => r.table_name).join(', '));
         }
         
@@ -52,7 +48,6 @@ export async function GET() {
             AND table_schema = 'public'
             ORDER BY ordinal_position;
         `);
-        console.log('📊 Columnas de la tabla usuario:', columns.rows.map(c => `${c.column_name} (${c.data_type})`));
         
         const result = await pool.query(`
             SELECT 
@@ -72,7 +67,6 @@ export async function GET() {
             LIMIT 100
         `);
 
-        console.log('👥 Usuarios encontrados:', result.rows.length);
         
         // Procesar usuarios (la foto ya está en formato TEXT, no necesita conversión)
         const usuariosProcesados = result.rows.map(usuario => ({
@@ -83,19 +77,12 @@ export async function GET() {
                 null
         }));
 
-        console.log('📊 Enviando usuarios al frontend:', usuariosProcesados.length);
         return new Response(JSON.stringify({ users: usuariosProcesados }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });
     } catch (err) {
         console.error('❌ Error al obtener usuarios:', err);
-        console.error('❌ Error details:', {
-            message: err.message,
-            code: err.code,
-            detail: err.detail,
-            hint: err.hint
-        });
         
         return new Response(JSON.stringify({ 
             error: 'Error interno del servidor',

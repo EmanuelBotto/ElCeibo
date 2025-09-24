@@ -16,7 +16,6 @@ export async function GET() {
       // Obtener actividades recientes de diferentes fuentes
       const activities = [];
 
-      console.log('🔍 Iniciando consulta de actividades...');
 
       // Verificar si las tablas existen
       const tableCheck = await client.query(`
@@ -25,7 +24,6 @@ export async function GET() {
         WHERE table_schema = 'public' 
         AND table_name IN ('cliente', 'producto', 'mascota', 'factura')
       `);
-      console.log('📋 Tablas encontradas:', tableCheck.rows.map(r => r.table_name));
 
       // 1. Clientes recientes (últimos 5)
       let clientesRecientes;
@@ -45,7 +43,6 @@ export async function GET() {
         clientesRecientes = { rows: [] };
       }
 
-      console.log('👥 Clientes encontrados:', clientesRecientes.rows.length);
       clientesRecientes.rows.forEach(cliente => {
         activities.push({
           id: `cliente_${cliente.id_cliente}`,
@@ -73,7 +70,6 @@ export async function GET() {
         productosRecientes = { rows: [] };
       }
 
-      console.log('📦 Productos encontrados:', productosRecientes.rows.length);
       productosRecientes.rows.forEach(producto => {
         activities.push({
           id: `producto_${producto.id_producto}`,
@@ -98,7 +94,6 @@ export async function GET() {
         LIMIT 3
       `);
 
-      console.log('🐕 Mascotas encontradas:', mascotasRecientes.rows.length);
       mascotasRecientes.rows.forEach(mascota => {
         activities.push({
           id: `mascota_${mascota.id_mascota}`,
@@ -120,7 +115,6 @@ export async function GET() {
         LIMIT 3
       `);
 
-      console.log('💰 Ventas encontradas:', ventasRecientes.rows.length);
       ventasRecientes.rows.forEach(venta => {
         activities.push({
           id: `venta_${venta.id_factura}`,
@@ -140,9 +134,6 @@ export async function GET() {
         })
         .slice(0, 8);
 
-      console.log('📋 Total actividades encontradas:', activities.length);
-      console.log('📋 Actividades ordenadas:', actividadesOrdenadas.length);
-      console.log('📋 Actividades finales:', actividadesOrdenadas);
 
       return NextResponse.json(actividadesOrdenadas);
     } finally {

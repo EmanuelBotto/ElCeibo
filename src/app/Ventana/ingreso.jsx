@@ -174,7 +174,6 @@ export default function Ingreso({ onVolver }) {
         id_usuario: 1 // TODO: Obtener del contexto de autenticación
       };
 
-      console.log('Enviando venta:', ventaData);
 
       // Enviar a la API
       const response = await fetch('/api/caja/venta', {
