@@ -5,12 +5,20 @@ const pool = new Pool({
     connectionString: 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-base-ac7ax3c8-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require'
 });
 
+export async function GET() {
+    return new Response(JSON.stringify({ message: 'API de reportes funcionando correctamente' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+
 export async function POST(request) {
     try {
-        // Probar conexión a la base de datos
-        await pool.query('SELECT NOW()');
+        console.log('🔧 API de reportes recibida');
         
         const { tipoReporte, fechaInicio, fechaFin } = await request.json();
+        
+        console.log('🔧 Generando reporte:', { tipoReporte, fechaInicio, fechaFin });
         
         if (!tipoReporte) {
             return new Response(JSON.stringify({ error: 'Tipo de reporte es requerido' }), { 
@@ -21,23 +29,56 @@ export async function POST(request) {
         
         let query = '';
         let fileName = '';
+        let queryParams = [];
+        
+        // Construir condición de fechas de forma segura
+        let fechaCondition = '';
+        if (fechaInicio && fechaFin) {
+            // Asegurar que las fechas estén en formato YYYY-MM-DD
+            const fechaInicioFormatted = fechaInicio.includes('-') ? fechaInicio : 
+                `${fechaInicio.substring(0,4)}-${fechaInicio.substring(4,6)}-${fechaInicio.substring(6,8)}`;
+            const fechaFinFormatted = fechaFin.includes('-') ? fechaFin : 
+                `${fechaFin.substring(0,4)}-${fechaFin.substring(4,6)}-${fechaFin.substring(6,8)}`;
+            
+            // Usar una condición más simple y robusta
+            fechaCondition = `AND (
+                (f.anio > EXTRACT(YEAR FROM $1::date)) OR 
+                (f.anio = EXTRACT(YEAR FROM $1::date) AND f.mes > EXTRACT(MONTH FROM $1::date)) OR
+                (f.anio = EXTRACT(YEAR FROM $1::date) AND f.mes = EXTRACT(MONTH FROM $1::date) AND f.dia >= EXTRACT(DAY FROM $1::date))
+            ) AND (
+                (f.anio < EXTRACT(YEAR FROM $2::date)) OR 
+                (f.anio = EXTRACT(YEAR FROM $2::date) AND f.mes < EXTRACT(MONTH FROM $2::date)) OR
+                (f.anio = EXTRACT(YEAR FROM $2::date) AND f.mes = EXTRACT(MONTH FROM $2::date) AND f.dia <= EXTRACT(DAY FROM $2::date))
+            )`;
+            queryParams = [fechaInicioFormatted, fechaFinFormatted];
+            console.log('📅 Filtro de fechas aplicado:', { 
+                fechaInicio, 
+                fechaFin, 
+                fechaInicioFormatted, 
+                fechaFinFormatted 
+            });
+        }
         
         switch (tipoReporte) {
             case 'ventas':
                 query = `
                     SELECT 
-                        tipo_factura,
-                        dia,
-                        mes,
-                        anio,
-                        hora,
-                        forma_de_pago,
-                        monto_total
-                    FROM factura 
-                    WHERE tipo_factura = 'venta'
-                    ${fechaInicio && fechaFin ? `AND (anio || '-' || LPAD(mes::text, 2, '0') || '-' || LPAD(dia::text, 2, '0'))::date BETWEEN '${fechaInicio}' AND '${fechaFin}'` : ''}
-                    ORDER BY anio DESC, mes DESC, dia DESC
-                    LIMIT 100
+                        f.id_factura,
+                        f.tipo_factura,
+                        f.dia,
+                        f.mes,
+                        f.anio,
+                        f.hora,
+                        f.forma_de_pago,
+                        f.monto_total,
+                        f.detalle,
+                        CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario,
+                        f.num_factura
+                    FROM factura f
+                    LEFT JOIN usuario u ON f.id_usuario = u.id_usuario
+                    WHERE f.tipo_factura = 'ingreso'
+                    ${fechaCondition}
+                    ORDER BY f.anio DESC, f.mes DESC, f.dia DESC, f.hora DESC
                 `;
                 fileName = `Reporte_Ventas_${new Date().toISOString().split('T')[0]}.xlsx`;
                 break;
@@ -45,18 +86,22 @@ export async function POST(request) {
             case 'compras':
                 query = `
                     SELECT 
-                        tipo_factura,
-                        dia,
-                        mes,
-                        anio,
-                        hora,
-                        forma_de_pago,
-                        monto_total
-                    FROM factura 
-                    WHERE tipo_factura = 'compra'
-                    ${fechaInicio && fechaFin ? `AND (anio || '-' || LPAD(mes::text, 2, '0') || '-' || LPAD(dia::text, 2, '0'))::date BETWEEN '${fechaInicio}' AND '${fechaFin}'` : ''}
-                    ORDER BY anio DESC, mes DESC, dia DESC
-                    LIMIT 100
+                        f.id_factura,
+                        f.tipo_factura,
+                        f.dia,
+                        f.mes,
+                        f.anio,
+                        f.hora,
+                        f.forma_de_pago,
+                        f.monto_total,
+                        f.detalle,
+                        CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario,
+                        f.num_factura
+                    FROM factura f
+                    LEFT JOIN usuario u ON f.id_usuario = u.id_usuario
+                    WHERE f.tipo_factura IN ('varios', 'distribuidor')
+                    ${fechaCondition}
+                    ORDER BY f.anio DESC, f.mes DESC, f.dia DESC, f.hora DESC
                 `;
                 fileName = `Reporte_Compras_${new Date().toISOString().split('T')[0]}.xlsx`;
                 break;
@@ -129,9 +174,21 @@ export async function POST(request) {
                 });
         }
         
-        const result = await pool.query(query);
+        // Primero, verificar qué datos hay en la tabla factura
+        console.log('🔍 Verificando datos en tabla factura...');
+        const testQuery = `SELECT id_factura, tipo_factura, dia, mes, anio, monto_total FROM factura ORDER BY anio DESC, mes DESC, dia DESC LIMIT 5`;
+        const testResult = await pool.query(testQuery);
+        console.log('📊 Datos de prueba en factura:', testResult.rows);
+        
+        console.log('📝 Ejecutando consulta:', query);
+        console.log('📋 Parámetros:', queryParams);
+        
+        const result = await pool.query(query, queryParams);
+        
+        console.log('✅ Consulta ejecutada. Filas obtenidas:', result.rows.length);
         
         if (result.rows.length === 0) {
+            console.log('⚠️ No hay datos para el reporte');
             return new Response(JSON.stringify({ error: 'No hay datos para generar el reporte' }), { 
                 status: 404,
                 headers: { 'Content-Type': 'application/json' }

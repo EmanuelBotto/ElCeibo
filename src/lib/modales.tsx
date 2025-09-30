@@ -102,7 +102,7 @@ export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } 
               throw new Error(errorData.error || 'Error al guardar el egreso');
             }
 
-            const result = await response.json();
+            await response.json();
             
             // Limpiar el formulario después de guardar
             setMonto("");
@@ -161,7 +161,7 @@ export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } 
                 throw new Error(errorData.error || 'Error al guardar el egreso de distribuidor');
             }
 
-            const result = await response.json();
+            await response.json();
             
             // Actualizar la deuda del distribuidor
             try {
@@ -1082,6 +1082,290 @@ export function useModalVenta() {
     modalMessage,
     showErrorModal,
     showSuccessModal,
+    closeModal
+  };
+}
+
+// ====== Modal de Nuevo Distribuidor ======
+
+type NuevoDistribuidor = {
+  cuit: string;
+  nombre: string;
+  telefono: string;
+  email: string;
+  nombre_fantasia: string;
+  calle: string;
+  numero: string;
+  codigo_postal: string;
+  cbu: string;
+  alias: string;
+  deuda: number;
+};
+
+export function useNuevoDistribuidor({ onDistribuidorSuccess }: { onDistribuidorSuccess?: () => void } = {}) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [nuevoDistribuidor, setNuevoDistribuidor] = useState<NuevoDistribuidor>({
+    cuit: '',
+    nombre: '',
+    telefono: '',
+    email: '',
+    nombre_fantasia: '',
+    calle: '',
+    numero: '',
+    codigo_postal: '',
+    cbu: '',
+    alias: '',
+    deuda: 0
+  });
+
+  // Hook para el modal de notificaciones
+  const { isModalOpen: isNotificationOpen, modalType, modalMessage, showSuccessModal, closeModal } = useModalVenta();
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+    // Resetear el formulario
+    setNuevoDistribuidor({
+      cuit: '',
+      nombre: '',
+      telefono: '',
+      email: '',
+      nombre_fantasia: '',
+      calle: '',
+      numero: '',
+      codigo_postal: '',
+      cbu: '',
+      alias: '',
+      deuda: 0
+    });
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validar campos requeridos
+    if (!nuevoDistribuidor.cuit || !nuevoDistribuidor.nombre || !nuevoDistribuidor.email || !nuevoDistribuidor.nombre_fantasia) {
+      alert("Por favor completa los campos requeridos (CUIT, Nombre, Email, Nombre de Fantasía)");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/distribuidores', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(nuevoDistribuidor)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear el distribuidor');
+      }
+
+      await response.json();
+      
+      // Limpiar el formulario después de guardar
+      setNuevoDistribuidor({
+        cuit: '',
+        nombre: '',
+        telefono: '',
+        email: '',
+        nombre_fantasia: '',
+        calle: '',
+        numero: '',
+        codigo_postal: '',
+        cbu: '',
+        alias: '',
+        deuda: 0
+      });
+      
+      // Cerrar el modal
+      handleCloseModal();
+      
+      // Llamar la función de callback si existe
+      if (onDistribuidorSuccess) {
+        onDistribuidorSuccess();
+      }
+      
+      // Mostrar modal de éxito
+      showSuccessModal("Distribuidor cargado exitosamente");
+      
+    } catch (error) {
+      console.error("Error al crear el distribuidor:", error);
+      alert("Error al crear el distribuidor: " + (error as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderContent = () => (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <h2 className="text-center text-xl font-semibold mb-6">Nuevo Distribuidor</h2>
+      
+      <div className="grid grid-cols-2 gap-6">
+        {/* CUIT */}
+        <div>
+          <Label htmlFor="cuit" className="text-base font-medium">
+            CUIT <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="cuit"
+            value={nuevoDistribuidor.cuit}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, cuit: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+            required
+          />
+        </div>
+
+        {/* Nombre de Fantasía */}
+        <div>
+          <Label htmlFor="nombre_fantasia" className="text-base font-medium">
+            Nombre de Fantasía <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="nombre_fantasia"
+            value={nuevoDistribuidor.nombre_fantasia}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, nombre_fantasia: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+            required
+          />
+        </div>
+
+        {/* Nombre */}
+        <div>
+          <Label htmlFor="nombre" className="text-base font-medium">
+            Nombre de Contacto <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="nombre"
+            value={nuevoDistribuidor.nombre}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, nombre: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+            required
+          />
+        </div>
+
+        {/* Teléfono */}
+        <div>
+          <Label htmlFor="telefono" className="text-base font-medium">Teléfono</Label>
+          <Input
+            id="telefono"
+            value={nuevoDistribuidor.telefono}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, telefono: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+          />
+        </div>
+
+        {/* Email */}
+        <div>
+          <Label htmlFor="email" className="text-base font-medium">
+            Email <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            value={nuevoDistribuidor.email}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, email: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+            required
+          />
+        </div>
+
+        {/* Calle */}
+        <div>
+          <Label htmlFor="calle" className="text-base font-medium">Calle</Label>
+          <Input
+            id="calle"
+            value={nuevoDistribuidor.calle}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, calle: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+          />
+        </div>
+
+        {/* Número */}
+        <div>
+          <Label htmlFor="numero" className="text-base font-medium">Número</Label>
+          <Input
+            id="numero"
+            type="number"
+            value={nuevoDistribuidor.numero}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, numero: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+          />
+        </div>
+
+        {/* Código Postal */}
+        <div>
+          <Label htmlFor="codigo_postal" className="text-base font-medium">Código Postal</Label>
+          <Input
+            id="codigo_postal"
+            type="number"
+            value={nuevoDistribuidor.codigo_postal}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, codigo_postal: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+          />
+        </div>
+
+        {/* CBU */}
+        <div>
+          <Label htmlFor="cbu" className="text-base font-medium">CBU</Label>
+          <Input
+            id="cbu"
+            value={nuevoDistribuidor.cbu}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, cbu: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+          />
+        </div>
+
+        {/* Alias */}
+        <div>
+          <Label htmlFor="alias" className="text-base font-medium">Alias</Label>
+          <Input
+            id="alias"
+            value={nuevoDistribuidor.alias}
+            onChange={(e) => setNuevoDistribuidor({...nuevoDistribuidor, alias: e.target.value})}
+            className="rounded-full border-2 border-purple-400 focus:ring-purple-500 h-12 text-base"
+          />
+        </div>
+      </div>
+
+      {/* Botones */}
+      <div className="flex justify-end gap-3 mt-8">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={handleCloseModal}
+          disabled={isLoading}
+          className="px-6 py-3 text-base"
+        >
+          Cancelar
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={isLoading || !nuevoDistribuidor.cuit || !nuevoDistribuidor.nombre || !nuevoDistribuidor.email || !nuevoDistribuidor.nombre_fantasia}
+          className="px-6 py-3 text-base"
+        >
+          {isLoading ? "Guardando..." : "Guardar"}
+        </Button>
+      </div>
+    </form>
+  );
+
+  return {
+    isModalOpen,
+    handleOpenModal,
+    handleCloseModal,
+    renderContent,
+    isNotificationOpen,
+    modalType,
+    modalMessage,
     closeModal
   };
 }

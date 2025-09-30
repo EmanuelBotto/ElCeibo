@@ -226,4 +226,80 @@ export async function POST(request) {
       { status: 500 }
     );
   }
+}
+
+export async function PUT(request) {
+  try {
+    const client = await pool.connect();
+    try {
+      const body = await request.json();
+      const { id_distribuidor, ...updateData } = body;
+
+      if (!id_distribuidor) {
+        return NextResponse.json(
+          { error: 'ID del distribuidor es requerido' },
+          { status: 400 }
+        );
+      }
+
+      // Verificar si el distribuidor existe
+      const existingDistribuidor = await client.query(
+        'SELECT id_distribuidor FROM distribuidor WHERE id_distribuidor = $1',
+        [id_distribuidor]
+      );
+
+      if (existingDistribuidor.rows.length === 0) {
+        return NextResponse.json(
+          { error: 'Distribuidor no encontrado' },
+          { status: 404 }
+        );
+      }
+
+      // Construir la consulta de actualización dinámicamente
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
+
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] !== undefined && updateData[key] !== null) {
+          fields.push(`${key} = $${paramCount}`);
+          values.push(updateData[key]);
+          paramCount++;
+        }
+      });
+
+      if (fields.length === 0) {
+        return NextResponse.json(
+          { error: 'No hay datos para actualizar' },
+          { status: 400 }
+        );
+      }
+
+      // Agregar el ID al final para la condición WHERE
+      values.push(id_distribuidor);
+
+      const query = `
+        UPDATE distribuidor 
+        SET ${fields.join(', ')} 
+        WHERE id_distribuidor = $${paramCount}
+        RETURNING *
+      `;
+
+      const result = await client.query(query, values);
+
+      return NextResponse.json({
+        message: 'Distribuidor actualizado exitosamente',
+        distribuidor: result.rows[0]
+      });
+
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('Error al actualizar distribuidor:', err);
+    return NextResponse.json(
+      { error: 'Error al actualizar el distribuidor: ' + err.message },
+      { status: 500 }
+    );
+  }
 } 
