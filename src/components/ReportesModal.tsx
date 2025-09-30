@@ -8,6 +8,7 @@ import {
   X,
   AlertCircle
 } from 'lucide-react';
+import Modal from "@/components/ui/modal";
 
 interface ReportesModalProps {
   isOpen: boolean;
@@ -88,26 +89,11 @@ export default function ReportesModal({ isOpen, onClose }: ReportesModalProps) {
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2">
-            <FileText className="text-[#a06ba5] h-6 w-6" />
-            <h2 className="text-xl font-semibold text-gray-900">Generar Reporte</h2>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
+    <Modal isOpen={isOpen} onClose={handleClose} contentClassName="max-w-md">
+      <div className="text-gray-900">
+        <h2 className="text-lg font-semibold mb-4 text-gray-900">VENTANA DE REPORTES</h2>
+        <div className="text-gray-900">
 
         {/* Contenido */}
         <div className="space-y-4">
@@ -201,7 +187,8 @@ export default function ReportesModal({ isOpen, onClose }: ReportesModalProps) {
             </Button>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

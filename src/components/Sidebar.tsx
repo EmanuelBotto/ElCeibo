@@ -14,12 +14,14 @@ import {
   ChevronRight,
   LogOut,
   BarChart3,
+  Database
   Users
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useRouter } from 'next/navigation';
 import Logo from './Logo';
 import ReportesModal from './ReportesModal';
+import BackupModal from './BackupModal';
 import { AdminOnly, VeterinarioOrAdmin, EmpleadoOrAbove } from './HiddenIfNoPermission';
 
 interface SidebarProps {
@@ -30,6 +32,7 @@ interface SidebarProps {
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isReportesModalOpen, setIsReportesModalOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -97,6 +100,10 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
   const handleReportesClick = () => {
     setIsReportesModalOpen(true);
+  };
+
+  const handleBackupClick = () => {
+    setIsBackupModalOpen(true);
   };
 
   return (
@@ -252,6 +259,20 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                  className={`w-full hover:bg-purple-400 h-8 min-w-[40px] ${
                    isCollapsed ? 'justify-center' : 'justify-start'
                  } text-black`}
+                 onClick={handleBackupClick}
+               >
+                 <Database size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
+                 {!isCollapsed && <span className="text-black">Backup</span>}
+               </Button>
+             </AdminOnly>
+             
+             <AdminOnly>
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 className={`w-full hover:bg-purple-400 h-8 min-w-[40px] ${
+                   isCollapsed ? 'justify-center' : 'justify-start'
+                 } text-black`}
                  onClick={handleUserManagementClick}
                >
                  <Settings size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
@@ -290,6 +311,12 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
        <ReportesModal 
          isOpen={isReportesModalOpen} 
          onClose={() => setIsReportesModalOpen(false)} 
+       />
+       
+       {/* Modal de Backup */}
+       <BackupModal 
+         isOpen={isBackupModalOpen} 
+         onClose={() => setIsBackupModalOpen(false)} 
        />
     </div>
   );
