@@ -45,10 +45,16 @@ export default function DashboardPage() {
         
         // Obtener estadísticas
         const statsResponse = await fetch('/api/dashboard/stats');
+        if (!statsResponse.ok) {
+          throw new Error(`Error ${statsResponse.status}: ${statsResponse.statusText}`);
+        }
         const statsData = await statsResponse.json();
         
         // Obtener actividades recientes
         const activitiesResponse = await fetch('/api/dashboard/activities');
+        if (!activitiesResponse.ok) {
+          throw new Error(`Error ${activitiesResponse.status}: ${activitiesResponse.statusText}`);
+        }
         const activitiesData = await activitiesResponse.json();
         const activitiesArray = Array.isArray(activitiesData) ? activitiesData : [];
         

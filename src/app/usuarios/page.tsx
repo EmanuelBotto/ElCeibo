@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
+import { useAuth } from '../../components/AuthProvider';
+import { AdminOnly } from '../../components/HiddenIfNoPermission';
 import { 
   UserPlus, 
   Edit, 
@@ -20,7 +22,6 @@ import {
   Upload,
   User
 } from 'lucide-react';
-import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 
@@ -58,7 +59,7 @@ export default function UsuariosPage() {
     calle: '',
     numero: '',
     codigo_postal: '',
-    tipo_usuario: 'asistente',
+    tipo_usuario: 'empleado',
     contrasenia: ''
   });
 
@@ -138,6 +139,8 @@ export default function UsuariosPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error del servidor:', errorData);
+        toast.error(errorData.error || 'Error al procesar la solicitud');
         throw new Error(errorData.error || 'Error al procesar la solicitud');
       }
 
@@ -189,7 +192,8 @@ export default function UsuariosPage() {
 
       toast.success('Usuario eliminado exitosamente');
       fetchUsers();
-    } catch (error) {
+    } catch (err) {
+      console.error('Error al eliminar usuario:', err);
       toast.error('Error al eliminar usuario');
     }
   };
@@ -204,7 +208,7 @@ export default function UsuariosPage() {
       calle: '',
       numero: '',
       codigo_postal: '',
-      tipo_usuario: 'asistente',
+      tipo_usuario: 'empleado',
       contrasenia: ''
     });
     setSelectedFile(null);
@@ -313,20 +317,53 @@ export default function UsuariosPage() {
                           className="mt-1 h-12"
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="tipo_usuario" className="text-gray-700 font-semibold">Tipo de Usuario *</Label>
-                        <select
-                          id="tipo_usuario"
-                          name="tipo_usuario"
-                          value={formData.tipo_usuario}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 h-12 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          required
-                        >
-                          <option value="admin">Administrador</option>
-                          <option value="veterinario">Veterinario</option>
-                          <option value="asistente">Asistente</option>
-                        </select>
+                      <div className="col-span-2">
+                        <Label className="text-gray-700 font-semibold text-base mb-4 block">Tipo de Usuario *</Label>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-white transition-colors">
+                              <input
+                                type="radio"
+                                id="admin"
+                                name="tipo_usuario"
+                                value="admin"
+                                checked={formData.tipo_usuario === 'admin'}
+                                onChange={handleInputChange}
+                                className="w-5 h-5 text-purple-600 border-2 border-purple-300 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                              />
+                              <Label htmlFor="admin" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+                                Administrador
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-white transition-colors">
+                              <input
+                                type="radio"
+                                id="veterinario"
+                                name="tipo_usuario"
+                                value="veterinario"
+                                checked={formData.tipo_usuario === 'veterinario'}
+                                onChange={handleInputChange}
+                                className="w-5 h-5 text-purple-600 border-2 border-purple-300 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                              />
+                              <Label htmlFor="veterinario" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+                                Veterinario
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-white transition-colors">
+                              <input
+                                type="radio"
+                                id="empleado"
+                                name="tipo_usuario"
+                                value="empleado"
+                                checked={formData.tipo_usuario === 'empleado'}
+                                onChange={handleInputChange}
+                                className="w-5 h-5 text-purple-600 border-2 border-purple-300 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                              />
+                              <Label htmlFor="empleado" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+                                Empleado                              </Label>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                       <div>
                         <Label htmlFor="nombre" className="text-gray-700 font-semibold">Nombre *</Label>
@@ -540,27 +577,29 @@ export default function UsuariosPage() {
                     </div>
                     
                     {/* Botones de acción */}
-                    <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-100">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(user)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
-                      {user.id_usuario !== currentUser?.id_usuario && (
+                    <AdminOnly>
+                      <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-100">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDelete(user.id_usuario)}
-                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleEdit(user)}
                         >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Eliminar
+                          <Edit className="h-4 w-4 mr-1" />
+                          Editar
                         </Button>
-                      )}
-                    </div>
+                        {user.id_usuario !== currentUser?.id_usuario && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(user.id_usuario)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Eliminar
+                          </Button>
+                        )}
+                      </div>
+                    </AdminOnly>
                   </div>
                 </div>
               ))}
@@ -575,18 +614,20 @@ export default function UsuariosPage() {
                 <p className="text-gray-600 mb-4">
                   {searchTerm ? 'Intenta con otros términos de búsqueda' : 'Crea el primer usuario del sistema'}
                 </p>
-                {!searchTerm && (
-                  <Button
-                    onClick={() => {
-                      setShowCreateForm(true);
-                      setEditingUser(null);
-                      resetForm();
-                    }}
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Crear Usuario
-                  </Button>
-                )}
+                <AdminOnly>
+                  {!searchTerm && (
+                    <Button
+                      onClick={() => {
+                        setShowCreateForm(true);
+                        setEditingUser(null);
+                        resetForm();
+                      }}
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Crear Usuario
+                    </Button>
+                  )}
+                </AdminOnly>
               </div>
             )}
           </div>
