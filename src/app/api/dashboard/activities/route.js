@@ -82,6 +82,7 @@ export async function GET() {
       });
 
       // 3. Mascotas recientes (últimas 3)
+
       let mascotasRecientes;
       try {
         mascotasRecientes = await client.query(`
