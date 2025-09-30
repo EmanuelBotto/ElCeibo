@@ -15,6 +15,7 @@ import {
   LogOut,
   BarChart3,
   Database
+  Users
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useRouter } from 'next/navigation';
@@ -70,6 +71,13 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       icon: Pill,
       description: 'Gestión de medicamentos',
       permission: 'items:gestionar' // Solo veterinarios y administradores
+    },
+    {
+      id: 'distribuidores-deudas',
+      label: 'Distribuidores',
+      icon: Users,
+      description: 'Distribuidores y deudas',
+      permission: 'distribuidores:gestionar' // Empleados y superiores
     }
   ];
 
@@ -149,47 +157,47 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                );
              }
              
-             // Usar componentes de permisos para elementos restringidos
-             if (item.permission === 'fichas:gestionar' || item.permission === 'items:gestionar') {
-               return (
-                 <VeterinarioOrAdmin key={item.id}>
-                   <Button
-                     variant={activeTab === item.id ? "secondary" : "ghost"}
-                     className={`w-full justify-start hover:bg-purple-400 ${
-                       activeTab === item.id ? 'bg-white text-[#a06ba5]' : 'text-black'
-                     } ${isCollapsed ? 'px-3' : 'px-3'}`}
-                     onClick={() => handleTabClick(item.id)}
-                   >
-                     <Icon size={20} className={`${isCollapsed ? '' : 'mr-3'} ${activeTab === item.id ? 'text-[#a06ba5]' : 'text-black'}`} />
-                     {!isCollapsed && (
-                       <div className="flex flex-col items-start">
-                         <span className="font-medium text-black">{item.label}</span>
-                       </div>
-                     )}
-                   </Button>
-                 </VeterinarioOrAdmin>
-               );
-             }
-             
-             // Para productos y caja (empleados y superiores)
-             return (
-               <EmpleadoOrAbove key={item.id}>
-                 <Button
-                   variant={activeTab === item.id ? "secondary" : "ghost"}
-                   className={`w-full justify-start hover:bg-purple-400 ${
-                     activeTab === item.id ? 'bg-white text-[#a06ba5]' : 'text-black'
-                   } ${isCollapsed ? 'px-3' : 'px-3'}`}
-                   onClick={() => handleTabClick(item.id)}
-                 >
-                   <Icon size={20} className={`${isCollapsed ? '' : 'mr-3'} ${activeTab === item.id ? 'text-[#a06ba5]' : 'text-black'}`} />
-                   {!isCollapsed && (
-                     <div className="flex flex-col items-start">
-                       <span className="font-medium text-black">{item.label}</span>
-                     </div>
-                   )}
-                 </Button>
-               </EmpleadoOrAbove>
-             );
+            // Usar componentes de permisos para elementos restringidos
+            if (item.permission === 'fichas:gestionar' || item.permission === 'items:gestionar') {
+              return (
+                <VeterinarioOrAdmin key={item.id}>
+                  <Button
+                    variant={activeTab === item.id ? "secondary" : "ghost"}
+                    className={`w-full justify-start hover:bg-purple-400 ${
+                      activeTab === item.id ? 'bg-white text-[#a06ba5]' : 'text-black'
+                    } ${isCollapsed ? 'px-3' : 'px-3'}`}
+                    onClick={() => handleTabClick(item.id)}
+                  >
+                    <Icon size={20} className={`${isCollapsed ? '' : 'mr-3'} ${activeTab === item.id ? 'text-[#a06ba5]' : 'text-black'}`} />
+                    {!isCollapsed && (
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium text-black">{item.label}</span>
+                      </div>
+                    )}
+                  </Button>
+                </VeterinarioOrAdmin>
+              );
+            }
+            
+            // Para productos, caja y distribuidores (empleados y superiores)
+            return (
+              <EmpleadoOrAbove key={item.id}>
+                <Button
+                  variant={activeTab === item.id ? "secondary" : "ghost"}
+                  className={`w-full justify-start hover:bg-purple-400 ${
+                    activeTab === item.id ? 'bg-white text-[#a06ba5]' : 'text-black'
+                  } ${isCollapsed ? 'px-3' : 'px-3'}`}
+                  onClick={() => handleTabClick(item.id)}
+                >
+                  <Icon size={20} className={`${isCollapsed ? '' : 'mr-3'} ${activeTab === item.id ? 'text-[#a06ba5]' : 'text-black'}`} />
+                  {!isCollapsed && (
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium text-black">{item.label}</span>
+                    </div>
+                  )}
+                </Button>
+              </EmpleadoOrAbove>
+            );
            })}
          </nav>
        </div>

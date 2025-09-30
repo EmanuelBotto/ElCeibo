@@ -8,6 +8,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
 import Item from './Ventana/item';
 import Ingreso from './Ventana/ingreso';
+import DistribuidoresDeudas from './Ventana/distribuidores-deudas';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function HomePage() {
@@ -27,6 +28,8 @@ export default function HomePage() {
         return <Item />;
       case 'ingreso':
         return <Ingreso onVolver={() => setActiveTab('caja')} />;
+      case 'distribuidores-deudas':
+        return <DistribuidoresDeudas onTabChange={setActiveTab} />;
       default:
         return <DashboardPage />;
     }
