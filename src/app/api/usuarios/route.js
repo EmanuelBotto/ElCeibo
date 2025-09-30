@@ -1,279 +1,389 @@
 "use server";
 
 import { Pool } from "pg";
+import bcrypt from "bcryptjs";
+import { hasPermission } from "../../../lib/permissions";
 
 const pool = new Pool({
     connectionString: 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-base-ac7ax3c8-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require'
 });
 
-// GET - Obtener todos los usuarios
-export async function GET() {
-    try {
+// Función para cifrar contraseñas
+const hashPassword = async (password) => {
+    const saltRounds = 12; // Nivel de seguridad alto
+    return await bcrypt.hash(password, saltRounds);
+};
+
+// Función para verificar contraseñas (para uso futuro)
+// const verifyPassword = async (password, hashedPassword) => {
+//     return await bcrypt.compare(password, hashedPassword);
+// };
+
+// Función para verificar credenciales de login (para uso futuro)
+// const verifyCredentials = async (email, password) => {
+//     try {
+//         const result = await pool.query(`
+//             SELECT id_usuario, nombre, apellido, email, contrasenia, tipo_usuario, usuario
+//             FROM usuario 
+//             WHERE email = $1
+//         `, [email]);
+
+//         if (result.rows.length === 0) {
+//             return { success: false, message: 'Usuario no encontrado' };
+//         }
+
+//         const user = result.rows[0];
+//         const isValidPassword = await verifyPassword(password, user.contrasenia);
+
+//         if (!isValidPassword) {
+//             return { success: false, message: 'Contraseña incorrecta' };
+//         }
+
+//         // No devolver la contraseña cifrada
+//         const { contrasenia, ...userWithoutPassword } = user;
+//         return { success: true, user: userWithoutPassword };
+//     } catch (err) {
+//         console.error('Error al verificar credenciales:', err);
+//         return { success: false, message: 'Error interno del servidor' };
+//     }
+// };
+
+// Funciones auxiliares
+const createResponse = (data, status = 200) => {
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: { 'Content-Type': 'application/json' }
+    });
+};
+
+// Función para verificar permisos (simplificada para este ejemplo)
+const checkUserPermission = (userType, permission) => {
+    if (!userType) {
+        return { error: 'Usuario no autenticado', status: 401 };
+    }
+    
+    if (!hasPermission(userType, permission)) {
+        return { error: 'No tienes permisos para realizar esta acción', status: 403 };
+    }
+    
+    return null;
+};
+
+const parseRequestData = async (request) => {
+    const contentType = request.headers.get('content-type');
+    
+    if (contentType?.includes('multipart/form-data')) {
+        const formData = await request.formData();
+        const data = {
+                id_usuario: formData.get('id_usuario'),
+                usuario: formData.get('usuario'),
+                nombre: formData.get('nombre'),
+                apellido: formData.get('apellido'),
+                email: formData.get('email'),
+                telefono: formData.get('telefono'),
+                calle: formData.get('calle'),
+                numero: formData.get('numero'),
+                codigo_postal: formData.get('codigo_postal'),
+                tipo_usuario: formData.get('tipo_usuario'),
+                password: formData.get('contrasenia') || formData.get('password')
+            };
         
-        // Primero verificar qué tablas existen
-        const tables = await pool.query(`
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name LIKE '%usuario%' OR table_name LIKE '%user%'
-            ORDER BY table_name;
-        `);
-        
-        // Verificar si la tabla usuario existe
-        const tableExists = await pool.query(`
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name = 'usuario'
-            );
-        `);
-        
-        if (!tableExists.rows[0].exists) {
-            // Intentar con otras posibles variaciones
-            const altTables = await pool.query(`
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND (table_name = 'usuarios' OR table_name = 'users' OR table_name = 'usuario')
-                ORDER BY table_name;
-            `);
-            throw new Error('La tabla usuario no existe. Tablas disponibles: ' + tables.rows.map(r => r.table_name).join(', '));
+        // Manejar foto
+        const fotoFile = formData.get('foto');
+        if (fotoFile?.size > 0) {
+            const buffer = await fotoFile.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString('base64');
+            data.foto = `data:${fotoFile.type};base64,${base64}`;
         }
         
-        // Primero verificar las columnas de la tabla
-        const columns = await pool.query(`
-            SELECT column_name, data_type
-            FROM information_schema.columns 
-            WHERE table_name = 'usuario' 
-            AND table_schema = 'public'
-            ORDER BY ordinal_position;
-        `);
+        return data;
+    }
+    
+    return await request.json();
+};
+
+const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+};
+
+const validateUserData = (data, isUpdate = false) => {
+    if (!isUpdate && (!data.nombre || !data.apellido || !data.email || !data.tipo_usuario)) {
+        return 'Nombre, apellido, email y tipo de usuario son requeridos';
+    }
+    
+    if (!isUpdate && !data.password) {
+        return 'La contraseña es requerida';
+    }
+    
+    if (isUpdate && !data.id_usuario) {
+        return 'ID de usuario es requerido';
+    }
+    
+    if (data.email && !validateEmail(data.email)) {
+        return 'El formato del email no es válido';
+    }
+    
+    if (data.password && data.password.length < 6) {
+        return 'La contraseña debe tener al menos 6 caracteres';
+    }
+    
+    if (data.telefono && isNaN(data.telefono)) {
+        return 'El teléfono debe ser un número válido';
+    }
+    
+    if (data.numero && isNaN(data.numero)) {
+        return 'El número de dirección debe ser un número válido';
+    }
+    
+    if (data.codigo_postal && isNaN(data.codigo_postal)) {
+        return 'El código postal debe ser un número válido';
+    }
+    
+    if (data.foto && data.foto.length > 7 * 1024 * 1024) {
+        return 'La imagen es demasiado grande. Máximo 5MB.';
+    }
+    
+    return null;
+};
+
+const checkUserExists = async (email, usuario, excludeId = null) => {
+    try {
+        let query = 'SELECT id_usuario, email, usuario FROM usuario WHERE email = $1 OR usuario = $2';
+        let params = [email, usuario];
+        
+        if (excludeId) {
+            query += ' AND id_usuario != $3';
+            params.push(excludeId);
+        }
+        
+        const result = await pool.query(query, params);
+        
+        if (result.rows.length > 0) {
+            const existingUser = result.rows[0];
+            if (existingUser.email === email) {
+                return 'El email ya está registrado';
+            }
+            if (existingUser.usuario === usuario) {
+                return 'El nombre de usuario ya está en uso';
+            }
+        }
+        
+        return null;
+    } catch (err) {
+        console.error('Error al verificar usuario existente:', err);
+        return 'Error al verificar datos del usuario';
+    }
+};
+
+// GET - Obtener todos los usuarios
+export async function GET(request) {
+    try {
+        // Obtener el tipo de usuario desde los headers (implementar según tu sistema de auth)
+        const userType = request.headers.get('x-user-type') || 'admin'; // Temporal para testing
+        
+        // Verificar permisos - solo admin puede ver todos los usuarios
+        const permissionCheck = checkUserPermission(userType, 'usuarios:gestionar');
+        if (permissionCheck) {
+            return createResponse({ error: permissionCheck.error }, permissionCheck.status);
+        }
         
         const result = await pool.query(`
-            SELECT 
-                id_usuario,
-                nombre,
-                apellido,
-                email,
-                telefono,
-                calle,
-                numero,
-                codigo_postal,
-                foto,
-                tipo_usuario,
-                usuario
+            SELECT id_usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, usuario
             FROM usuario 
             ORDER BY apellido, nombre
             LIMIT 100
         `);
 
-        
-        // Procesar usuarios (la foto ya está en formato TEXT, no necesita conversión)
-        const usuariosProcesados = result.rows.map(usuario => ({
+        const usuarios = result.rows.map(usuario => ({
             ...usuario,
-            // Si la foto está en base64, agregar el prefijo data:image si no lo tiene
-            foto: usuario.foto ? 
-                (usuario.foto.startsWith('data:') ? usuario.foto : `data:image/jpeg;base64,${usuario.foto}`) : 
-                null
+            foto: usuario.foto?.startsWith('data:') ? usuario.foto : 
+                  usuario.foto ? `data:image/jpeg;base64,${usuario.foto}` : null
         }));
 
-        return new Response(JSON.stringify({ users: usuariosProcesados }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return createResponse({ users: usuarios });
     } catch (err) {
-        console.error('❌ Error al obtener usuarios:', err);
-        
-        return new Response(JSON.stringify({ 
+        console.error('Error al obtener usuarios:', err);
+        return createResponse({ 
             error: 'Error interno del servidor',
             details: err.message 
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        }, 500);
     }
 }
 
 // POST - Crear nuevo usuario
 export async function POST(request) {
     try {
-        const { nombre, apellido, email, telefono, direccion, foto, tipo_usuario, password } = await request.json();
+        // Obtener el tipo de usuario desde los headers
+        const userType = request.headers.get('x-user-type') || 'admin'; // Temporal para testing
         
-        // Validaciones básicas
-        if (!nombre || !apellido || !email || !tipo_usuario) {
-            return new Response(JSON.stringify({ error: 'Nombre, apellido, email y tipo de usuario son requeridos' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        // Verificar permisos - solo admin puede crear usuarios
+        const permissionCheck = checkUserPermission(userType, 'usuarios:gestionar');
+        if (permissionCheck) {
+            return createResponse({ error: permissionCheck.error }, permissionCheck.status);
         }
 
-        // Validar tamaño de la foto (máximo 5MB en Base64)
-        if (foto && foto.length > 7 * 1024 * 1024) { // ~5MB en Base64
-            return new Response(JSON.stringify({ error: 'La imagen es demasiado grande. Máximo 5MB.' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        const data = await parseRequestData(request);
+        
+        const error = validateUserData(data);
+        
+        if (error) {
+            return createResponse({ error }, 400);
         }
 
-        // Convertir Base64 a Buffer para almacenar como BYTEA
-        let fotoBuffer = null;
-        if (foto) {
-            // Remover el prefijo data:image/...;base64, si existe
-            const base64Data = foto.includes(',') ? foto.split(',')[1] : foto;
-            fotoBuffer = Buffer.from(base64Data, 'base64');
-        }
+        const { nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, password, usuario: usuarioIngresado } = data;
+        // Usar el usuario ingresado o generar uno del email
+        const usuario = usuarioIngresado || email.split('@')[0].toLowerCase();
 
-        // Insertar en la base de datos
+        // Verificar si el usuario ya existe
+        const userExistsError = await checkUserExists(email, usuario);
+        if (userExistsError) {
+            return createResponse({ error: userExistsError }, 400);
+        }
+        
+        // Cifrar la contraseña
+        const contraseniaCifrada = await hashPassword(password);
+
         const result = await pool.query(`
-            INSERT INTO usuario (nombre, apellido, email, telefono, direccion, foto, tipo_usuario, password, fecha_registro)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+            INSERT INTO usuario (nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, contrasenia, usuario)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id_usuario
-        `, [nombre, apellido, email, telefono, direccion, fotoBuffer, tipo_usuario, password]);
+        `, [nombre, apellido, email, telefono, calle || '', numero || 0, codigo_postal || 0, foto, tipo_usuario, contraseniaCifrada, usuario]);
 
-        return new Response(JSON.stringify({ 
+        return createResponse({ 
             success: true, 
             id: result.rows[0].id_usuario,
             message: 'Usuario creado exitosamente'
-        }), {
-            status: 201,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        }, 201);
 
     } catch (err) {
         console.error('Error al crear usuario:', err);
         
-        // Verificar si es un error de email duplicado
         if (err.code === '23505' && err.constraint?.includes('email')) {
-            return new Response(JSON.stringify({ error: 'El email ya está registrado' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return createResponse({ error: 'El email ya está registrado' }, 400);
         }
 
-        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return createResponse({ 
+            error: 'Error interno del servidor',
+            details: err.message 
+        }, 500);
     }
 }
 
 // PUT - Actualizar usuario existente
 export async function PUT(request) {
     try {
-        const { id_usuario, nombre, apellido, email, telefono, direccion, foto, tipo_usuario, password } = await request.json();
+        // Obtener el tipo de usuario desde los headers
+        const userType = request.headers.get('x-user-type') || 'admin'; // Temporal para testing
         
-        if (!id_usuario) {
-            return new Response(JSON.stringify({ error: 'ID de usuario es requerido' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        // Verificar permisos - solo admin puede actualizar usuarios
+        const permissionCheck = checkUserPermission(userType, 'usuarios:gestionar');
+        if (permissionCheck) {
+            return createResponse({ error: permissionCheck.error }, permissionCheck.status);
         }
 
-        // Validar tamaño de la foto
-        if (foto && foto.length > 7 * 1024 * 1024) {
-            return new Response(JSON.stringify({ error: 'La imagen es demasiado grande. Máximo 5MB.' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        const data = await parseRequestData(request);
+        const error = validateUserData(data, true);
+        
+        if (error) {
+            return createResponse({ error }, 400);
         }
 
-        // Convertir Base64 a Buffer para almacenar como BYTEA
-        let fotoBuffer = null;
-        if (foto) {
-            // Remover el prefijo data:image/...;base64, si existe
-            const base64Data = foto.includes(',') ? foto.split(',')[1] : foto;
-            fotoBuffer = Buffer.from(base64Data, 'base64');
+        const { id_usuario, email } = data;
+
+        // Verificar si el email o usuario ya existen (excluyendo el usuario actual)
+        if (email) {
+            const usuario = email.split('@')[0].toLowerCase();
+            const userExistsError = await checkUserExists(email, usuario, id_usuario);
+            if (userExistsError) {
+                return createResponse({ error: userExistsError }, 400);
+            }
         }
 
-        // Construir query dinámico para campos opcionales
-        let updateFields = [];
-        let values = [];
+        // Construir query dinámico
+        const updates = [];
+        const values = [];
         let paramIndex = 1;
 
-        if (nombre !== undefined) {
-            updateFields.push(`nombre = $${paramIndex++}`);
-            values.push(nombre);
-        }
-        if (apellido !== undefined) {
-            updateFields.push(`apellido = $${paramIndex++}`);
-            values.push(apellido);
-        }
-        if (email !== undefined) {
-            updateFields.push(`email = $${paramIndex++}`);
-            values.push(email);
-        }
-        if (telefono !== undefined) {
-            updateFields.push(`telefono = $${paramIndex++}`);
-            values.push(telefono);
-        }
-        if (direccion !== undefined) {
-            updateFields.push(`direccion = $${paramIndex++}`);
-            values.push(direccion);
-        }
-        if (foto !== undefined) {
-            updateFields.push(`foto = $${paramIndex++}`);
-            values.push(fotoBuffer);
-        }
-        if (tipo_usuario !== undefined) {
-            updateFields.push(`tipo_usuario = $${paramIndex++}`);
-            values.push(tipo_usuario);
-        }
-        if (password !== undefined) {
-            updateFields.push(`password = $${paramIndex++}`);
-            values.push(password);
+        const fields = [
+            { key: 'nombre', column: 'nombre' },
+            { key: 'apellido', column: 'apellido' },
+            { key: 'email', column: 'email' },
+            { key: 'telefono', column: 'telefono' },
+            { key: 'calle', column: 'calle' },
+            { key: 'numero', column: 'numero' },
+            { key: 'codigo_postal', column: 'codigo_postal' },
+            { key: 'foto', column: 'foto' },
+            { key: 'tipo_usuario', column: 'tipo_usuario' }
+        ];
+
+        fields.forEach(field => {
+            if (data[field.key] !== undefined) {
+                updates.push(`${field.column} = $${paramIndex++}`);
+                values.push(data[field.key]);
+            }
+        });
+
+        // Manejar contraseña por separado para cifrarla
+        if (data.password !== undefined) {
+            const contraseniaCifrada = await hashPassword(data.password);
+            updates.push(`contrasenia = $${paramIndex++}`);
+            values.push(contraseniaCifrada);
         }
 
-        if (updateFields.length === 0) {
-            return new Response(JSON.stringify({ error: 'No hay campos para actualizar' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        // Actualizar usuario si cambia email o se proporciona un usuario
+        if (email !== undefined || data.usuario !== undefined) {
+            updates.push(`usuario = $${paramIndex++}`);
+            const nuevoUsuario = data.usuario || email.split('@')[0].toLowerCase();
+            values.push(nuevoUsuario);
+        }
+
+        if (updates.length === 0) {
+            return createResponse({ error: 'No hay campos para actualizar' }, 400);
         }
 
         values.push(id_usuario);
-        const query = `
+        const result = await pool.query(`
             UPDATE usuario 
-            SET ${updateFields.join(', ')}
+            SET ${updates.join(', ')}
             WHERE id_usuario = $${paramIndex}
             RETURNING id_usuario
-        `;
-
-        const result = await pool.query(query, values);
+        `, values);
 
         if (result.rowCount === 0) {
-            return new Response(JSON.stringify({ error: 'Usuario no encontrado' }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return createResponse({ error: 'Usuario no encontrado' }, 404);
         }
 
-        return new Response(JSON.stringify({ 
+        return createResponse({ 
             success: true, 
             message: 'Usuario actualizado exitosamente'
-        }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
         });
 
     } catch (err) {
         console.error('Error al actualizar usuario:', err);
-        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return createResponse({ 
+            error: 'Error interno del servidor',
+            details: err.message 
+        }, 500);
     }
 }
 
 // DELETE - Eliminar usuario
 export async function DELETE(request) {
     try {
+        // Obtener el tipo de usuario desde los headers
+        const userType = request.headers.get('x-user-type') || 'admin'; // Temporal para testing
+        
+        // Verificar permisos - solo admin puede eliminar usuarios
+        const permissionCheck = checkUserPermission(userType, 'usuarios:gestionar');
+        if (permissionCheck) {
+            return createResponse({ error: permissionCheck.error }, permissionCheck.status);
+        }
+
         const { id_usuario } = await request.json();
         
         if (!id_usuario) {
-            return new Response(JSON.stringify({ error: 'ID de usuario es requerido' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return createResponse({ error: 'ID de usuario es requerido' }, 400);
         }
 
         const result = await pool.query(`
@@ -282,25 +392,16 @@ export async function DELETE(request) {
         `, [id_usuario]);
 
         if (result.rowCount === 0) {
-            return new Response(JSON.stringify({ error: 'Usuario no encontrado' }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+            return createResponse({ error: 'Usuario no encontrado' }, 404);
         }
 
-        return new Response(JSON.stringify({ 
+        return createResponse({ 
             success: true, 
             message: 'Usuario eliminado exitosamente'
-        }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
         });
 
     } catch (err) {
         console.error('Error al eliminar usuario:', err);
-        return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return createResponse({ error: 'Error interno del servidor' }, 500);
     }
 } 

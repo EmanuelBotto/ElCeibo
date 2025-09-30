@@ -19,6 +19,7 @@ import { useAuth } from './AuthProvider';
 import { useRouter } from 'next/navigation';
 import Logo from './Logo';
 import ReportesModal from './ReportesModal';
+import { AdminOnly, VeterinarioOrAdmin, EmpleadoOrAbove } from './HiddenIfNoPermission';
 
 interface SidebarProps {
   activeTab: string;
@@ -36,31 +37,36 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       id: 'inicio',
       label: 'Inicio',
       icon: Home,
-      description: 'Panel principal'
+      description: 'Panel principal',
+      permission: null // Acceso para todos
     },
     {
       id: 'productos',
       label: 'Productos',
       icon: Package,
-      description: 'Gestión de productos'
+      description: 'Gestión de productos',
+      permission: 'productos:buscar' // Empleados y superiores
     },
     {
       id: 'caja',
       label: 'Caja',
       icon: Search,
-      description: 'Control de caja'
+      description: 'Control de caja',
+      permission: 'caja:gestionar' // Empleados y superiores
     },
     {
       id: 'fichas',
       label: 'Fichas',
       icon: FileText,
-      description: 'Fichas de clientes'
+      description: 'Fichas de clientes',
+      permission: 'fichas:gestionar' // Solo veterinarios y administradores
     },
     {
       id: 'item',
       label: 'Items',
       icon: Pill,
-      description: 'Gestión de medicamentos'
+      description: 'Gestión de medicamentos',
+      permission: 'items:gestionar' // Solo veterinarios y administradores
     }
   ];
 
@@ -114,22 +120,68 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
          <nav className="space-y-2 px-3 h-full overflow-y-auto">
            {menuItems.map((item) => {
              const Icon = item.icon;
+             
+             // Si no tiene permiso específico, mostrar para todos
+             if (!item.permission) {
+               return (
+                 <Button
+                   key={item.id}
+                   variant={activeTab === item.id ? "secondary" : "ghost"}
+                   className={`w-full justify-start hover:bg-purple-400 ${
+                     activeTab === item.id ? 'bg-white text-[#a06ba5]' : 'text-black'
+                   } ${isCollapsed ? 'px-3' : 'px-3'}`}
+                   onClick={() => handleTabClick(item.id)}
+                 >
+                   <Icon size={20} className={`${isCollapsed ? '' : 'mr-3'} ${activeTab === item.id ? 'text-[#a06ba5]' : 'text-black'}`} />
+                   {!isCollapsed && (
+                     <div className="flex flex-col items-start">
+                       <span className="font-medium text-black">{item.label}</span>
+                     </div>
+                   )}
+                 </Button>
+               );
+             }
+             
+             // Usar componentes de permisos para elementos restringidos
+             if (item.permission === 'fichas:gestionar' || item.permission === 'items:gestionar') {
+               return (
+                 <VeterinarioOrAdmin key={item.id}>
+                   <Button
+                     variant={activeTab === item.id ? "secondary" : "ghost"}
+                     className={`w-full justify-start hover:bg-purple-400 ${
+                       activeTab === item.id ? 'bg-white text-[#a06ba5]' : 'text-black'
+                     } ${isCollapsed ? 'px-3' : 'px-3'}`}
+                     onClick={() => handleTabClick(item.id)}
+                   >
+                     <Icon size={20} className={`${isCollapsed ? '' : 'mr-3'} ${activeTab === item.id ? 'text-[#a06ba5]' : 'text-black'}`} />
+                     {!isCollapsed && (
+                       <div className="flex flex-col items-start">
+                         <span className="font-medium text-black">{item.label}</span>
+                       </div>
+                     )}
+                   </Button>
+                 </VeterinarioOrAdmin>
+               );
+             }
+             
+             // Para productos y caja (empleados y superiores)
              return (
-               <Button
-                 key={item.id}
-                 variant={activeTab === item.id ? "secondary" : "ghost"}
-                 className={`w-full justify-start hover:bg-purple-400 ${
-                   activeTab === item.id ? 'bg-white text-[#a06ba5]' : 'text-black'
-                 } ${isCollapsed ? 'px-3' : 'px-3'}`}
-                 onClick={() => handleTabClick(item.id)}
-               >
-                 <Icon size={20} className={`${isCollapsed ? '' : 'mr-3'} ${activeTab === item.id ? 'text-[#a06ba5]' : 'text-black'}`} />
-                 {!isCollapsed && (
-                   <div className="flex flex-col items-start">
-                     <span className="font-medium text-black">{item.label}</span>
-                   </div>
-                 )}
-               </Button>
+               <EmpleadoOrAbove key={item.id}>
+                 <Button
+                   variant={activeTab === item.id ? "secondary" : "ghost"}
+                   className={`w-full justify-start hover:bg-purple-400 ${
+                     activeTab === item.id ? 'bg-white text-[#a06ba5]' : 'text-black'
+                   } ${isCollapsed ? 'px-3' : 'px-3'}`}
+                   onClick={() => handleTabClick(item.id)}
+                 >
+                   <Icon size={20} className={`${isCollapsed ? '' : 'mr-3'} ${activeTab === item.id ? 'text-[#a06ba5]' : 'text-black'}`} />
+                   {!isCollapsed && (
+                     <div className="flex flex-col items-start">
+                       <span className="font-medium text-black">{item.label}</span>
+                     </div>
+                   )}
+                 </Button>
+               </EmpleadoOrAbove>
              );
            })}
          </nav>
@@ -171,29 +223,33 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
            
            {/* Todos los botones del footer juntos */}
             <div className="space-y-1">
-             <Button
-               variant="ghost"
-               size="sm"
-               className={`w-full hover:bg-purple-400 h-8 min-w-[40px] ${
-                 isCollapsed ? 'justify-center' : 'justify-start'
-               } text-black`}
-               onClick={handleReportesClick}
-             >
-               <BarChart3 size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
-               {!isCollapsed && <span className="text-black">Reportes</span>}
-             </Button>
+             <EmpleadoOrAbove>
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 className={`w-full hover:bg-purple-400 h-8 min-w-[40px] ${
+                   isCollapsed ? 'justify-center' : 'justify-start'
+                 } text-black`}
+                 onClick={handleReportesClick}
+               >
+                 <BarChart3 size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
+                 {!isCollapsed && <span className="text-black">Reportes</span>}
+               </Button>
+             </EmpleadoOrAbove>
              
-             <Button
-               variant="ghost"
-               size="sm"
-               className={`w-full hover:bg-purple-400 h-8 min-w-[40px] ${
-                 isCollapsed ? 'justify-center' : 'justify-start'
-               } text-black`}
-               onClick={handleUserManagementClick}
-             >
-               <Settings size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
-               {!isCollapsed && <span className="text-black">Modificar Usuarios</span>}
-             </Button>
+             <AdminOnly>
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 className={`w-full hover:bg-purple-400 h-8 min-w-[40px] ${
+                   isCollapsed ? 'justify-center' : 'justify-start'
+                 } text-black`}
+                 onClick={handleUserManagementClick}
+               >
+                 <Settings size={20} className={`${isCollapsed ? '' : 'mr-3'} text-black`} />
+                 {!isCollapsed && <span className="text-black">Modificar Usuarios</span>}
+               </Button>
+             </AdminOnly>
              
              <Button
                variant="ghost"
