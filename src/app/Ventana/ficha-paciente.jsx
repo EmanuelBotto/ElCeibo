@@ -966,7 +966,7 @@ export default function FichaPaciente({ mascotaId }) {
                         {historial.length > 0 && historial[0].peso ? `${historial[0].peso} kg` : mascota.peso ? `${mascota.peso} kg` : 'No registrado'}
                       </span>
                     </div>
-                    {mascota.deceso ? (
+                    {mascota.deceso && (
                       <>
                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                           <span className="text-sm font-medium text-gray-600">Estado</span>
@@ -991,7 +991,19 @@ export default function FichaPaciente({ mascotaId }) {
                           </div>
                         )}
                       </>
-                    ) : (
+                    )}
+                  </div>
+                </div>
+
+                {/* Propietario */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">Propietario</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-600">Dueño</span>
+                      <span className="text-sm font-semibold text-gray-900">{owner?.nombre} {owner?.apellido}</span>
+                    </div>
+                    {!mascota.deceso && (
                       <div className="flex justify-end py-2">
                         <Button
                           onClick={abrirEdicionDeceso}
@@ -1001,15 +1013,6 @@ export default function FichaPaciente({ mascotaId }) {
                         </Button>
                       </div>
                     )}
-                  </div>
-                </div>
-
-                {/* Propietario */}
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                  <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">Propietario</h4>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm font-medium text-gray-600">Dueño</span>
-                    <span className="text-sm font-semibold text-gray-900">{owner?.nombre} {owner?.apellido}</span>
                   </div>
                 </div>
               </div>
@@ -1249,11 +1252,11 @@ export default function FichaPaciente({ mascotaId }) {
                   required
                     className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
-                    <option value="">Seleccionar vacuna de la lista...</option>
+                    <option value="">Seleccionar item...</option>
                   {itemsVacunas.map(item => (
                     <option key={item.id_item} value={item.id_item}>{item.detalle}</option>
                   ))}
-                    <option value="manual">➕ Otra vacuna (agregar manualmente)</option>
+                    <option value="manual">➕ agregar manualmente</option>
                 </select>
                   <p className="text-xs text-gray-500">Seleccione una vacuna de la lista o agregue una nueva manualmente</p>
                 </div>

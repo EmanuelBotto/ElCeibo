@@ -85,6 +85,15 @@ export async function GET() {
     }
   } catch (err) {
     console.error('Error en API /dashboard/stats:', err);
-    return NextResponse.json({ error: 'Error en la base de datos: ' + err.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Error interno del servidor',
+      details: err.message,
+      stats: {
+        totalClientes: { valor: 0, cambio: 0 },
+        totalProductos: { valor: 0, cambio: 0 },
+        totalMascotas: { valor: 0, cambio: 0 },
+        ingresosMes: { valor: 0, cambio: 0 }
+      }
+    }, { status: 500 });
   }
 }

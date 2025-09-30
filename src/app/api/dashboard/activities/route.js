@@ -24,6 +24,7 @@ export async function GET() {
         WHERE table_schema = 'public' 
         AND table_name IN ('cliente', 'producto', 'mascota', 'factura')
       `);
+      console.log('Tablas disponibles:', tableCheck.rows.map(r => r.table_name));
 
       // 1. Clientes recientes (últimos 5)
       let clientesRecientes;
@@ -81,18 +82,24 @@ export async function GET() {
       });
 
       // 3. Mascotas recientes (últimas 3)
-      const mascotasRecientes = await client.query(`
-        SELECT 
-          m.id_mascota,
-          m.nombre,
-          c.nombre as nombre_cliente,
-          c.apellido as apellido_cliente,
-          'mascota' as tipo
-        FROM mascota m
-        JOIN cliente c ON m.id_cliente = c.id_clinete
-        ORDER BY m.id_mascota DESC 
-        LIMIT 3
-      `);
+      let mascotasRecientes;
+      try {
+        mascotasRecientes = await client.query(`
+          SELECT 
+            m.id_mascota,
+            m.nombre,
+            c.nombre as nombre_cliente,
+            c.apellido as apellido_cliente,
+            'mascota' as tipo
+          FROM mascota m
+          JOIN cliente c ON m.id_cliente = c.id_clinete
+          ORDER BY m.id_mascota DESC 
+          LIMIT 3
+        `);
+      } catch (error) {
+        console.error('❌ Error en consulta de mascotas:', error.message);
+        mascotasRecientes = { rows: [] };
+      }
 
       mascotasRecientes.rows.forEach(mascota => {
         activities.push({
@@ -105,15 +112,21 @@ export async function GET() {
       });
 
       // 4. Ventas recientes (últimas 3)
-      const ventasRecientes = await client.query(`
-        SELECT 
-          id_factura,
-          monto_total,
-          'venta' as tipo
-        FROM factura 
-        ORDER BY id_factura DESC 
-        LIMIT 3
-      `);
+      let ventasRecientes;
+      try {
+        ventasRecientes = await client.query(`
+          SELECT 
+            id_factura,
+            monto_total,
+            'venta' as tipo
+          FROM factura 
+          ORDER BY id_factura DESC 
+          LIMIT 3
+        `);
+      } catch (error) {
+        console.error('❌ Error en consulta de ventas:', error.message);
+        ventasRecientes = { rows: [] };
+      }
 
       ventasRecientes.rows.forEach(venta => {
         activities.push({
