@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  BarChart3
+  BarChart3,
+  Users
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useRouter } from 'next/navigation';
@@ -61,6 +62,12 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       label: 'Items',
       icon: Pill,
       description: 'Gestión de medicamentos'
+    },
+    {
+      id: 'distribuidores-deudas',
+      label: 'Distribuidores',
+      icon: Users,
+      description: 'Distribuidores y deudas'
     }
   ];
 
