@@ -73,11 +73,35 @@ async function emailInUse(client, email, currentUserId) {
  * @returns {Object|null} - Objeto con error si hay validación fallida, null si es válido
  */
 function validateUserData(data) {
+  // Para actualizaciones, solo validar si los campos están presentes
   const { nombre, apellido, email } = data;
   
-  if (!nombre?.trim() || !apellido?.trim() || !email?.trim()) {
+  // Solo validar si se están enviando estos campos
+  if (nombre !== undefined && (!nombre?.trim())) {
     return {
-      error: 'Nombre, apellido y email son requeridos',
+      error: 'El nombre no puede estar vacío',
+      status: 400
+    };
+  }
+  
+  if (apellido !== undefined && (!apellido?.trim())) {
+    return {
+      error: 'El apellido no puede estar vacío',
+      status: 400
+    };
+  }
+  
+  if (email !== undefined && (!email?.trim())) {
+    return {
+      error: 'El email no puede estar vacío',
+      status: 400
+    };
+  }
+  
+  // Validar formato de email si se proporciona
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return {
+      error: 'El formato del email no es válido',
       status: 400
     };
   }
@@ -94,7 +118,7 @@ function validateUserData(data) {
  */
 export async function GET(request, { params }) {
   return handleDatabaseOperation(async (client) => {
-    const { id } = params;
+    const { id } = await params;
 
     const result = await client.query(
       `SELECT id_usuario, usuario, nombre, apellido, email, telefono, 
@@ -121,14 +145,51 @@ export async function GET(request, { params }) {
  */
 export async function PUT(request, { params }) {
   return handleDatabaseOperation(async (client) => {
-    const { id } = params;
-    const body = await request.json();
+    const { id } = await params;
+    
+    // Manejar tanto FormData como JSON
+    let body;
+    const contentType = request.headers.get('content-type');
+    
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      body = {
+        id_usuario: formData.get('id_usuario'),
+        usuario: formData.get('usuario'),
+        nombre: formData.get('nombre'),
+        apellido: formData.get('apellido'),
+        email: formData.get('email'),
+        telefono: formData.get('telefono'),
+        calle: formData.get('calle'),
+        numero: formData.get('numero'),
+        codigo_postal: formData.get('codigo_postal'),
+        tipo_usuario: formData.get('tipo_usuario'),
+        password: formData.get('contrasenia') || formData.get('password')
+      };
+      
+      // Manejar foto
+      const fotoFile = formData.get('foto');
+      if (fotoFile?.size > 0) {
+        const buffer = await fotoFile.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        body.foto = `data:${fotoFile.type};base64,${base64}`;
+      }
+    } else {
+      body = await request.json();
+    }
+    
     const { 
       nombre, 
       apellido, 
       email, 
       telefono, 
-      tipo_usuario 
+      tipo_usuario,
+      usuario,
+      calle,
+      numero,
+      codigo_postal,
+      foto,
+      password
     } = body;
 
     // Validar datos requeridos
@@ -153,21 +214,62 @@ export async function PUT(request, { params }) {
       }, { status: 409 });
     }
 
-    // Actualizar usuario
+    // Construir query dinámico para actualizar solo los campos proporcionados
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    const fields = [
+      { key: 'nombre', column: 'nombre' },
+      { key: 'apellido', column: 'apellido' },
+      { key: 'email', column: 'email' },
+      { key: 'telefono', column: 'telefono' },
+      { key: 'calle', column: 'calle' },
+      { key: 'numero', column: 'numero' },
+      { key: 'codigo_postal', column: 'codigo_postal' },
+      { key: 'foto', column: 'foto' },
+      { key: 'tipo_usuario', column: 'tipo_usuario' }
+    ];
+
+    fields.forEach(field => {
+      if (body[field.key] !== undefined) {
+        updates.push(`${field.column} = $${paramIndex++}`);
+        values.push(body[field.key]);
+      }
+    });
+
+    // Manejar contraseña por separado para cifrarla
+    if (password !== undefined && password !== null && password !== '') {
+      const bcrypt = require('bcryptjs');
+      const contraseniaCifrada = await bcrypt.hash(String(password), 12);
+      updates.push(`contrasenia = $${paramIndex++}`);
+      values.push(contraseniaCifrada);
+    }
+
+    // Actualizar usuario si se proporciona
+    if (usuario !== undefined) {
+      updates.push(`usuario = $${paramIndex++}`);
+      values.push(usuario);
+    } else if (email !== undefined) {
+      // Si no se proporciona usuario pero sí email, generar uno del email
+      updates.push(`usuario = $${paramIndex++}`);
+      values.push(email.split('@')[0].toLowerCase());
+    }
+
+    if (updates.length === 0) {
+      return NextResponse.json({ 
+        error: 'No hay campos para actualizar' 
+      }, { status: 400 });
+    }
+
+    values.push(id);
     const result = await client.query(
       `UPDATE usuario 
-       SET nombre = $1, apellido = $2, email = $3, telefono = $4, tipo_usuario = $5
-       WHERE id_usuario = $6
+       SET ${updates.join(', ')}
+       WHERE id_usuario = $${paramIndex}
        RETURNING id_usuario, usuario, nombre, apellido, email, telefono, 
                  calle, numero, codigo_postal, tipo_usuario, foto`,
-      [
-        nombre.trim(),
-        apellido.trim(),
-        email.trim(),
-        telefono?.trim() || null,
-        tipo_usuario || 'asistente',
-        id
-      ]
+      values
     );
 
     const updatedUser = result.rows[0];
@@ -184,7 +286,7 @@ export async function PUT(request, { params }) {
  */
 export async function DELETE(request, { params }) {
   return handleDatabaseOperation(async (client) => {
-    const { id } = params;
+    const { id } = await params;
 
     // Verificar que el usuario existe
     if (!(await userExists(client, id))) {
