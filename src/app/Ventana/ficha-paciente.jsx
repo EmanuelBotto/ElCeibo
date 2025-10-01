@@ -921,7 +921,6 @@ export default function FichaPaciente({ mascotaId }) {
                 showControls={false}
               />
             </div>
-              <p className="text-xs text-gray-500 mt-2">Hacer click para cambiar la foto</p>
               </div>
             
             <div className="px-6 pb-6">

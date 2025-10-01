@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import ImageUpload from './ImageUpload';
 import ImageDisplay from './ImageDisplay';
+import PhotoChangeModal from './PhotoChangeModal';
+import { Camera } from 'lucide-react';
 
 interface UserFormData {
   nombre: string;
@@ -37,6 +38,7 @@ export default function UserForm({ initialData, onSubmit, isEditing = false }: U
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
 
   const handleInputChange = (field: keyof UserFormData, value: string) => {
     setFormData(prev => ({
@@ -56,6 +58,14 @@ export default function UserForm({ initialData, onSubmit, isEditing = false }: U
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePhotoSave = async (newPhoto: string) => {
+    // Actualizar la foto en el formulario
+    setFormData(prev => ({
+      ...prev,
+      foto: newPhoto
+    }));
   };
 
   return (
@@ -270,21 +280,36 @@ export default function UserForm({ initialData, onSubmit, isEditing = false }: U
                 </div>
                 Foto de Perfil
               </h3>
-              <ImageUpload
-                onImageChange={(base64) => handleInputChange('foto', base64)}
-                currentImage={formData.foto}
-                label=""
-              />
-              {formData.foto && (
-                <div className="mt-4">
-                  <Label className="text-sm font-semibold text-gray-700 mb-2 block">Vista Previa</Label>
-                  <ImageDisplay
-                    src={formData.foto}
-                    alt="Foto del usuario"
-                    className="w-20 h-20 rounded-full border-2 border-purple-200"
-                  />
+              
+              <div className="flex flex-col items-center text-center">
+                <div 
+                  className="cursor-pointer group relative"
+                  onClick={() => setIsPhotoModalOpen(true)}
+                  title="Hacer click para cambiar la foto"
+                >
+                  <div className="w-28 h-28 rounded-full border-4 border-gray-100 shadow-lg transition-all duration-200 group-hover:border-purple-300 group-hover:shadow-xl overflow-hidden">
+                    <ImageDisplay
+                      src={formData.foto}
+                      alt="Foto del usuario"
+                      className="w-full h-full rounded-full object-cover"
+                      showControls={false}
+                    />
+                  </div>
                 </div>
-              )}
+                
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsPhotoModalOpen(true)}
+                    className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Cambiar Foto
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -312,6 +337,18 @@ export default function UserForm({ initialData, onSubmit, isEditing = false }: U
           </Button>
         </div>
       </form>
+
+      {/* Modal de cambio de foto */}
+      <PhotoChangeModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        currentPhoto={formData.foto}
+        onPhotoChange={(newPhoto) => handleInputChange('foto', newPhoto)}
+        title={`Cambiar Foto de ${formData.nombre || 'Usuario'}`}
+        description="Selecciona una nueva foto para el usuario."
+        entityName={formData.nombre || 'Usuario'}
+        onSave={handlePhotoSave}
+      />
     </div>
   );
 }

@@ -14,7 +14,7 @@ import {
   ChevronRight,
   LogOut,
   BarChart3,
-  Database
+  Database,
   Users
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';

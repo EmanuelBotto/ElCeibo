@@ -22,6 +22,8 @@ import {
   Upload,
   User
 } from 'lucide-react';
+import ImageDisplay from '@/components/ImageDisplay';
+import PhotoChangeModal from '@/components/PhotoChangeModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 
@@ -47,6 +49,8 @@ export default function UsuariosPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [selectedUserForPhoto, setSelectedUserForPhoto] = useState<User | null>(null);
   const { user: currentUser } = useAuth();
   const router = useRouter();
 
@@ -226,6 +230,39 @@ export default function UsuariosPage() {
 
   const handleBackClick = () => {
     router.push('/');
+  };
+
+  const handlePhotoChange = async (newPhoto: string) => {
+    if (!selectedUserForPhoto) return;
+    
+    try {
+      const response = await fetch(`/api/usuarios/${selectedUserForPhoto.id_usuario}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foto: newPhoto })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar la foto');
+      }
+
+      // Actualizar la lista de usuarios
+      setUsers(prev => prev.map(user => 
+        user.id_usuario === selectedUserForPhoto.id_usuario 
+          ? { ...user, foto: newPhoto }
+          : user
+      ));
+
+      toast.success('Foto actualizada exitosamente');
+    } catch (error: any) {
+      toast.error(error.message || 'Error al actualizar la foto');
+    }
+  };
+
+  const openPhotoModal = (user: User) => {
+    setSelectedUserForPhoto(user);
+    setIsPhotoModalOpen(true);
   };
 
   const filteredUsers = users.filter(user =>
@@ -526,20 +563,23 @@ export default function UsuariosPage() {
                   <div className="p-6">
                     <div className="flex items-start space-x-4">
                       {/* Foto de perfil */}
-                      <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {user.foto && user.foto.trim() !== '' ? (
-                          <img
-                            src={user.foto}
-                            alt={`${user.nombre} ${user.apellido}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              console.error('❌ Error cargando imagen para usuario:', user.id_usuario, user.foto);
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                        ) : null}
-                        <User className={`h-8 w-8 text-purple-600 ${user.foto && user.foto.trim() !== '' ? 'hidden' : ''}`} />
+                      <div className="relative group">
+                        <div 
+                          className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer group-hover:shadow-lg transition-all duration-200"
+                          onClick={() => openPhotoModal(user)}
+                          title="Hacer click para cambiar la foto"
+                        >
+                          {user.foto && user.foto.trim() !== '' ? (
+                            <ImageDisplay
+                              src={user.foto}
+                              alt={`${user.nombre} ${user.apellido}`}
+                              className="w-full h-full rounded-full object-cover"
+                              showControls={false}
+                            />
+                          ) : (
+                            <User className="h-8 w-8 text-purple-600" />
+                          )}
+                        </div>
                       </div>
                       
                       {/* Información del usuario */}
@@ -632,6 +672,23 @@ export default function UsuariosPage() {
             )}
           </div>
         </div>
+
+        {/* Modal de cambio de foto */}
+        {selectedUserForPhoto && (
+          <PhotoChangeModal
+            isOpen={isPhotoModalOpen}
+            onClose={() => {
+              setIsPhotoModalOpen(false);
+              setSelectedUserForPhoto(null);
+            }}
+            currentPhoto={selectedUserForPhoto.foto || ''}
+            onPhotoChange={handlePhotoChange}
+            title={`Cambiar Foto de ${selectedUserForPhoto.nombre} ${selectedUserForPhoto.apellido}`}
+            description="Selecciona una nueva foto para el usuario."
+            entityName={`${selectedUserForPhoto.nombre} ${selectedUserForPhoto.apellido}`}
+            onSave={handlePhotoChange}
+          />
+        )}
       </div>
     </ProtectedRoute>
   );
