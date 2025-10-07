@@ -74,7 +74,7 @@ export default function ImageDisplay({
         <img
           src={normalizedSrc}
           alt={alt}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover rounded-full"
           onError={(e) => {
             console.error('Error loading image:', e);
             setImageError(true);

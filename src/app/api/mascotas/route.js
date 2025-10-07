@@ -95,12 +95,17 @@ export async function POST(request) {
             data = await request.json();
         }
         
-        const { nombre, especie, raza = '', sexo, edad = 0, peso = 0, estado_reproductivo = false, id_cliente, foto, deceso = false, fecha_seceso = null } = data;
+        const { nombre, especie, raza = '', sexo, edad = 0, peso = 0, estado_reproductivo = false, id_cliente, foto, deceso = false } = data;
 
+        console.log('Datos recibidos en API:', {
+            nombre, especie, raza, sexo, edad, peso, 
+            estado_reproductivo, id_cliente, deceso, 
+            foto: foto ? `Base64 (${foto.length} chars)` : null
+        });
         
         // Validaciones básicas
-        if (!nombre || !especie) {
-            return new Response(JSON.stringify({ error: 'Nombre y especie son requeridos' }), {
+        if (!nombre || !especie || !sexo) {
+            return new Response(JSON.stringify({ error: 'Nombre, especie y sexo son requeridos' }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -123,12 +128,19 @@ export async function POST(request) {
         }
 
         // Insertar en la base de datos
+        console.log('Ejecutando consulta SQL con parámetros:', [
+            nombre, especie, raza, sexo, edad, peso, estado_reproductivo, 
+            fotoBuffer ? `Buffer (${fotoBuffer.length} bytes)` : null, 
+            id_cliente, deceso, null
+        ]);
+        
         const result = await pool.query(`
-
-            INSERT INTO mascota (nombre, especie, raza, sexo, edad, peso, estado_reproductivo, foto, id_cliente, dia, mes, anio, deceso, fecha_seceso)
+            INSERT INTO mascota (nombre, especie, raza, sexo, edad, peso, estado_reproductivo, foto, id_cliente, dia, mes, anio, deceso, fecha_deceso)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, EXTRACT(DAY FROM NOW()), EXTRACT(MONTH FROM NOW()), EXTRACT(YEAR FROM NOW()), $10, $11)
             RETURNING id_mascota
-        `, [nombre, especie, raza, sexo, edad, peso, estado_reproductivo, fotoBuffer, id_cliente, deceso, fecha_seceso]);
+        `, [nombre, especie, raza, sexo, edad, peso, estado_reproductivo, fotoBuffer, id_cliente, deceso, null]);
+        
+        console.log('Consulta ejecutada exitosamente, ID generado:', result.rows[0].id_mascota);
 
 
         return new Response(JSON.stringify({ 

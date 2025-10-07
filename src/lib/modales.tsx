@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Camera } from 'lucide-react';
 
 type NuevoProducto = {
   nombre: string;
@@ -1367,5 +1367,332 @@ export function useNuevoDistribuidor({ onDistribuidorSuccess }: { onDistribuidor
     modalType,
     modalMessage,
     closeModal
+  };
+}
+
+// ====== Modal de Nueva Mascota ======
+
+type NuevaMascota = {
+  nombre: string;
+  especie: string;
+  raza: string;
+  sexo: string;
+  edad: string;
+  peso: string;
+  estado_reproductivo: boolean;
+  deceso: boolean;
+  foto: File | null;
+};
+
+export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () => void } = {}) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [nuevaMascotaForm, setNuevaMascotaForm] = useState<NuevaMascota>({
+    nombre: '',
+    especie: '',
+    raza: '',
+    sexo: '',
+    edad: '',
+    peso: '',
+    estado_reproductivo: false,
+    deceso: false,
+    foto: null
+  });
+  const [ownerInfo, setOwnerInfo] = useState({ nombre: '', apellido: '', id_clinete: '' });
+
+  const abrirModal = (owner) => {
+    setOwnerInfo(owner);
+    setNuevaMascotaForm({
+      nombre: '',
+      especie: '',
+      raza: '',
+      sexo: '',
+      edad: '',
+      peso: '',
+      estado_reproductivo: false,
+      deceso: false,
+      foto: null
+    });
+    setIsModalOpen(true);
+  };
+
+  const cerrarModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const manejarEnvioNuevaMascota = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      
+      console.log('Datos del formulario:', nuevaMascotaForm);
+      console.log('Información del propietario:', ownerInfo);
+      
+      // Convertir foto a Base64 si existe
+      let fotoBase64 = null;
+      if (nuevaMascotaForm.foto) {
+        console.log('Convirtiendo foto a Base64...');
+        fotoBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(nuevaMascotaForm.foto);
+        });
+        console.log('Foto convertida a Base64');
+      }
+      
+      // Validar campos requeridos antes de enviar
+      console.log('Validando campos:', {
+        nombre: nuevaMascotaForm.nombre,
+        especie: nuevaMascotaForm.especie,
+        sexo: nuevaMascotaForm.sexo,
+        id_cliente: ownerInfo.id_clinete
+      });
+      
+      if (!nuevaMascotaForm.nombre || !nuevaMascotaForm.especie || !nuevaMascotaForm.sexo) {
+        throw new Error('Nombre, especie y sexo son campos requeridos');
+      }
+
+      if (!ownerInfo.id_clinete) {
+        throw new Error('ID del cliente no encontrado');
+      }
+      
+      // Preparar datos para enviar como JSON
+      const data = {
+        nombre: nuevaMascotaForm.nombre,
+        especie: nuevaMascotaForm.especie,
+        raza: nuevaMascotaForm.raza || '',
+        sexo: nuevaMascotaForm.sexo,
+        edad: parseFloat(nuevaMascotaForm.edad) || 0,
+        peso: parseFloat(nuevaMascotaForm.peso) || 0,
+        estado_reproductivo: nuevaMascotaForm.estado_reproductivo,
+        deceso: false,
+        id_cliente: ownerInfo.id_clinete,
+        foto: fotoBase64
+      };
+      
+      console.log('Datos a enviar:', data);
+      
+      const response = await fetch('/api/mascotas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data),
+      });
+
+      console.log('Respuesta del servidor:', response.status, response.statusText);
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { error: `Error ${response.status}: ${response.statusText}` };
+        }
+        console.error('Error del servidor:', errorData);
+        console.error('Status:', response.status);
+        console.error('Status Text:', response.statusText);
+        throw new Error(errorData.error || 'Error al crear la mascota');
+      }
+
+      const result = await response.json();
+      console.log('Mascota creada exitosamente:', result);
+
+      // Cerrar modal y ejecutar callback
+      setIsModalOpen(false);
+      if (onMascotaSuccess) {
+        onMascotaSuccess();
+      }
+      
+    } catch (error) {
+      console.error('Error al crear mascota:', error);
+      alert(error.message || 'Error al crear la mascota');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderContent = (
+    <div className="text-gray-900">
+      <h2 className="text-center text-base font-semibold mb-4 text-purple-800">
+        AGREGAR NUEVA MASCOTA
+      </h2>
+      <p className="text-center text-sm text-gray-600 mb-6">
+        Complete los datos de la nueva mascota para {ownerInfo.nombre} {ownerInfo.apellido}
+      </p>
+      
+      <form onSubmit={manejarEnvioNuevaMascota} className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Panel izquierdo - Foto de la mascota */}
+          <div className="lg:col-span-1">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 h-full">
+              <h3 className="text-sm font-semibold text-gray-700 mb-4 text-center">Foto de la mascota</h3>
+              <div className="text-center">
+                <div 
+                  className="w-32 h-32 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer group hover:shadow-lg transition-all duration-200 overflow-hidden"
+                  onClick={() => document.getElementById('foto_mascota').click()}
+                  title="Hacer click para seleccionar foto"
+                >
+                  <input
+                    id="foto_mascota"
+                    type="file"
+                    accept="image/*"
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, foto: e.target.files[0] }))}
+                    className="hidden"
+                  />
+                  {nuevaMascotaForm.foto ? (
+                    <img
+                      src={URL.createObjectURL(nuevaMascotaForm.foto)}
+                      alt="Vista previa"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <Camera className="text-purple-600" size={32} />
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('foto_mascota').click()}
+                  className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Seleccionar Foto
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Panel derecho - Formulario */}
+          <div className="lg:col-span-2">
+            <div className="space-y-4">
+              {/* Primera fila */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="nombre_mascota" className="text-gray-700 font-semibold">Nombre *</Label>
+                  <Input
+                    id="nombre_mascota"
+                    value={nuevaMascotaForm.nombre}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, nombre: e.target.value }))}
+                    placeholder="Nombre de la mascota"
+                    required
+                    className="mt-1 h-12"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="especie_mascota" className="text-gray-700 font-semibold">Especie *</Label>
+                  <select
+                    id="especie_mascota"
+                    value={nuevaMascotaForm.especie}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, especie: e.target.value }))}
+                    required
+                    className="mt-1 w-full h-12 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Seleccionar especie...</option>
+                    <option value="Perro">Perro</option>
+                    <option value="Gato">Gato</option>
+                    <option value="Conejo">Conejo</option>
+                    <option value="Ave">Ave</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Segunda fila */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="raza_mascota" className="text-gray-700 font-semibold">Raza</Label>
+                  <Input
+                    id="raza_mascota"
+                    value={nuevaMascotaForm.raza}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, raza: e.target.value }))}
+                    placeholder="Raza de la mascota"
+                    className="mt-1 h-12"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="sexo_mascota" className="text-gray-700 font-semibold">Sexo *</Label>
+                  <select
+                    id="sexo_mascota"
+                    value={nuevaMascotaForm.sexo}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, sexo: e.target.value }))}
+                    required
+                    className="mt-1 w-full h-12 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Seleccionar sexo...</option>
+                    <option value="Macho">Macho</option>
+                    <option value="Hembra">Hembra</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tercera fila */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edad_mascota" className="text-gray-700 font-semibold">Edad (años)</Label>
+                  <Input
+                    id="edad_mascota"
+                    type="number"
+                    value={nuevaMascotaForm.edad}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, edad: e.target.value }))}
+                    placeholder="Edad en años"
+                    min="0"
+                    step="0.1"
+                    className="mt-1 h-12"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="peso_mascota" className="text-gray-700 font-semibold">Peso (kg)</Label>
+                  <Input
+                    id="peso_mascota"
+                    type="number"
+                    value={nuevaMascotaForm.peso}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, peso: e.target.value }))}
+                    placeholder="Peso en kg"
+                    min="0"
+                    step="0.1"
+                    className="mt-1 h-12"
+                  />
+                </div>
+              </div>
+
+              {/* Estado reproductivo */}
+              <div className="flex items-center space-x-2 py-2">
+                <input
+                  type="checkbox"
+                  id="estado_reproductivo_mascota"
+                  checked={nuevaMascotaForm.estado_reproductivo}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, estado_reproductivo: e.target.checked }))}
+                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <Label htmlFor="estado_reproductivo_mascota" className="text-gray-700 font-semibold">
+                  Esterilizado/a
+                </Label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center space-x-6 pt-6">
+          <Button type="button" variant="outline" onClick={cerrarModal} className="border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-2">
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isLoading} className="bg-green-600 hover:bg-green-700 px-8 py-2">
+            {isLoading ? 'Agregando...' : 'Agregar Mascota'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+
+  return {
+    isModalOpen,
+    abrirModal,
+    cerrarModal,
+    renderContent
   };
 }
