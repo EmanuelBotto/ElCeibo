@@ -152,7 +152,7 @@ export default function FichaPaciente({ mascotaId }) {
   const [isDecesoDialogOpen, setIsDecesoDialogOpen] = useState(false);
   const [decesoForm, setDecesoForm] = useState({
     deceso: false,
-    fecha_seceso: "",
+    fecha_seceso: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
   });
   const [isActualizandoDeceso, setIsActualizandoDeceso] = useState(false);
   const [isAlertasModalOpen, setIsAlertasModalOpen] = useState(false);
@@ -771,7 +771,7 @@ export default function FichaPaciente({ mascotaId }) {
   const abrirEdicionDeceso = () => {
     setDecesoForm({
       deceso: ficha?.mascota?.deceso || false,
-      fecha_seceso: ficha?.mascota?.fecha_seceso || "",
+      fecha_seceso: ficha?.mascota?.fecha_seceso || new Date().toISOString().split('T')[0],
     });
     setIsDecesoDialogOpen(true);
   };
@@ -1222,7 +1222,7 @@ export default function FichaPaciente({ mascotaId }) {
                             </span>
                             <div className="flex items-center space-x-2">
                               <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                                Fallecida
+                                Fallecido
                               </span>
                               <Button
                                 size="sm"
@@ -1271,7 +1271,7 @@ export default function FichaPaciente({ mascotaId }) {
                             onClick={abrirEdicionDeceso}
                             className="bg-purple-600 hover:bg-purple-700"
                           >
-                            Marcar como fallecida
+                            Marcar como fallecido
                           </Button>
                         </div>
                       )}
@@ -1554,8 +1554,8 @@ export default function FichaPaciente({ mascotaId }) {
               </Button>
             </div>
           </form>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialogo Nueva Vacuna */}
       <Dialog open={isVacunaDialogOpen} onOpenChange={setIsVacunaDialogOpen}>
@@ -1886,8 +1886,8 @@ export default function FichaPaciente({ mascotaId }) {
               </Button>
             </div>
           </form>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Diálogo para editar estado de deceso */}
       <Dialog open={isDecesoDialogOpen} onOpenChange={setIsDecesoDialogOpen}>
@@ -1919,7 +1919,7 @@ export default function FichaPaciente({ mascotaId }) {
                   htmlFor="deceso"
                   className="text-base font-semibold text-gray-700"
                 >
-                  Marcar como fallecida
+                  Marcar como fallecido
                 </Label>
               </div>
 
@@ -2294,8 +2294,8 @@ export default function FichaPaciente({ mascotaId }) {
               Agregar Vacuna
             </Button>
           </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Globo de Alerta Flotante */}
       {alertasVacunas.length > 0 && (

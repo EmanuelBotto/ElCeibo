@@ -18,6 +18,10 @@ const publicRoutes = [
 ];
 
 export function middleware(request: NextRequest) {
+  // AUTENTICACIÓN DESHABILITADA - App pública
+  // Comentado para permitir acceso libre a todas las rutas
+  
+  /*
   const { pathname } = request.nextUrl;
   
   // Verificar si la ruta está protegida
@@ -49,6 +53,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
+  */
   
   return NextResponse.next();
 }
