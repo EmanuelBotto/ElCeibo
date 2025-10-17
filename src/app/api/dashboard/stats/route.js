@@ -40,7 +40,8 @@ export async function GET() {
              AND anio = $4) as ingresos_mes_anterior,
             (SELECT COALESCE(SUM(CAST(monto_total AS DECIMAL)), 0) 
              FROM factura 
-             WHERE tipo_factura = 'ingreso') as ingresos_totales
+             WHERE tipo_factura = 'ingreso') as ingresos_totales,
+            (SELECT COUNT(*) FROM factura WHERE tipo_factura = 'ingreso') as total_ventas
         )
         SELECT * FROM stats
       `, [mesActual, anioActual, mesAnterior, anioAnterior]);
@@ -48,6 +49,7 @@ export async function GET() {
       const data = result.rows[0];
       const ingresosActual = parseFloat(data.ingresos_mes) || 0;
       const ingresosAnterior = parseFloat(data.ingresos_mes_anterior) || 0;
+      const totalVentas = parseInt(data.total_ventas) || 0;
       
       // Función para calcular el cambio porcentual
       const calcularCambio = (actual, anterior) => {
@@ -57,8 +59,11 @@ export async function GET() {
         return Math.round(((actual - anterior) / anterior) * 100);
       };
       
-      // Calcular porcentaje de cambio real
-      let cambioIngresos = calcularCambio(ingresosActual, ingresosAnterior);
+      // Solo calcular porcentaje de cambio si los ingresos son mayores a $100,000
+      let cambioIngresos = null;
+      if (ingresosActual > 100000) {
+        cambioIngresos = calcularCambio(ingresosActual, ingresosAnterior);
+      }
       
       const stats = {
         totalClientes: {

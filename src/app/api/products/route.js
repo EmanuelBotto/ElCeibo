@@ -28,6 +28,9 @@ export async function GET(request) {
         if (searchType === 'nombre') {
           whereClause = 'WHERE p.nombre ILIKE $1';
           queryParams.push(`%${search}%`);
+        } else if (searchType === 'codigo') {
+          whereClause = 'WHERE p.id_producto::text ILIKE $1';
+          queryParams.push(`%${search}%`);
         } else if (searchType === 'marca') {
           whereClause = 'WHERE p.marca ILIKE $1';
           queryParams.push(`%${search}%`);
@@ -120,6 +123,27 @@ export async function POST(request) {
         );
       }
 
+      // Verificar si ya existe un producto con el mismo nombre y tipo
+      const existingProduct = await client.query(
+        `SELECT id_producto, nombre, id_tipo FROM producto 
+         WHERE LOWER(nombre) = LOWER($1) AND id_tipo = $2`,
+        [nombre.trim(), id_tipo]
+      );
+
+      if (existingProduct.rows.length > 0) {
+        return NextResponse.json(
+          { 
+            error: 'Ya existe un producto con este nombre y tipo',
+            duplicate: {
+              id: existingProduct.rows[0].id_producto,
+              nombre: existingProduct.rows[0].nombre,
+              tipo: id_tipo
+            }
+          },
+          { status: 409 } // Conflict status
+        );
+      }
+
       // Insertar el producto
       const result = await client.query(
         `INSERT INTO producto (nombre, marca, precio_costo, stock, id_tipo, modificado)
@@ -127,11 +151,30 @@ export async function POST(request) {
          RETURNING id_producto`,
         [nombre.trim(), marca?.trim() || '', precio_costo, stock, id_tipo]
       );
+
+      const nuevoProducto = result.rows[0];
+
+      return NextResponse.json({
+        success: true,
+        message: 'Producto creado exitosamente',
+        producto: {
+          id_producto: nuevoProducto.id_producto,
+          nombre: nombre.trim(),
+          marca: marca?.trim() || '',
+          precio_costo: precio_costo,
+          stock: stock,
+          id_tipo: id_tipo
+        }
+      }, { status: 201 });
     
     } finally {
       client.release();
     }
   } catch (err) {
     console.error('Error al crear producto:', err);
+    return NextResponse.json(
+      { error: 'Error interno del servidor: ' + err.message },
+      { status: 500 }
+    );
   }
 }
