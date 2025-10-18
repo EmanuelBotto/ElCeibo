@@ -35,10 +35,13 @@ export async function PUT(request, { params }) {
     const client = await pool.connect();
     try {
       const body = await request.json();
-      const { nombre, apellido, calle, numero, codigo_postal } = body;
+      const { nombre, apellido, calle, numero, telefono, email, codigo_postal } = body;
 
-      if (!nombre?.trim() || !apellido?.trim() || !calle?.trim() || numero === null || codigo_postal === null) {
-        return NextResponse.json({ error: 'Todos los campos son requeridos para actualizar' }, { status: 400 });
+      console.log('Datos recibidos en API PUT:', body);
+      console.log('Teléfono extraído:', telefono);
+
+      if (!nombre?.trim() || !apellido?.trim() || !calle?.trim() || numero === null) {
+        return NextResponse.json({ error: 'Los campos nombre, apellido, calle y número son requeridos para actualizar' }, { status: 400 });
       }
 
       const result = await client.query(
@@ -47,15 +50,19 @@ export async function PUT(request, { params }) {
            apellido = $2, 
            calle = $3, 
            numero = $4, 
-           codigo_postal = $5
-         WHERE id_clinete = $6
+           telefono = $5,
+           mail = $6,
+           codigo_postal = $7
+         WHERE id_clinete = $8
          RETURNING *`,
         [
           nombre.trim(),
           apellido.trim(),
           calle.trim(),
           parseInt(numero, 10),
-          parseInt(codigo_postal, 10),
+          telefono?.trim() || null,
+          email?.trim() || null,
+          codigo_postal ? parseInt(codigo_postal, 10) : null,
           id
         ]
       );

@@ -50,15 +50,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // App pública - siempre autenticado con usuario simulado
-    // Simular un pequeño delay para evitar problemas de hidratación
-    const timer = setTimeout(() => {
-      setUser(mockUser);
-      setIsAuthenticated(true);
-      setLoading(false);
-    }, 100);
+    // Cargar usuario desde localStorage o usar mockUser como fallback
+    const loadUser = async () => {
+      try {
+        // Intentar cargar desde localStorage primero
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+          setIsAuthenticated(true);
+        } else {
+          // Si no hay usuario guardado, intentar cargar desde la API
+          const response = await fetch('/api/auth/me');
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+            setIsAuthenticated(true);
+            localStorage.setItem('user', JSON.stringify(userData));
+          } else {
+            // Fallback al usuario simulado
+            setUser(mockUser);
+            setIsAuthenticated(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando usuario:', error);
+        // Fallback al usuario simulado
+        setUser(mockUser);
+        setIsAuthenticated(true);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    loadUser();
   }, []);
 
   const login = (userData: User) => {

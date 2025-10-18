@@ -21,7 +21,9 @@ export async function GET() {
           apellido,
           calle,
           numero,
-          codigo_postal
+          codigo_postal,
+          COALESCE(telefono, '') as telefono,
+          COALESCE(mail, '') as email
         FROM 
           cliente
         ORDER BY 
@@ -48,23 +50,30 @@ export async function POST(request) {
         apellido,
         calle,
         numero,
+        telefono,
+        email,
         codigo_postal
       } = body;
 
-      if (!nombre?.trim() || !apellido?.trim() || !calle?.trim() || numero === null || codigo_postal === null) {
-        return NextResponse.json({ error: 'Todos los campos son requeridos' }, { status: 400 });
+      console.log('Datos recibidos en API POST:', body);
+      console.log('Teléfono extraído:', telefono);
+
+      if (!nombre?.trim() || !apellido?.trim() || !calle?.trim() || numero === null) {
+        return NextResponse.json({ error: 'Los campos nombre, apellido, calle y número son requeridos' }, { status: 400 });
       }
 
       const result = await client.query(
-        `INSERT INTO cliente (nombre, apellido, calle, numero, codigo_postal)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO cliente (nombre, apellido, calle, numero, telefono, mail, codigo_postal)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id_clinete`,
         [
           nombre.trim(),
           apellido.trim(),
           calle.trim(),
           parseInt(numero, 10),
-          parseInt(codigo_postal, 10)
+          telefono?.trim() || null,
+          email?.trim() || null,
+          codigo_postal ? parseInt(codigo_postal, 10) : null
         ]
       );
 
