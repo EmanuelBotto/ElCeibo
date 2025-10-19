@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ====== Modales reutilizables para Productos ======
 import { Label } from "@/components/ui/label";
@@ -668,194 +668,245 @@ export function buildProductoFormContent(args: {
   // ========================================
   return (
     <div className={isEdit ? "w-full" : "w-full"}>
-      <h2 className="text-center text-base font-semibold mb-4">
+      <h2 className="text-center text-xl font-bold text-purple-800 mb-4">
         {isEdit ? "Actualizar Producto" : "Nuevo Producto"}
       </h2>
       
-      <div className="grid grid-cols-3 gap-4">
-        {/* ID Producto */}
-        <div>
-          <Label className="text-sm" htmlFor="idProducto">ID Producto</Label>
-          <Input
-            id="idProducto"
-            value={String((isEdit ? ((productoEditando as any)?.id_producto) : (nextIdPreview ?? "")) ?? "")}
-            disabled
-            className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-          />
-        </div>
-
-        {/* Descripción/Nombre */}
-        <div>
-          <Label className="text-sm" htmlFor={isEdit ? "nombreEdit" : "nombre"}>Descripción</Label>
-          <Input
-            id={isEdit ? "nombreEdit" : "nombre"}
-            value={String(isEdit ? getEditValue("nombre") : getCreateValue("nombre"))}
-            onChange={(e) => (isEdit ? handleEditChange("nombre", e.target.value) : handleCreateChange("nombre", e.target.value))}
-            className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-          />
-        </div>
-
-        {/* Rubro/Tipo (solo en edición) */}
-        {isEdit && (
+      <div className="space-y-6">
+        {/* Primera fila: ID, Descripción, Marca, Tipo */}
+        <div className="grid grid-cols-4 gap-4">
+          {/* ID Producto */}
           <div>
-            <Label className="text-sm" htmlFor="rubro">Rubro</Label>
-            <select
-              id="rubro"
-              value={String(((productoEditando as any)?.id_tipo) ?? "1")}
-              onChange={(e) => handleEditChange("id_tipo", e.target.value)}
-              className="w-full border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black"
-            >
-              {Array.isArray(tipos) && tipos.length > 0 ? (
-                tipos.map((t) => (
-                  <option key={t.id_tipo} value={String(t.id_tipo)}>{t.nombre}</option>
-                ))
-              ) : (
-                <>
-                  <option value="1">Balanceado</option>
-                  <option value="2">Medicamento</option>
-                  <option value="3">Accesorio</option>
-                  <option value="4">Acuario</option>
-                </>
-              )}
-            </select>
-          </div>
-        )}
-
-        {/* Stock (solo en edición) */}
-        {isEdit && (
-          <div>
-            <Label htmlFor={"stockEdit"}>Stock</Label>
+            <Label className="text-sm" htmlFor="idProducto">ID Producto</Label>
             <Input
-              id={"stockEdit"}
-              type="number"
-              value={String(getEditValue("stock"))}
-              onChange={(e) => handleEditChange("stock", e.target.value)}
+              id="idProducto"
+              value={String((isEdit ? ((productoEditando as any)?.id_producto) : (nextIdPreview ?? "")) ?? "")}
+              disabled
               className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
             />
           </div>
-        )}
 
-        {/* Marca (solo en edición) */}
-        {isEdit && (
+          {/* Descripción/Nombre */}
           <div>
-            <Label className="text-sm" htmlFor="marcaEdit">Marca</Label>
+            <Label className="text-sm" htmlFor={isEdit ? "nombreEdit" : "nombre"}>Descripción</Label>
             <Input
-              id="marcaEdit"
-              value={String(((productoEditando as any)?.marca) ?? "")}
-              onChange={(e) => handleEditChange("marca", e.target.value)}
+              id={isEdit ? "nombreEdit" : "nombre"}
+              value={String(isEdit ? getEditValue("nombre") : getCreateValue("nombre"))}
+              onChange={(e) => (isEdit ? handleEditChange("nombre", e.target.value) : handleCreateChange("nombre", e.target.value))}
               className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
             />
           </div>
-        )}
 
-        {/* Marca (solo en creación) */}
-        {!isEdit && (
-          <div>
-            <Label htmlFor="marca">Marca</Label>
-            <Input
-              id="marca"
-              value={String(getCreateValue("marca"))}
-              onChange={(e) => handleCreateChange("marca", e.target.value)}
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-            />
-          </div>
-        )}
-
-        {/* Tipo (solo en creación) */}
-        {!isEdit && (
-          <div>
-            <Label htmlFor="tipo">Tipo</Label>
-            <select
-              id="tipo"
-              value={String(getCreateValue("id_tipo"))}
-              onChange={(e) => {
-                const selected = e.target.value;
-                handleCreateChange("id_tipo", selected);
-                const t = tipos.find((x) => String(x.id_tipo) === String(selected));
-                if (t && setNuevoProducto) {
-                  setNuevoProducto((prev) => {
-                    const prevObj = prev as NuevoProducto & {
-                      porcentaje_final?: string | number;
-                      porcentaje_mayorista?: string | number;
-                    };
-                    return {
-                      ...prevObj,
-                      porcentaje_final: t.porcentaje_final,
-                      porcentaje_mayorista: t.porcentaje_mayorista,
-                    } as NuevoProducto;
-                  });
-                }
-              }}
-              className="border-2 border-purple-400 rounded-full px-3 py-2"
-            >
-              {tipos.length > 0 ? (
-                tipos.map((t) => (
-                  <option key={t.id_tipo} value={t.id_tipo}>{t.nombre}</option>
-                ))
-              ) : (
-                <>
-                  <option value="1">Balanceado</option>
-                  <option value="2">Medicamento</option>
-                  <option value="3">Accesorio</option>
-                  <option value="4">Acuario</option>
-                </>
-              )}
-            </select>
-          </div>
-        )}
-
-        {/* Precio Costo */}
-        {isEdit ? (
-          <div className="col-start-1 row-start-3">
-            <Label htmlFor="precioEdit">Precio Costo</Label>
-            <Input
-              id="precioEdit"
-              type="number"
-              value={String(getEditValue("precio_costo"))}
-              onChange={(e) => handleEditChange("precio_costo", e.target.value)}
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-            />
-          </div>
-        ) : (
-          <div>
-            <Label htmlFor="precio">Precio Costo</Label>
-            <Input
-              id="precio"
-              type="number"
-              value={String(getCreateValue("precio_costo"))}
-              onChange={(e) => handleCreateChange("precio_costo", e.target.value)}
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-            />
-          </div>
-        )}
-
-        {/* Porcentajes y Precios Finales - Solo en creación */}
-        {!isEdit && (
-          <>
-            <div className="col-start-2 row-start-3">
-              <Label className="text-sm">% incremento CF</Label>
+          {/* Marca */}
+          {isEdit ? (
+            <div className="flex flex-col">
+              <Label className="text-sm mb-1" htmlFor="marcaEdit">Marca</Label>
               <Input
-                id="incCFCreate"
-                type="number"
-                step="0.01"
-                value={String(getCreateValue("porcentaje_final"))}
-                disabled
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                id="marcaEdit"
+                value={String(((productoEditando as any)?.marca) ?? "")}
+                onChange={(e) => handleEditChange("marca", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
               />
             </div>
-            <div className="col-start-3 row-start-3">
-              <Label className="text-sm">% de incremento R</Label>
+          ) : (
+            <div className="flex flex-col">
+              <Label className="mb-1" htmlFor="marca">Marca</Label>
               <Input
-                id="incRCreate"
-                type="number"
-                step="0.01"
-                value={String(getCreateValue("porcentaje_mayorista"))}
-                disabled
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                id="marca"
+                value={String(getCreateValue("marca"))}
+                onChange={(e) => handleCreateChange("marca", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
               />
             </div>
-            <div className="col-start-2 row-start-4">
-              <Label className="text-sm">Precio final</Label>
+          )}
+
+          {/* Tipo/Rubro */}
+          {isEdit ? (
+            <div className="flex flex-col">
+              <Label className="text-sm mb-1" htmlFor="rubro">Rubro</Label>
+              <select
+                id="rubro"
+                value={String(((productoEditando as any)?.id_tipo) ?? "1")}
+                onChange={(e) => handleEditChange("id_tipo", e.target.value)}
+                className="w-full h-12 border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black focus:ring-purple-500 focus:border-transparent text-base"
+                style={{ height: '3rem', lineHeight: '1.5rem' }}
+              >
+                {Array.isArray(tipos) && tipos.length > 0 ? (
+                  tipos.map((t) => (
+                    <option key={t.id_tipo} value={String(t.id_tipo)}>{t.nombre}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="1">Balanceado</option>
+                    <option value="2">Medicamento</option>
+                    <option value="3">Accesorio</option>
+                    <option value="4">Acuario</option>
+                  </>
+                )}
+              </select>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              <Label className="mb-1" htmlFor="tipo">Tipo</Label>
+              <select
+                id="tipo"
+                value={String(getCreateValue("id_tipo"))}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  handleCreateChange("id_tipo", selected);
+                  const t = tipos.find((x) => String(x.id_tipo) === String(selected));
+                  if (t && setNuevoProducto) {
+                    setNuevoProducto((prev) => {
+                      const prevObj = prev as NuevoProducto & {
+                        porcentaje_final?: string | number;
+                        porcentaje_mayorista?: string | number;
+                      };
+                      return {
+                        ...prevObj,
+                        porcentaje_final: t.porcentaje_final,
+                        porcentaje_mayorista: t.porcentaje_mayorista,
+                      } as NuevoProducto;
+                    });
+                  }
+                }}
+                className="w-full h-12 border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black focus:ring-purple-500 focus:border-transparent text-base"
+                style={{ height: '3rem', lineHeight: '1.5rem' }}
+              >
+                {tipos.length > 0 ? (
+                  tipos.map((t) => (
+                    <option key={t.id_tipo} value={t.id_tipo}>{t.nombre}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="1">Balanceado</option>
+                    <option value="2">Medicamento</option>
+                    <option value="3">Accesorio</option>
+                    <option value="4">Acuario</option>
+                  </>
+                )}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Tercera fila: Stock, Precio Costo, Porcentajes */}
+        <div className="grid grid-cols-4 gap-4">
+          {/* Stock */}
+          {isEdit ? (
+            <div>
+              <Label htmlFor={"stockEdit"}>Stock</Label>
+              <Input
+                id={"stockEdit"}
+                type="number"
+                value={String(getEditValue("stock"))}
+                onChange={(e) => handleEditChange("stock", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              />
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="stock">Stock</Label>
+              <Input
+                id="stock"
+                type="number"
+                value={String(getCreateValue("stock"))}
+                onChange={(e) => handleCreateChange("stock", e.target.value)}
+                placeholder="0"
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              />
+            </div>
+          )}
+
+          {/* Precio Costo */}
+          {isEdit ? (
+            <div>
+              <Label htmlFor="precioEdit">Precio Costo</Label>
+              <Input
+                id="precioEdit"
+                type="number"
+                value={String(getEditValue("precio_costo"))}
+                onChange={(e) => handleEditChange("precio_costo", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              />
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="precio">Precio Costo</Label>
+              <Input
+                id="precio"
+                type="number"
+                value={String(getCreateValue("precio_costo"))}
+                onChange={(e) => handleCreateChange("precio_costo", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              />
+            </div>
+          )}
+
+          {/* Porcentajes - Solo en creación */}
+          {!isEdit && (
+            <>
+              <div>
+                <Label className="text-sm">% incremento CF</Label>
+                <Input
+                  id="incCFCreate"
+                  type="number"
+                  step="0.01"
+                  value={String(getCreateValue("porcentaje_final"))}
+                  disabled
+                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                />
+              </div>
+              <div>
+                <Label className="text-sm">% de incremento R</Label>
+                <Input
+                  id="incRCreate"
+                  type="number"
+                  step="0.01"
+                  value={String(getCreateValue("porcentaje_mayorista"))}
+                  disabled
+                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Porcentajes - Solo en edición */}
+          {isEdit && (
+            <>
+              <div>
+                <Label className="text-sm" htmlFor="incCF">% incremento CF</Label>
+                <Input
+                  id="incCF"
+                  type="number"
+                  step="0.01"
+                  value={String(((productoEditando as any)?.porcentaje_final) ?? "")}
+                  onChange={(e) => handleEditChange("precio_costo", e.target.value)}
+                  disabled={!porcentajePersonalizado}
+                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
+                />
+              </div>
+              <div>
+                <Label className="text-sm" htmlFor="incR">% de incremento R</Label>
+                <Input
+                  id="incR"
+                  type="number"
+                  step="0.01"
+                  value={String(((productoEditando as any)?.porcentaje_mayorista) ?? "")}
+                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value } as any)}
+                  disabled={!porcentajePersonalizado}
+                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+
+        {/* Precios Finales - Solo en creación */}
+        {!isEdit && (
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <Label className="text-sm">Precio final CF</Label>
               <Input
                 disabled
                 value={(() => {
@@ -867,8 +918,8 @@ export function buildProductoFormContent(args: {
                 className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
               />
             </div>
-            <div className="col-start-3 row-start-4">
-              <Label className="text-sm">Precio final</Label>
+            <div>
+              <Label className="text-sm">Precio final R</Label>
               <Input
                 disabled
                 value={(() => {
@@ -880,71 +931,55 @@ export function buildProductoFormContent(args: {
                 className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
               />
             </div>
-          </>
+          </div>
         )}
 
-        {/* Porcentajes y Precios Finales - Solo en edición */}
+        {/* Checkbox y Precios Finales - Solo en edición */}
         {isEdit && (
           <>
-            <div className="col-start-2 row-start-3">
-              <Label className="text-sm" htmlFor="incCF">% incremento CF</Label>
-              <Input
-                id="incCF"
-                type="number"
-                step="0.01"
-                value={String(((productoEditando as any)?.porcentaje_final) ?? "")}
-                onChange={(e) => handleEditChange("precio_costo", e.target.value)}
-                disabled={!porcentajePersonalizado}
-                className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
-              />
+            {/* Cuarta fila: Checkbox */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="flex items-center gap-2">
+                <input
+                  id="manual"
+                  type="checkbox"
+                  checked={porcentajePersonalizado}
+                  onChange={(e) => setPorcentajePersonalizado && setPorcentajePersonalizado(e.target.checked)}
+                  className="mr-2"
+                />
+                <Label htmlFor="manual" className="text-sm">% Manual</Label>
+              </div>
+              <div></div>
             </div>
-            <div className="col-start-3 row-start-3">
-              <Label className="text-sm" htmlFor="incR">% de incremento R</Label>
-              <Input
-                id="incR"
-                type="number"
-                step="0.01"
-                value={String(((productoEditando as any)?.porcentaje_mayorista) ?? "")}
-                onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value } as any)}
-                disabled={!porcentajePersonalizado}
-                className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
-              />
-            </div>
-            <div className="col-start-1 row-start-4 flex items-center gap-2">
-              <input
-                id="manual"
-                type="checkbox"
-                checked={porcentajePersonalizado}
-                onChange={(e) => setPorcentajePersonalizado && setPorcentajePersonalizado(e.target.checked)}
-                className="mr-2"
-              />
-              <Label htmlFor="manual" className="text-sm">% Manual</Label>
-            </div>
-            <div className="col-start-2 row-start-4">
-              <Label className="text-sm">Precio final</Label>
-              <Input
-                disabled
-                value={(() => {
-                  const base = Number(((productoEditando as any)?.precio_costo ?? 0));
-                  const mult = Number(((productoEditando as any)?.porcentaje_final ?? 0));
-                  const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
-                  return `$ ${v}`;
-                })()}
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
-              />
-            </div>
-            <div className="col-start-3 row-start-4">
-              <Label className="text-sm">Precio final</Label>
-              <Input
-                disabled
-                value={(() => {
-                  const base = Number(((productoEditando as any)?.precio_costo ?? 0));
-                  const mult = Number(((productoEditando as any)?.porcentaje_mayorista ?? 0));
-                  const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
-                  return `$ ${v}`;
-                })()}
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
-              />
+
+            {/* Quinta fila: Precios finales */}
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <Label className="text-sm">Precio final CF</Label>
+                <Input
+                  disabled
+                  value={(() => {
+                    const base = Number(((productoEditando as any)?.precio_costo ?? 0));
+                    const mult = Number(((productoEditando as any)?.porcentaje_final ?? 0));
+                    const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
+                    return `$ ${v}`;
+                  })()}
+                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                />
+              </div>
+              <div>
+                <Label className="text-sm">Precio final R</Label>
+                <Input
+                  disabled
+                  value={(() => {
+                    const base = Number(((productoEditando as any)?.precio_costo ?? 0));
+                    const mult = Number(((productoEditando as any)?.porcentaje_mayorista ?? 0));
+                    const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
+                    return `$ ${v}`;
+                  })()}
+                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                />
+              </div>
             </div>
           </>
         )}
@@ -968,32 +1003,6 @@ export function buildProductoFormContent(args: {
 // 
 // import { ModalVenta, useModalVenta } from '@/lib/modales';
 // 
-// function MiComponente() {
-//   const { isModalOpen, modalType, modalMessage, showErrorModal, showSuccessModal, closeModal } = useModalVenta();
-//   
-//   const handleError = () => {
-//     showErrorModal('Error al procesar la venta');
-//   };
-//   
-//   const handleSuccess = () => {
-//     showSuccessModal('Venta completada exitosamente');
-//   };
-//   
-//   return (
-//     <>
-//       <button onClick={handleError}>Mostrar Error</button>
-//       <button onClick={handleSuccess}>Mostrar Éxito</button>
-//       
-//       <ModalVenta
-//         isOpen={isModalOpen}
-//         type={modalType}
-//         message={modalMessage}
-//         onClose={closeModal}
-//         onSuccessRedirect={() => console.log('Redirigir a caja')}
-//       />
-//     </>
-//   );
-// }
 
 type ModalVentaType = 'error' | 'success' | '';
 
@@ -1385,6 +1394,7 @@ type NuevaMascota = {
 };
 
 export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () => void } = {}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [nuevaMascotaForm, setNuevaMascotaForm] = useState<NuevaMascota>({
@@ -1400,7 +1410,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
   });
   const [ownerInfo, setOwnerInfo] = useState({ nombre: '', apellido: '', id_clinete: '' });
 
-  const abrirModal = (owner) => {
+  const abrirModal = (owner: any) => {
     setOwnerInfo(owner);
     setNuevaMascotaForm({
       nombre: '',
@@ -1420,7 +1430,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
     setIsModalOpen(false);
   };
 
-  const manejarEnvioNuevaMascota = async (e) => {
+  const manejarEnvioNuevaMascota = async (e: any) => {
     e.preventDefault();
     try {
       setIsLoading(true);
@@ -1436,7 +1446,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result);
           reader.onerror = reject;
-          reader.readAsDataURL(nuevaMascotaForm.foto);
+          reader.readAsDataURL(nuevaMascotaForm.foto!);
         });
         console.log('Foto convertida a Base64');
       }
@@ -1507,7 +1517,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
       
     } catch (error) {
       console.error('Error al crear mascota:', error);
-      alert(error.message || 'Error al crear la mascota');
+      alert((error as any).message || 'Error al crear la mascota');
       throw error;
     } finally {
       setIsLoading(false);
@@ -1528,18 +1538,18 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
           {/* Panel izquierdo - Foto de la mascota */}
           <div className="lg:col-span-1">
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 h-full">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4 text-center">Foto de la mascota</h3>
+              
               <div className="text-center">
                 <div 
                   className="w-32 h-32 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer group hover:shadow-lg transition-all duration-200 overflow-hidden"
-                  onClick={() => document.getElementById('foto_mascota').click()}
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
                   title="Hacer click para seleccionar foto"
                 >
                   <input
-                    id="foto_mascota"
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    onChange={e => setNuevaMascotaForm(f => ({ ...f, foto: e.target.files[0] }))}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, foto: e.target.files?.[0] || null }))}
                     className="hidden"
                   />
                   {nuevaMascotaForm.foto ? (
@@ -1556,7 +1566,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => document.getElementById('foto_mascota').click()}
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
                   className="text-purple-600 border-purple-300 hover:bg-purple-50"
                 >
                   <Camera className="w-4 h-4 mr-2" />

@@ -25,6 +25,8 @@ import {
 import ImageDisplay from '@/components/ImageDisplay';
 import PhotoChangeModal from '@/components/PhotoChangeModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import DialogoNuevoUsuario from '@/components/DialogoNuevoUsuario';
+import DialogoEditarUsuario from '@/components/DialogoEditarUsuario';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -45,7 +47,8 @@ export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isNuevoUsuarioDialogOpen, setIsNuevoUsuarioDialogOpen] = useState(false);
+  const [isEditarUsuarioDialogOpen, setIsEditarUsuarioDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -54,18 +57,6 @@ export default function UsuariosPage() {
   const { user: currentUser } = useAuth();
   const router = useRouter();
 
-  const [formData, setFormData] = useState({
-    usuario: '',
-    nombre: '',
-    apellido: '',
-    email: '',
-    telefono: '',
-    calle: '',
-    numero: '',
-    codigo_postal: '',
-    tipo_usuario: 'empleado',
-    contrasenia: ''
-  });
 
   useEffect(() => {
     if (currentUser?.tipo_usuario === 'admin') {
@@ -106,54 +97,60 @@ export default function UsuariosPage() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
+  const handleAgregarUsuario = async (usuarioData) => {
     try {
-      const url = editingUser ? `/api/usuarios/${editingUser.id_usuario}` : '/api/usuarios';
-      const method = editingUser ? 'PUT' : 'POST';
-      
-      // Crear FormData para enviar archivos
       const formDataToSend = new FormData();
       
       // Agregar datos del formulario
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== '') {
+      Object.entries(usuarioData).forEach(([key, value]) => {
+        if (value !== '' && value !== null) {
           formDataToSend.append(key, value);
         }
       });
       
-      // Agregar archivo si existe
-      if (selectedFile) {
-        formDataToSend.append('foto', selectedFile);
-      }
-      
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('/api/usuarios', {
+        method: 'POST',
         body: formDataToSend,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error del servidor:', errorData);
-        toast.error(errorData.error || 'Error al procesar la solicitud');
-        throw new Error(errorData.error || 'Error al procesar la solicitud');
+        throw new Error(errorData.error || 'Error al crear el usuario');
       }
 
-      toast.success(editingUser ? 'Usuario actualizado exitosamente' : 'Usuario creado exitosamente');
-      setShowCreateForm(false);
+      toast.success('Usuario creado exitosamente');
+      setIsNuevoUsuarioDialogOpen(false);
+      fetchUsers();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleEditarUsuario = async (usuarioData) => {
+    try {
+      const formDataToSend = new FormData();
+      
+      // Agregar datos del formulario
+      Object.entries(usuarioData).forEach(([key, value]) => {
+        if (value !== '' && value !== null) {
+          formDataToSend.append(key, value);
+        }
+      });
+      
+      const response = await fetch(`/api/usuarios/${usuarioData.id_usuario}`, {
+        method: 'PUT',
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar el usuario');
+      }
+
+      toast.success('Usuario actualizado exitosamente');
+      setIsEditarUsuarioDialogOpen(false);
       setEditingUser(null);
-      resetForm();
-      setSelectedFile(null);
-      setPreviewUrl('');
       fetchUsers();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
@@ -163,21 +160,7 @@ export default function UsuariosPage() {
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
-    setFormData({
-      usuario: user.usuario,
-      nombre: user.nombre,
-      apellido: user.apellido,
-      email: user.email,
-      telefono: user.telefono,
-      calle: user.calle,
-      numero: user.numero.toString(),
-      codigo_postal: user.codigo_postal.toString(),
-      tipo_usuario: user.tipo_usuario,
-      contrasenia: ''
-    });
-    setPreviewUrl(user.foto || '');
-    setSelectedFile(null);
-    setShowCreateForm(true);
+    setIsEditarUsuarioDialogOpen(true);
   };
 
   const handleDelete = async (userId: number) => {
@@ -202,22 +185,6 @@ export default function UsuariosPage() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      usuario: '',
-      nombre: '',
-      apellido: '',
-      email: '',
-      telefono: '',
-      calle: '',
-      numero: '',
-      codigo_postal: '',
-      tipo_usuario: 'empleado',
-      contrasenia: ''
-    });
-    setSelectedFile(null);
-    setPreviewUrl('');
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -304,11 +271,7 @@ export default function UsuariosPage() {
               </div>
               <div className="flex gap-2">
                 <Button
-                  onClick={() => {
-                    setShowCreateForm(true);
-                    setEditingUser(null);
-                    resetForm();
-                  }}
+                  onClick={() => setIsNuevoUsuarioDialogOpen(true)}
                   className="px-6 py-2"
                 >
                   <UserPlus className="mr-2 h-4 w-4" />
@@ -330,224 +293,6 @@ export default function UsuariosPage() {
               </div>
             </div>
 
-            {/* Formulario de creación/edición */}
-            {showCreateForm && (
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-6">
-                <div className="bg-[#a06ba5] px-6 py-4">
-                  <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-                    <Edit className="h-5 w-5" />
-                    <span>{editingUser ? 'Editar Usuario' : 'Crear Nuevo Usuario'}</span>
-                  </h2>
-                </div>
-                <div className="p-6">
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="usuario" className="text-gray-700 font-semibold">Usuario *</Label>
-                        <Input
-                          id="usuario"
-                          name="usuario"
-                          value={formData.usuario}
-                          onChange={handleInputChange}
-                          required
-                          disabled={!!editingUser}
-                          className="mt-1 h-12"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-gray-700 font-semibold text-base mb-4 block">Tipo de Usuario *</Label>
-                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-white transition-colors">
-                              <input
-                                type="radio"
-                                id="admin"
-                                name="tipo_usuario"
-                                value="admin"
-                                checked={formData.tipo_usuario === 'admin'}
-                                onChange={handleInputChange}
-                                className="w-5 h-5 text-purple-600 border-2 border-purple-300 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                              />
-                              <Label htmlFor="admin" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                                Administrador
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-white transition-colors">
-                              <input
-                                type="radio"
-                                id="veterinario"
-                                name="tipo_usuario"
-                                value="veterinario"
-                                checked={formData.tipo_usuario === 'veterinario'}
-                                onChange={handleInputChange}
-                                className="w-5 h-5 text-purple-600 border-2 border-purple-300 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                              />
-                              <Label htmlFor="veterinario" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                                Veterinario
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-white transition-colors">
-                              <input
-                                type="radio"
-                                id="empleado"
-                                name="tipo_usuario"
-                                value="empleado"
-                                checked={formData.tipo_usuario === 'empleado'}
-                                onChange={handleInputChange}
-                                className="w-5 h-5 text-purple-600 border-2 border-purple-300 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                              />
-                              <Label htmlFor="empleado" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                                Empleado                              </Label>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="nombre" className="text-gray-700 font-semibold">Nombre *</Label>
-                        <Input
-                          id="nombre"
-                          name="nombre"
-                          value={formData.nombre}
-                          onChange={handleInputChange}
-                          required
-                          className="mt-1 h-12"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="apellido" className="text-gray-700 font-semibold">Apellido *</Label>
-                        <Input
-                          id="apellido"
-                          name="apellido"
-                          value={formData.apellido}
-                          onChange={handleInputChange}
-                          required
-                          className="mt-1 h-12"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="email" className="text-gray-700 font-semibold">Email *</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          required
-                          className="mt-1 h-12"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="telefono" className="text-gray-700 font-semibold">Teléfono</Label>
-                        <Input
-                          id="telefono"
-                          name="telefono"
-                          value={formData.telefono}
-                          onChange={handleInputChange}
-                          className="mt-1 h-12"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="calle" className="text-gray-700 font-semibold">Calle</Label>
-                        <Input
-                          id="calle"
-                          name="calle"
-                          value={formData.calle}
-                          onChange={handleInputChange}
-                          className="mt-1 h-12"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="numero" className="text-gray-700 font-semibold">Número</Label>
-                        <Input
-                          id="numero"
-                          name="numero"
-                          type="number"
-                          value={formData.numero}
-                          onChange={handleInputChange}
-                          className="mt-1 h-12"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="codigo_postal" className="text-gray-700 font-semibold">Código Postal</Label>
-                        <Input
-                          id="codigo_postal"
-                          name="codigo_postal"
-                          type="number"
-                          value={formData.codigo_postal}
-                          onChange={handleInputChange}
-                          className="mt-1 h-12"
-                        />
-                      </div>
-                      {!editingUser && (
-                        <div className="md:col-span-2">
-                          <Label htmlFor="contrasenia" className="text-gray-700 font-semibold">Contraseña *</Label>
-                          <Input
-                            id="contrasenia"
-                            name="contrasenia"
-                            type="password"
-                            value={formData.contrasenia}
-                            onChange={handleInputChange}
-                            required={!editingUser}
-                            className="mt-1 h-12"
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Sección de foto de perfil */}
-                      <div className="md:col-span-2">
-                        <Label className="text-gray-700 font-semibold">Foto de Perfil</Label>
-                        <div className="mt-2 flex items-center space-x-4">
-                          <div className="relative">
-                            <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-300 flex items-center justify-center">
-                              {previewUrl ? (
-                                <img
-                                  src={previewUrl}
-                                  alt="Preview"
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <Camera className="h-8 w-8 text-gray-400" />
-                              )}
-                            </div>
-                            <label
-                              htmlFor="foto-upload"
-                              className="absolute bottom-0 right-0 bg-purple-600 text-white rounded-full p-1 cursor-pointer hover:bg-purple-700"
-                            >
-                              <Upload className="h-4 w-4" />
-                            </label>
-                          </div>
-                          <div className="flex-1">
-                            <input
-                              id="foto-upload"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileChange}
-                              className="hidden"
-                            />
-                            <div className="text-sm text-gray-600">
-                              <p>Haz clic en el ícono para subir una foto</p>
-                              <p className="text-xs">Formatos: JPG, PNG, GIF (máx. 5MB)</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-end space-x-2 pt-4">
-                      <Button type="button" variant="outline" onClick={() => {
-                        setShowCreateForm(false);
-                        setEditingUser(null);
-                        resetForm();
-                      }}>
-                        Cancelar
-                      </Button>
-                      <Button type="submit">
-                        {editingUser ? 'Actualizar Usuario' : 'Crear Usuario'}
-                      </Button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
 
             {/* Lista de usuarios */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -627,7 +372,7 @@ export default function UsuariosPage() {
                           <Edit className="h-4 w-4 mr-1" />
                           Editar
                         </Button>
-                        {user.id_usuario !== currentUser?.id_usuario && (
+                        {user.id_usuario !== currentUser?.id_usuario ? (
                           <Button
                             variant="outline"
                             size="sm"
@@ -637,6 +382,11 @@ export default function UsuariosPage() {
                             <Trash2 className="h-4 w-4 mr-1" />
                             Eliminar
                           </Button>
+                        ) : (
+                          <div className="flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            <Shield className="h-3 w-3 mr-1" />
+                            No se puede auto-eliminar
+                          </div>
                         )}
                       </div>
                     </AdminOnly>
@@ -658,9 +408,7 @@ export default function UsuariosPage() {
                   {!searchTerm && (
                     <Button
                       onClick={() => {
-                        setShowCreateForm(true);
-                        setEditingUser(null);
-                        resetForm();
+                        setIsNuevoUsuarioDialogOpen(true);
                       }}
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
@@ -689,6 +437,23 @@ export default function UsuariosPage() {
             onSave={handlePhotoChange}
           />
         )}
+
+        {/* Modales */}
+        <DialogoNuevoUsuario
+          isOpen={isNuevoUsuarioDialogOpen}
+          onClose={() => setIsNuevoUsuarioDialogOpen(false)}
+          onSubmit={handleAgregarUsuario}
+        />
+
+        <DialogoEditarUsuario
+          isOpen={isEditarUsuarioDialogOpen}
+          onClose={() => {
+            setIsEditarUsuarioDialogOpen(false);
+            setEditingUser(null);
+          }}
+          onSubmit={handleEditarUsuario}
+          usuarioData={editingUser}
+        />
       </div>
     </ProtectedRoute>
   );

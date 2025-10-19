@@ -18,10 +18,6 @@ const publicRoutes = [
 ];
 
 export function middleware(request: NextRequest) {
-  // AUTENTICACIÓN DESHABILITADA - App pública
-  // Comentado para permitir acceso libre a todas las rutas
-  
-  /*
   const { pathname } = request.nextUrl;
   
   // Verificar si la ruta está protegida
@@ -36,7 +32,7 @@ export function middleware(request: NextRequest) {
   
   // Si es una ruta protegida, verificar autenticación
   if (isProtectedRoute) {
-    // Verificar si hay token de autenticación en las cookies o headers
+    // Verificar si hay token de autenticación en las cookies
     const authToken = request.cookies.get('auth-token')?.value;
     const isAuthenticated = request.cookies.get('isAuthenticated')?.value === 'true';
     
@@ -53,7 +49,6 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
-  */
   
   return NextResponse.next();
 }

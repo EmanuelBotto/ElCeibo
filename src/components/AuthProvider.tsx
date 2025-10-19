@@ -50,52 +50,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Cargar usuario desde localStorage o usar mockUser como fallback
-    const loadUser = async () => {
-      try {
-        // Intentar cargar desde localStorage primero
-        const savedUser = localStorage.getItem('user');
-        if (savedUser) {
-          const userData = JSON.parse(savedUser);
-          setUser(userData);
-          setIsAuthenticated(true);
-        } else {
-          // Si no hay usuario guardado, intentar cargar desde la API
-          const response = await fetch('/api/auth/me');
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-            setIsAuthenticated(true);
-            localStorage.setItem('user', JSON.stringify(userData));
-          } else {
-            // Fallback al usuario simulado
-            setUser(mockUser);
-            setIsAuthenticated(true);
-          }
-        }
-      } catch (error) {
-        console.error('Error cargando usuario:', error);
-        // Fallback al usuario simulado
-        setUser(mockUser);
-        setIsAuthenticated(true);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // NO recordar usuario, siempre requiere login
+    // Simular un pequeño delay para evitar problemas de hidratación
+    const timer = setTimeout(() => {
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+    }, 100);
 
-    loadUser();
+    return () => clearTimeout(timer);
   }, []);
 
   const login = (userData: User) => {
     setUser(userData);
     setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('isAuthenticated', 'true');
+    // No guardar en localStorage para mayor seguridad
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
+    // Limpiar localStorage si existe
     localStorage.removeItem('user');
     localStorage.removeItem('isAuthenticated');
     router.push('/login');
@@ -103,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateUser = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    // No guardar en localStorage para mayor seguridad
   };
 
   return (

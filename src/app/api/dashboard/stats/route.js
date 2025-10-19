@@ -26,7 +26,7 @@ export async function GET() {
         WITH stats AS (
           SELECT 
             (SELECT COUNT(*) FROM cliente) as total_clientes,
-            (SELECT COUNT(*) FROM producto WHERE stock > 0) as total_productos,
+            (SELECT COUNT(*) FROM producto) as total_productos,
             (SELECT COUNT(*) FROM mascota) as total_mascotas,
             (SELECT COALESCE(SUM(CAST(monto_total AS DECIMAL)), 0) 
              FROM factura 

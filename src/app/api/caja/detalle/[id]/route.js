@@ -52,7 +52,7 @@ export async function GET(_, { params }) {
                 FROM detalle_factura df
                 INNER JOIN producto p ON df.id_producto = p.id_producto
                 WHERE df.id_factura = $1
-                ORDER BY df.id_detalle_factura
+                ORDER BY df.id_detalle
             `;
             
             const detallesResult = await client.query(detallesQuery, [id]);
@@ -66,7 +66,6 @@ export async function GET(_, { params }) {
             client.release();
         }
     } catch (err) {
-        console.error('Error al obtener detalle de factura:', err);
         return NextResponse.json({ error: 'Error al obtener el detalle: ' + err.message }, { status: 500 });
     }
 }

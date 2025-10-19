@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ export default function DialogoNuevaMascota({
   onSubmit, 
   clienteId 
 }) {
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     nombre: "",
     especie: "",
@@ -102,7 +103,7 @@ export default function DialogoNuevaMascota({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader className="text-center">
-          <DialogTitle className="text-2xl font-bold text-purple-800">
+          <DialogTitle className="text-xl font-bold text-purple-800">
             Agregar Nueva Mascota
           </DialogTitle>
         </DialogHeader>
@@ -117,11 +118,11 @@ export default function DialogoNuevaMascota({
                 </Label>
                 <div 
                   className="w-40 h-40 bg-purple-100 rounded-full flex items-center justify-center cursor-pointer group hover:shadow-lg transition-all duration-200 overflow-hidden"
-                  onClick={() => document.getElementById('foto_mascota').click()}
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
                   title="Hacer click para seleccionar foto"
                 >
                   <input
-                    id="foto_mascota"
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
@@ -141,7 +142,7 @@ export default function DialogoNuevaMascota({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => document.getElementById('foto_mascota').click()}
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
                   className="mt-3 text-purple-600 border-purple-300 hover:bg-purple-50"
                 >
                   <Camera className="w-4 h-4 mr-2" />
