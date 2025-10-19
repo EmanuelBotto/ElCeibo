@@ -18,29 +18,29 @@ import DialogoEditarItem from "@/components/DialogoEditarItem";
 
 export default function Item() {
   // Lista de items
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState<any[]>([]);
   // Estado de carga
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState<boolean>(true);
   // Nuevo item a crear
-  const [nuevoItem, setNuevoItem] = useState({
+  const [nuevoItem, setNuevoItem] = useState<any>({
     detalle: '',
     rubro: '',
     duracion: '',
     prospecto: ''
   });
-  const [itemEditando, setItemEditando] = useState(null);
-  const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState(false);
-  const [busqueda, setBusqueda] = useState('');
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [rubroSeleccionado, setRubroSeleccionado] = useState('Todos');
+  const [itemEditando, setItemEditando] = useState<any>(null);
+  const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState<boolean>(false);
+  const [busqueda, setBusqueda] = useState<string>('');
+  const [paginaActual, setPaginaActual] = useState<number>(1);
+  const [rubroSeleccionado, setRubroSeleccionado] = useState<string>('Todos');
   const itemsPorPagina = 10;
-  const [isNuevoItemDialogOpen, setIsNuevoItemDialogOpen] = useState(false);
-  const [isEditarItemDialogOpen, setIsEditarItemDialogOpen] = useState(false);
-  const [itemSeleccionado, setItemSeleccionado] = useState(null);
-  const [prospectoSeleccionado, setProspectoSeleccionado] = useState('');
+  const [isNuevoItemDialogOpen, setIsNuevoItemDialogOpen] = useState<boolean>(false);
+  const [isEditarItemDialogOpen, setIsEditarItemDialogOpen] = useState<boolean>(false);
+  const [itemSeleccionado, setItemSeleccionado] = useState<any>(null);
+  const [prospectoSeleccionado, setProspectoSeleccionado] = useState<string>('');
 
   // Función para validar número
-  const validarNumero = (valor) => {
+  const validarNumero = (valor: any): number => {
     const numero = parseFloat(valor);
     return isNaN(numero) ? 0 : numero;
   };
@@ -132,13 +132,13 @@ export default function Item() {
         duracion: '',
         prospecto: ''
       });
-      setMostrarFormulario(false);
+      // setMostrarFormulario(false);
       cargarItems(); // recargar lista
       
       // Mostrar mensaje de éxito
       alert('Item creado exitosamente');
     } catch (err) {
-      alert(err.message);
+      alert(err instanceof Error ? err.message : 'Error desconocido');
       console.error('Error completo:', err);
     }
   };
@@ -178,13 +178,13 @@ export default function Item() {
       cargarItems();
 
     } catch (err) {
-      alert(err.message);
+      alert(err instanceof Error ? err.message : 'Error desconocido');
       console.error('Error completo:', err);
     }
   };
 
   // Función para manejar la creación desde el modal
-  const handleCrearItem = async (itemData) => {
+  const handleCrearItem = async (itemData: any) => {
     try {
       const res = await fetch('/api/items', {
         method: 'POST',
@@ -208,7 +208,7 @@ export default function Item() {
   };
 
   // Función para manejar la edición desde el modal
-  const handleEditarItem = async (itemData) => {
+  const handleEditarItem = async (itemData: any) => {
     try {
       const res = await fetch(`/api/items/${itemData.id_item}`, {
         method: 'PUT',
@@ -232,7 +232,7 @@ export default function Item() {
   };
 
   // Eliminar item
-  const eliminarItem = async (id) => {
+  const eliminarItem = async (id: any) => {
     if (!confirm('¿Estás seguro de eliminar este item?')) return;
 
     try {
@@ -277,7 +277,7 @@ export default function Item() {
   const totalPaginas = Math.ceil(itemsFiltrados.length / itemsPorPagina);
 
   // Manejar selección de item
-  const handleItemSeleccionado = (item) => {
+  const handleItemSeleccionado = (item: any) => {
     setItemSeleccionado(item);
     setProspectoSeleccionado(item.prospecto || '');
   };

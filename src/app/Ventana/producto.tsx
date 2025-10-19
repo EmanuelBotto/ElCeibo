@@ -18,46 +18,47 @@ import { buildProductoFormContent } from "@/lib/modales";
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 
 export default function Producto() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   
   // Lista de productos
-  const [productos, setProductos] = useState([]);
-  const [tipos, setTipos] = useState([]);
+  const [productos, setProductos] = useState<any[]>([]);
+  const [tipos, setTipos] = useState<any[]>([]);
   // Estado de carga
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState<boolean>(true);
   // Nuevo producto a crear
-  const [nuevoProducto, setNuevoProducto] = useState({ 
+  const [nuevoProducto, setNuevoProducto] = useState<any>({ 
     nombre: '', 
     marca: '',
     precio_costo: '',
     stock: '',
     id_tipo: '1'
   });
-  const [productoEditando, setProductoEditando] = useState(null);
-  const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState(false);
-  const [busqueda, setBusqueda] = useState('');
-  const [tipoBusqueda, setTipoBusqueda] = useState('nombre');
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [pagination, setPagination] = useState({
+  const [productoEditando, setProductoEditando] = useState<any>(null);
+  const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState<boolean>(false);
+  const [busqueda, setBusqueda] = useState<string>('');
+  const [tipoBusqueda, setTipoBusqueda] = useState<string>('nombre');
+  const [paginaActual, setPaginaActual] = useState<number>(1);
+  const [pagination, setPagination] = useState<any>({
     currentPage: 1,
     totalPages: 1,
     totalItems: 0
   });
-  const [tipoCliente, setTipoCliente] = useState('cliente final');
+  const [tipoCliente, setTipoCliente] = useState<string>('cliente final');
   const productosPorPagina = 20; // cantidad de productos mostrados
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  const [mostrarConfirmacionEliminar, setMostrarConfirmacionEliminar] = useState(false);
-  const [productoAEliminar, setProductoAEliminar] = useState(null);
-  const [mostrarDialogoDuplicado, setMostrarDialogoDuplicado] = useState(false);
-  const [infoDuplicado, setInfoDuplicado] = useState(null);
+  const [mostrarFormulario, setMostrarFormulario] = useState<boolean>(false);
+  const [productoSeleccionado, setProductoSeleccionado] = useState<any>(null);
+  const [mostrarConfirmacionEliminar, setMostrarConfirmacionEliminar] = useState<boolean>(false);
+  const [productoAEliminar, setProductoAEliminar] = useState<any>(null);
+  const [mostrarDialogoDuplicado, setMostrarDialogoDuplicado] = useState<boolean>(false);
+  const [infoDuplicado, setInfoDuplicado] = useState<any>(null);
   
-  const [porcentajePersonalizado, setPorcentajePersonalizado] = useState(false);
+  const [porcentajePersonalizado, setPorcentajePersonalizado] = useState<boolean>(false);
  
 
-  const validarNumero = (valor) => {
+  const validarNumero = (valor: any): number => {
     const numero = parseFloat(valor);
     return isNaN(numero) ? 0 : numero;
   };
@@ -131,7 +132,7 @@ export default function Producto() {
     }
   };
 
-  const cambiarPagina = (nuevaPagina) => {
+  const cambiarPagina = (nuevaPagina: number) => {
     setPaginaActual(nuevaPagina);
   };
 
@@ -197,7 +198,7 @@ export default function Producto() {
           errorMessage = `Error: ${res.status} - ${res.statusText}`;
         }
         
-        const error = new Error(errorMessage);
+        const error = new Error(errorMessage) as any;
         error.isDuplicate = isDuplicate;
         error.duplicateInfo = duplicateInfo;
         throw error;
@@ -222,7 +223,7 @@ export default function Producto() {
       
       // Mostrar mensaje de éxito
       toast.success('Producto creado exitosamente');
-    } catch (err) {
+    } catch (err: any) {
       if (err.isDuplicate) {
         // Mostrar popup de duplicado
         setInfoDuplicado(err.duplicateInfo);
@@ -281,7 +282,7 @@ export default function Producto() {
           errorMessage = `Ya existe un producto con el nombre "${errorData.duplicate.nombre}" y el mismo tipo. Por favor, cambia el nombre o el tipo para actualizar el producto.`;
         }
         
-        const error = new Error(errorMessage);
+        const error = new Error(errorMessage) as any;
         error.isDuplicate = res.status === 409 && errorData.duplicate;
         error.duplicateInfo = errorData.duplicate;
         throw error;
@@ -312,7 +313,7 @@ export default function Producto() {
       toast.success('Producto actualizado exitosamente');
       cargarProductos();
 
-    } catch (err) {
+    } catch (err: any) {
       if (err.isDuplicate) {
         // Mostrar popup de duplicado
         setInfoDuplicado(err.duplicateInfo);
@@ -328,7 +329,7 @@ export default function Producto() {
 
   // Eliminar producto
   
-  const eliminarProducto = async (id) => {
+  const eliminarProducto = async (id: any) => {
     // Buscar el producto para mostrar su nombre
     const producto = productos.find(p => p.id_producto === id);
     setProductoAEliminar(producto);
@@ -358,7 +359,7 @@ export default function Producto() {
   
 
   // Calcular precio con porcentaje
-  const calcularPrecio = (producto, tipoCliente = 'final') => {
+  const calcularPrecio = (producto: any, tipoCliente: string = 'final'): number => {
     if (!producto) return 0;
     
     const precio_base = validarNumero(producto.precio_costo);
@@ -628,7 +629,7 @@ export default function Producto() {
               const mitad = Math.floor(paginasVisibles / 2);
               
               let inicio = Math.max(1, paginaActual - mitad);
-              let fin = Math.min(totalPaginas, inicio + paginasVisibles - 1);
+              const fin = Math.min(totalPaginas, inicio + paginasVisibles - 1);
               
               // Ajustar inicio si estamos cerca del final
               if (fin - inicio + 1 < paginasVisibles) {
@@ -746,7 +747,7 @@ export default function Producto() {
             <DialogDescription className="text-gray-600">
               {productoAEliminar && (
                 <>
-                  Estás a punto de eliminar el producto <strong>"{productoAEliminar.nombre_producto}"</strong>.
+                  Estás a punto de eliminar el producto <strong>&quot;{productoAEliminar.nombre_producto}&quot;</strong>.
                   <br />
                 </>
               )}
@@ -784,7 +785,7 @@ export default function Producto() {
             <DialogDescription className="text-gray-600">
               {infoDuplicado && (
                 <>
-                  Ya existe un producto con el nombre <strong>"{infoDuplicado.nombre}"</strong> y el mismo tipo.
+                  Ya existe un producto con el nombre <strong>&quot;{infoDuplicado.nombre}&quot;</strong> y el mismo tipo.
                   <br />
                   <span className="text-orange-600 font-medium">
                     ID del producto existente: {infoDuplicado.id}

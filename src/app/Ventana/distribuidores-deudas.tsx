@@ -16,12 +16,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function DistribuidoresDeudas({ onTabChange }) {
-    const [distribuidores, setDistribuidores] = useState([]);
-    const [cargando, setCargando] = useState(true);
-    const [distribuidorSeleccionado, setDistribuidorSeleccionado] = useState(null);
-    const [isModalModificarOpen, setIsModalModificarOpen] = useState(false);
-    const [distribuidorModificando, setDistribuidorModificando] = useState({
+interface DistribuidoresDeudasProps {
+  onTabChange: (tab: string) => void;
+}
+
+export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeudasProps) {
+    const [distribuidores, setDistribuidores] = useState<any[]>([]);
+    const [cargando, setCargando] = useState<boolean>(true);
+    const [distribuidorSeleccionado, setDistribuidorSeleccionado] = useState<any>(null);
+    const [isModalModificarOpen, setIsModalModificarOpen] = useState<boolean>(false);
+    const [distribuidorModificando, setDistribuidorModificando] = useState<any>({
         cuit: '',
         nombre: '',
         telefono: '',
@@ -87,7 +91,7 @@ export default function DistribuidoresDeudas({ onTabChange }) {
         setIsModalModificarOpen(false);
     };
 
-    const handleActualizarDistribuidor = async (distribuidorActualizado) => {
+    const handleActualizarDistribuidor = async (distribuidorActualizado: any) => {
         try {
             const response = await fetch('/api/distribuidores', {
                 method: 'PUT',
@@ -116,7 +120,7 @@ export default function DistribuidoresDeudas({ onTabChange }) {
             
         } catch (error) {
             console.error("Error al actualizar el distribuidor:", error);
-            alert("Error al actualizar el distribuidor: " + error.message);
+            alert("Error al actualizar el distribuidor: " + (error instanceof Error ? error.message : 'Error desconocido'));
         }
     };
 

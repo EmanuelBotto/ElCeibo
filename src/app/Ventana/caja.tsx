@@ -15,12 +15,16 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
-export default function Caja({ onTabChange }) {
-    const [facturas, setFacturas] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [cargando, setCargando] = useState(true);
-    const [busqueda, setBusqueda] = useState('');
-    const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
+interface CajaProps {
+  onTabChange: (tab: string) => void;
+}
+
+export default function Caja({ onTabChange }: CajaProps) {
+    const [facturas, setFacturas] = useState<any[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const [cargando, setCargando] = useState<boolean>(true);
+    const [busqueda, setBusqueda] = useState<string>('');
+    const [facturaSeleccionada, setFacturaSeleccionada] = useState<any>(null);
     
 
     const obtenerFacturas = async () => {

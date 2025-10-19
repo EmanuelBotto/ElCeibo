@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState } from "react";
-import Caja from './ventana/caja.jsx';
-import Producto from './ventana/producto.jsx';
-import FichasClientes from './mascota/fichas-clientes.jsx';
+import Caja from './ventana/caja';
+import Producto from './ventana/producto';
+import FichasClientes from './mascota/fichas-clientes';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
-import Item from './ventana/item.jsx';
-import Ingreso from './ventana/ingreso.jsx';
-import DistribuidoresDeudas from './ventana/distribuidores-deudas.jsx';
+import Item from './ventana/item';
+import Ingreso from './ventana/ingreso';
+import DistribuidoresDeudas from './ventana/distribuidores-deudas';
 // import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function HomePage() {
