@@ -9,7 +9,7 @@ import DashboardPage from './dashboard/page';
 import Item from './ventana/item';
 import Ingreso from './ventana/ingreso';
 import DistribuidoresDeudas from './ventana/distribuidores-deudas';
-import ProtectedRoute from '@/components/ProtectedRoute';
+// import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('inicio');

@@ -38,7 +38,7 @@ export async function GET() {
                         ...factura,
                         cantidad_productos: parseInt(countResult.rows[0].cantidad) || 0
                     };
-                } catch (err) {
+                } catch {
                     return {
                         ...factura,
                         cantidad_productos: 0
@@ -48,7 +48,7 @@ export async function GET() {
         );
 
         return NextResponse.json(facturasConProductos);
-    } catch (err) {
+    } catch {
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

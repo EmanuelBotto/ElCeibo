@@ -68,14 +68,16 @@ export default function PhotoChangeModal({
       const file = files[0];
       if (file.type.startsWith('image/')) {
         // Simular el input file
-        const input = document.getElementById('foto_input');
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        input.files = dataTransfer.files;
-        
-        // Disparar el evento change
-        const event = new Event('change', { bubbles: true });
-        input.dispatchEvent(event);
+        const input = document.getElementById('foto_input') as HTMLInputElement;
+        if (input) {
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          input.files = dataTransfer.files;
+          
+          // Disparar el evento change
+          const event = new Event('change', { bubbles: true });
+          input.dispatchEvent(event);
+        }
       } else {
         toast.error('Por favor arrastra un archivo de imagen válido.');
       }

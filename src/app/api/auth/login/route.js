@@ -51,7 +51,7 @@ export async function POST(request) {
       }
 
       // Retornar datos del usuario (sin contraseña)
-      const { contrasenia: password, ...userData } = user;
+      const { contrasenia: _, ...userData } = user;
       
       // Crear respuesta con cookies de autenticación
       const response = NextResponse.json({

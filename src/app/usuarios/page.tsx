@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+// import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { useAuth } from '../../components/AuthProvider';
 import { AdminOnly } from '../../components/HiddenIfNoPermission';
@@ -18,8 +18,8 @@ import {
   Phone,
   MapPin,
   ArrowLeft,
-  Camera,
-  Upload,
+  // Camera,
+  // Upload,
   User
 } from 'lucide-react';
 import ImageDisplay from '@/components/ImageDisplay';
@@ -50,8 +50,8 @@ export default function UsuariosPage() {
   const [isNuevoUsuarioDialogOpen, setIsNuevoUsuarioDialogOpen] = useState(false);
   const [isEditarUsuarioDialogOpen, setIsEditarUsuarioDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  // const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [selectedUserForPhoto, setSelectedUserForPhoto] = useState<User | null>(null);
   const { user: currentUser } = useAuth();
@@ -97,14 +97,14 @@ export default function UsuariosPage() {
     }
   };
 
-  const handleAgregarUsuario = async (usuarioData) => {
+  const handleAgregarUsuario = async (usuarioData: any) => {
     try {
       const formDataToSend = new FormData();
       
       // Agregar datos del formulario
       Object.entries(usuarioData).forEach(([key, value]) => {
-        if (value !== '' && value !== null) {
-          formDataToSend.append(key, value);
+        if (value !== '' && value !== null && value !== undefined) {
+          formDataToSend.append(key, value as string | Blob);
         }
       });
       
@@ -127,14 +127,14 @@ export default function UsuariosPage() {
     }
   };
 
-  const handleEditarUsuario = async (usuarioData) => {
+  const handleEditarUsuario = async (usuarioData: any) => {
     try {
       const formDataToSend = new FormData();
       
       // Agregar datos del formulario
       Object.entries(usuarioData).forEach(([key, value]) => {
-        if (value !== '' && value !== null) {
-          formDataToSend.append(key, value);
+        if (value !== '' && value !== null && value !== undefined) {
+          formDataToSend.append(key, value as string | Blob);
         }
       });
       
@@ -186,14 +186,14 @@ export default function UsuariosPage() {
   };
 
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    }
-  };
+  // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (file) {
+  //     setSelectedFile(file);
+  //     const url = URL.createObjectURL(file);
+  //     setPreviewUrl(url);
+  //   }
+  // };
 
   const handleBackClick = () => {
     router.push('/');
