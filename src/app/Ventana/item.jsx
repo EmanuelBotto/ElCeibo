@@ -13,6 +13,8 @@ import {
   TableCell,
   TableCaption,
 } from "@/components/ui/table";
+import DialogoNuevoItem from "@/components/DialogoNuevoItem";
+import DialogoEditarItem from "@/components/DialogoEditarItem";
 
 export default function Item() {
   // Lista de items
@@ -32,7 +34,8 @@ export default function Item() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [rubroSeleccionado, setRubroSeleccionado] = useState('Todos');
   const itemsPorPagina = 10;
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [isNuevoItemDialogOpen, setIsNuevoItemDialogOpen] = useState(false);
+  const [isEditarItemDialogOpen, setIsEditarItemDialogOpen] = useState(false);
   const [itemSeleccionado, setItemSeleccionado] = useState(null);
   const [prospectoSeleccionado, setProspectoSeleccionado] = useState('');
 
@@ -121,7 +124,6 @@ export default function Item() {
       try {
         responseData = await res.json();
       } catch (jsonError) {
-        console.warn('La respuesta no contiene JSON válido, pero el item fue creado');
       }
 
       setNuevoItem({
@@ -178,6 +180,54 @@ export default function Item() {
     } catch (err) {
       alert(err.message);
       console.error('Error completo:', err);
+    }
+  };
+
+  // Función para manejar la creación desde el modal
+  const handleCrearItem = async (itemData) => {
+    try {
+      const res = await fetch('/api/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(itemData),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Error al crear el item');
+      }
+
+      // Recargar items
+      cargarItems();
+    } catch (error) {
+      console.error('Error al crear item:', error);
+      throw error;
+    }
+  };
+
+  // Función para manejar la edición desde el modal
+  const handleEditarItem = async (itemData) => {
+    try {
+      const res = await fetch(`/api/items/${itemData.id_item}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(itemData),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Error al actualizar el item');
+      }
+
+      // Recargar items
+      cargarItems();
+    } catch (error) {
+      console.error('Error al actualizar item:', error);
+      throw error;
     }
   };
 
@@ -238,10 +288,9 @@ export default function Item() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
           <div className="text-center md:text-left">
             <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Items</h1>
-            <p className="text-gray-600 text-lg">Administra productos, medicamentos y servicios</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setMostrarFormulario(true)} className="px-6 py-2">
+            <Button onClick={() => setIsNuevoItemDialogOpen(true)} className="px-6 py-2">
               Agregar
             </Button>
             <Button
@@ -250,7 +299,7 @@ export default function Item() {
               onClick={() => {
                 if (itemSeleccionado) {
                   setItemEditando({ ...itemSeleccionado });
-                  setMostrarFormularioEdicion(true);
+                  setIsEditarItemDialogOpen(true);
                 }
               }}
               className="px-6 py-2"
@@ -393,126 +442,22 @@ export default function Item() {
         </div>
       </div>
 
-      {/* Modal de nuevo item */}
-      {mostrarFormulario && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-[500px] max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Nuevo Item</h2>
-            <div className="flex flex-col gap-4 mb-4">
-              <div>
-                <Label htmlFor="detalle">Descripción *</Label>
-                <Input
-                  id="detalle"
-                  value={nuevoItem.detalle}
-                  onChange={(e) => setNuevoItem({ ...nuevoItem, detalle: e.target.value })}
-                  placeholder="Descripción del item"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="rubro">Rubro *</Label>
-                <Input
-                  id="rubro"
-                  value={nuevoItem.rubro}
-                  onChange={(e) => setNuevoItem({ ...nuevoItem, rubro: e.target.value })}
-                  placeholder="Rubro del item"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="duracion">Duración</Label>
-                <Input
-                  id="duracion"
-                  value={nuevoItem.duracion}
-                  onChange={(e) => setNuevoItem({ ...nuevoItem, duracion: e.target.value })}
-                  placeholder="Duración (ej: 12 meses)"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="prospecto">Prospecto</Label>
-                <textarea
-                  id="prospecto"
-                  value={nuevoItem.prospecto}
-                  onChange={(e) => setNuevoItem({ ...nuevoItem, prospecto: e.target.value })}
-                  placeholder="Prospecto del item..."
-                  className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:border-purple-400 focus:outline-none mt-1"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setMostrarFormulario(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={crearItem}>
-                Guardar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modales */}
+      <DialogoNuevoItem
+        isOpen={isNuevoItemDialogOpen}
+        onClose={() => setIsNuevoItemDialogOpen(false)}
+        onSubmit={handleCrearItem}
+      />
 
-      {/* Modal de edición de item */}
-      {mostrarFormularioEdicion && itemEditando && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-[500px] max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Editar Item</h2>
-            <div className="flex flex-col gap-4 mb-4">
-              <div>
-                <Label htmlFor="detalleEdit">Descripción *</Label>
-                <Input
-                  id="detalleEdit"
-                  value={itemEditando.detalle || ''}
-                  onChange={(e) => setItemEditando({ ...itemEditando, detalle: e.target.value })}
-                  placeholder="Descripción del item"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="rubroEdit">Rubro *</Label>
-                <Input
-                  id="rubroEdit"
-                  value={itemEditando.rubro || ''}
-                  onChange={(e) => setItemEditando({ ...itemEditando, rubro: e.target.value })}
-                  placeholder="Rubro del item"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="duracionEdit">Duración</Label>
-                <Input
-                  id="duracionEdit"
-                  value={itemEditando.duracion || ''}
-                  onChange={(e) => setItemEditando({ ...itemEditando, duracion: e.target.value })}
-                  placeholder="Duración (ej: 12 meses)"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="prospectoEdit">Prospecto</Label>
-                <textarea
-                  id="prospectoEdit"
-                  value={itemEditando.prospecto || ''}
-                  onChange={(e) => setItemEditando({ ...itemEditando, prospecto: e.target.value })}
-                  placeholder="Prospecto del item..."
-                  className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:border-purple-400 focus:outline-none mt-1"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => {
-                setMostrarFormularioEdicion(false);
-                setItemEditando(null);
-              }}>
-                Cancelar
-              </Button>
-              <Button onClick={actualizarItem}>
-                Guardar Cambios
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DialogoEditarItem
+        isOpen={isEditarItemDialogOpen}
+        onClose={() => {
+          setIsEditarItemDialogOpen(false);
+          setItemEditando(null);
+        }}
+        onSubmit={handleEditarItem}
+        itemData={itemEditando}
+      />
     </div>
   );
 }

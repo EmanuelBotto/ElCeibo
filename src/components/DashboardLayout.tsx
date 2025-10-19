@@ -24,7 +24,7 @@ export default function DashboardLayout({ children, activeTab, onTabChange }: Da
                 {/* Contenido principal */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Contenido */}
-          <main className="flex-1 overflow-auto bg-gray-50 pl-8">
+          <main className="flex-1 overflow-auto bg-gray-50">
             {children}
           </main>
         </div>

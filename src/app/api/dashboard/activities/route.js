@@ -16,17 +16,33 @@ export async function GET() {
       // Obtener actividades recientes de diferentes fuentes
       const activities = [];
 
-      // 1. Clientes recientes (últimos 5)
-      const clientesRecientes = await client.query(`
-        SELECT 
-          id_clinete,
-          nombre,
-          apellido,
-          'cliente' as tipo
-        FROM cliente 
-        ORDER BY id_clinete DESC 
-        LIMIT 5
+
+      // Verificar si las tablas existen
+      const tableCheck = await client.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name IN ('cliente', 'producto', 'mascota', 'factura')
       `);
+      console.log('Tablas disponibles:', tableCheck.rows.map(r => r.table_name));
+
+      // 1. Clientes recientes (últimos 5)
+      let clientesRecientes;
+      try {
+        clientesRecientes = await client.query(`
+          SELECT 
+            id_clinete,
+            nombre,
+            apellido,
+            'cliente' as tipo
+          FROM cliente 
+          ORDER BY id_clinete DESC 
+          LIMIT 5
+        `);
+      } catch (error) {
+        console.error('❌ Error en consulta de clientes:', error.message);
+        clientesRecientes = { rows: [] };
+      }
 
       clientesRecientes.rows.forEach(cliente => {
         activities.push({
@@ -39,15 +55,21 @@ export async function GET() {
       });
 
       // 2. Productos recientes (últimos 3)
-      const productosRecientes = await client.query(`
-        SELECT 
-          id_producto,
-          nombre,
-          'producto' as tipo
-        FROM producto 
-        ORDER BY id_producto DESC 
-        LIMIT 3
-      `);
+      let productosRecientes;
+      try {
+        productosRecientes = await client.query(`
+          SELECT 
+            id_producto,
+            nombre,
+            'producto' as tipo
+          FROM producto 
+          ORDER BY id_producto DESC 
+          LIMIT 3
+        `);
+      } catch (error) {
+        console.error('❌ Error en consulta de productos:', error.message);
+        productosRecientes = { rows: [] };
+      }
 
       productosRecientes.rows.forEach(producto => {
         activities.push({
@@ -60,18 +82,24 @@ export async function GET() {
       });
 
       // 3. Mascotas recientes (últimas 3)
-      const mascotasRecientes = await client.query(`
-        SELECT 
-          m.id_mascota,
-          m.nombre,
-          c.nombre as nombre_cliente,
-          c.apellido as apellido_cliente,
-          'mascota' as tipo
-        FROM mascota m
-        JOIN cliente c ON m.id_cliente = c.id_clinete
-        ORDER BY m.id_mascota DESC 
-        LIMIT 3
-      `);
+      let mascotasRecientes;
+      try {
+        mascotasRecientes = await client.query(`
+          SELECT 
+            m.id_mascota,
+            m.nombre,
+            c.nombre as nombre_cliente,
+            c.apellido as apellido_cliente,
+            'mascota' as tipo
+          FROM mascota m
+          JOIN cliente c ON m.id_cliente = c.id_clinete
+          ORDER BY m.id_mascota DESC 
+          LIMIT 3
+        `);
+      } catch (error) {
+        console.error('❌ Error en consulta de mascotas:', error.message);
+        mascotasRecientes = { rows: [] };
+      }
 
       mascotasRecientes.rows.forEach(mascota => {
         activities.push({
@@ -84,21 +112,27 @@ export async function GET() {
       });
 
       // 4. Ventas recientes (últimas 3)
-      const ventasRecientes = await client.query(`
-        SELECT 
-          id_factura,
-          monto_total,
-          'venta' as tipo
-        FROM factura 
-        ORDER BY id_factura DESC 
-        LIMIT 3
-      `);
+      let ventasRecientes;
+      try {
+        ventasRecientes = await client.query(`
+          SELECT 
+            id_factura,
+            monto_total,
+            'venta' as tipo
+          FROM factura 
+          ORDER BY id_factura DESC 
+          LIMIT 3
+        `);
+      } catch (error) {
+        console.error('❌ Error en consulta de ventas:', error.message);
+        ventasRecientes = { rows: [] };
+      }
 
       ventasRecientes.rows.forEach(venta => {
         activities.push({
           id: `venta_${venta.id_factura}`,
           type: "venta",
-          message: `Venta realizada: $${venta.monto_total?.toFixed(2) || '0.00'}`,
+          message: `Venta realizada: $${venta.monto_total || '0.00'}`,
           time: "Reciente",
           icon: "DollarSign"
         });
@@ -112,6 +146,7 @@ export async function GET() {
           return idB - idA;
         })
         .slice(0, 8);
+
 
       return NextResponse.json(actividadesOrdenadas);
     } finally {

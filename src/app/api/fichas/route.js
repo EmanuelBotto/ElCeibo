@@ -24,6 +24,8 @@ export async function GET(request) {
           c.calle,
           c.numero,
           c.codigo_postal,
+          COALESCE(c.telefono, '') as telefono,
+          COALESCE(c.mail, '') as email,
           COALESCE(
             (
               SELECT json_agg(

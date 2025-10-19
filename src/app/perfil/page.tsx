@@ -5,16 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
-import { User, Edit, Camera, Mail, Phone, MapPin, Shield, ArrowLeft } from 'lucide-react';
+import { User, Edit, Camera, Mail, Phone, MapPin, Shield, ArrowLeft, LogOut } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
+import ImageDisplay from '@/components/ImageDisplay';
+import PhotoChangeModal from '@/components/PhotoChangeModal';
 
 export default function PerfilPage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -93,6 +96,40 @@ export default function PerfilPage() {
     router.push('/');
   };
 
+  const handlePhotoChange = async (newPhoto: string) => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_usuario: user.id_usuario,
+          foto: newPhoto
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al actualizar la foto');
+      }
+
+      // Actualizar el contexto de autenticación con la nueva foto
+      updateUser({ ...user, foto: newPhoto });
+      toast.success('Foto actualizada exitosamente');
+    } catch (error: any) {
+      toast.error(error.message || 'Error al actualizar la foto');
+    }
+  };
+
+  //const handleLogout = () => {
+  //  logout();
+  //  router.push('/login');
+  //};
+
   return (
       <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
@@ -122,6 +159,15 @@ export default function PerfilPage() {
                 <Edit className="mr-2" size={16} />
                 {isEditing ? 'Cancelar' : 'Editar Perfil'}
               </Button>
+              
+              {/*<Button
+                variant="outline"
+                onClick={handleLogout}
+                className="border-red-300 text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar Sesión
+              </Button> */}
             </div>
           </div>
 
@@ -136,30 +182,44 @@ export default function PerfilPage() {
                 <div className="p-6">
                   {/* Foto de perfil */}
                   <div className="text-center mb-6">
-                    <div className="relative inline-block">
-                      <div className="w-32 h-32 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        {user.foto ? (
-                          <img 
-                            src={user.foto} 
-                            alt="Foto de perfil" 
-                            className="w-32 h-32 rounded-full object-cover"
-                          />
-                        ) : (
-                          <User className="text-purple-600" size={48} />
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0"
+                    <div className="flex flex-col items-center">
+                      <div 
+                        className="cursor-pointer group relative"
+                        onClick={() => setIsPhotoModalOpen(true)}
+                        title="Hacer click para cambiar la foto"
                       >
-                        <Camera size={16} />
-                      </Button>
+                        <div className="w-32 h-32 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:shadow-lg transition-all duration-200 overflow-hidden">
+                          {user.foto ? (
+                            <ImageDisplay
+                              src={user.foto}
+                              alt="Foto de perfil"
+                              className="w-full h-full rounded-full object-cover"
+                              showControls={false}
+                            />
+                          ) : (
+                            <User className="text-purple-600" size={48} />
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsPhotoModalOpen(true)}
+                          className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                        >
+                          <Camera className="w-4 h-4 mr-2" />
+                          Cambiar Foto
+                        </Button>
+                      </div>
+                      
+                      <h3 className="text-xl font-bold text-gray-800 mt-4">
+                        {user.nombre} {user.apellido}
+                      </h3>
+                      <p className="text-gray-600">{user.email}</p>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {user.nombre} {user.apellido}
-                    </h3>
-                    <p className="text-gray-600">{user.email}</p>
                   </div>
 
                   {/* Información de contacto */}
@@ -334,6 +394,18 @@ export default function PerfilPage() {
             </div>
           </div>
         </div>
+
+        {/* Modal de cambio de foto */}
+        <PhotoChangeModal
+          isOpen={isPhotoModalOpen}
+          onClose={() => setIsPhotoModalOpen(false)}
+          currentPhoto={user.foto || ''}
+          onPhotoChange={handlePhotoChange}
+          title={`Cambiar Foto de ${user.nombre} ${user.apellido}`}
+          description="Selecciona una nueva foto para tu perfil."
+          entityName={`${user.nombre} ${user.apellido}`}
+          onSave={handlePhotoChange}
+        />
       </div>
     </ProtectedRoute>
   );

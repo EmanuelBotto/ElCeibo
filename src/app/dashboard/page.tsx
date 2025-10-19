@@ -45,18 +45,25 @@ export default function DashboardPage() {
         
         // Obtener estadísticas
         const statsResponse = await fetch('/api/dashboard/stats');
+        if (!statsResponse.ok) {
+          throw new Error(`Error ${statsResponse.status}: ${statsResponse.statusText}`);
+        }
         const statsData = await statsResponse.json();
         
         // Obtener actividades recientes
         const activitiesResponse = await fetch('/api/dashboard/activities');
+        if (!activitiesResponse.ok) {
+          throw new Error(`Error ${activitiesResponse.status}: ${activitiesResponse.statusText}`);
+        }
         const activitiesData = await activitiesResponse.json();
-
+        const activitiesArray = Array.isArray(activitiesData) ? activitiesData : [];
+        
         // Mapear estadísticas con iconos
         const statsWithIcons: StatItem[] = [
           {
             title: "Total Clientes",
             value: statsData.totalClientes?.valor?.toLocaleString() || "0",
-            change: `${statsData.totalClientes?.cambio >= 0 ? '+' : ''}${statsData.totalClientes?.cambio || 0}%`,
+            change: "Registrados",
             icon: Users,
             color: "text-blue-600",
             bgColor: "bg-blue-100"
@@ -64,7 +71,7 @@ export default function DashboardPage() {
           {
             title: "Productos Activos",
             value: statsData.totalProductos?.valor?.toLocaleString() || "0",
-            change: `${statsData.totalProductos?.cambio >= 0 ? '+' : ''}${statsData.totalProductos?.cambio || 0}%`,
+            change: "En inventario",
             icon: Package,
             color: "text-green-600",
             bgColor: "bg-green-100"
@@ -72,7 +79,7 @@ export default function DashboardPage() {
           {
             title: "Fichas Creadas",
             value: statsData.totalMascotas?.valor?.toLocaleString() || "0",
-            change: `${statsData.totalMascotas?.cambio >= 0 ? '+' : ''}${statsData.totalMascotas?.cambio || 0}%`,
+            change: "Mascotas atendidas",
             icon: FileText,
             color: "text-purple-600",
             bgColor: "bg-purple-100"
@@ -80,27 +87,44 @@ export default function DashboardPage() {
           {
             title: "Ingresos del Mes",
             value: `$${statsData.ingresosMes?.valor?.toLocaleString() || "0"}`,
-            change: `${statsData.ingresosMes?.cambio >= 0 ? '+' : ''}${statsData.ingresosMes?.cambio || 0}%`,
+            change: (() => {
+              const ingresos = statsData.ingresosMes?.valor || 0;
+              const cambio = statsData.ingresosMes?.cambio;
+              
+              console.log('Debug ingresos:', { ingresos, cambio, tipo: typeof ingresos });
+              
+              // Solo mostrar porcentaje si los ingresos son mayores a 100,000
+              if (ingresos > 100000 && cambio !== null && cambio !== undefined) {
+                return `${cambio >= 0 ? '+' : ''}${cambio}%`;
+              } else if (ingresos <= 100000) {
+                return "Ingresos insuficientes para comparar";
+              } else {
+                return "Datos insuficientes para comparar";
+              }
+            })(),
             icon: DollarSign,
             color: "text-orange-600",
             bgColor: "bg-orange-100"
           }
         ];
 
-        // Mapear actividades con iconos
-        const activitiesWithIcons: ActivityItem[] = activitiesData.map((activity: any) => {
-          const iconMap: { [key: string]: React.ComponentType<any> } = {
-            'Users': Users,
-            'Package': Package,
-            'FileText': FileText,
-            'DollarSign': DollarSign
-          };
-          
-          return {
-            ...activity,
-            icon: iconMap[activity.icon] || Activity
-          };
-        });
+        // Mapear actividades con iconos y filtrar actividades sin ID válido
+        const activitiesWithIcons: ActivityItem[] = activitiesArray
+          .filter((activity: any) => activity.id && activity.id !== 'undefined')
+          .map((activity: any, index: number) => {
+            const iconMap: { [key: string]: React.ComponentType<any> } = {
+              'Users': Users,
+              'Package': Package,
+              'FileText': FileText,
+              'DollarSign': DollarSign
+            };
+            
+            return {
+              ...activity,
+              id: activity.id || `activity_${index}`, // Fallback para IDs undefined
+              icon: iconMap[activity.icon] || Activity
+            };
+          });
 
         setStats(statsWithIcons);
         setRecentActivities(activitiesWithIcons);
@@ -111,7 +135,7 @@ export default function DashboardPage() {
           {
             title: "Total Clientes",
             value: "0",
-            change: "0%",
+            change: "Registrados",
             icon: Users,
             color: "text-blue-600",
             bgColor: "bg-blue-100"
@@ -119,7 +143,7 @@ export default function DashboardPage() {
           {
             title: "Productos Activos",
             value: "0",
-            change: "0%",
+            change: "En inventario",
             icon: Package,
             color: "text-green-600",
             bgColor: "bg-green-100"
@@ -127,7 +151,7 @@ export default function DashboardPage() {
           {
             title: "Fichas Creadas",
             value: "0",
-            change: "0%",
+            change: "Mascotas atendidas",
             icon: FileText,
             color: "text-purple-600",
             bgColor: "bg-purple-100"
@@ -135,7 +159,7 @@ export default function DashboardPage() {
           {
             title: "Ingresos del Mes",
             value: "$0",
-            change: "0%",
+            change: "Ingresos insuficientes para comparar",
             icon: DollarSign,
             color: "text-orange-600",
             bgColor: "bg-orange-100"
@@ -168,12 +192,9 @@ export default function DashboardPage() {
       {/* Header del Dashboard */}
       <div className="flex items-center justify-between">
         <div>
-          {/* <h1 className="text-3xl font-bold text-gray-900">
-            ¡Bienvenido, {user?.nombre}!
-          </h1> */}
-                     <p className="text-2xl text-black mt-1">
-             Resumen de actividades
-           </p>
+          <p className="text-2xl text-black mt-1">
+            Resumen de actividades
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <Calendar className="text-black" size={20} />
@@ -204,10 +225,24 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                <p className={`text-xs mt-1 ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                  <TrendingUp className="inline h-3 w-3 mr-1" />
-                  {stat.change} desde el mes pasado
-                </p>
+                {stat.title === "Ingresos del Mes" ? (
+                  <p className={`text-xs mt-1 ${
+                    stat.change.includes('insuficientes') || stat.change.includes('Datos insuficientes') ? 'text-gray-500' : 
+                    (stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600')
+                  }`}>
+                    {!stat.change.includes('insuficientes') && !stat.change.includes('Datos insuficientes') && (
+                      <TrendingUp className="inline h-3 w-3 mr-1" />
+                    )}
+                    {stat.change.includes('insuficientes') || stat.change.includes('Datos insuficientes') ? 
+                      stat.change : 
+                      `${stat.change} desde el mes pasado`
+                    }
+                  </p>
+                ) : (
+                  <p className="text-xs mt-1 text-gray-500">
+                    {stat.change}
+                  </p>
+                )}
               </CardContent>
             </Card>
           );
@@ -267,10 +302,6 @@ export default function DashboardPage() {
                 <span className="text-sm text-black">Versión del Sistema</span>
                 <span className="text-sm font-medium text-black">v1.0.0</span>
               </div>
-              {/* <div className="flex items-center justify-between">
-                <span className="text-sm text-black">Última Actualización</span>
-                <span className="text-sm font-medium">Hace 2 días</span>
-              </div> */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-black">Estado del Servidor</span>
                 <span className="text-sm font-medium text-green-600">Online</span>

@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ElCeibo - Instalador Completo
+# Sistema de gestión veterinaria
 
-## Getting Started
+## 📋 Instalación Automática
 
-First, run the development server:
-
+### Opción 1: Instalación con Docker (RECOMENDADA)
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clonar el repositorio
+git clone https://github.com/tu-usuario/elceibo.git
+cd elceibo
+
+# Ejecutar instalación automática
+chmod +x install.sh
+./install.sh
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Opción 2: Instalación Manual
+```bash
+# Instalar dependencias
+npm install
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Configurar base de datos
+npm run setup:db
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Iniciar aplicación
+npm start
+```
 
-## Learn More
+## 🐳 Docker Compose (Todo incluido)
 
-To learn more about Next.js, take a look at the following resources:
+El instalador incluye:
+- ✅ Aplicación Next.js
+- ✅ Base de datos PostgreSQL
+- ✅ Configuración automática
+- ✅ SSL opcional
+- ✅ Backup automático
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📁 Estructura del Proyecto
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+elceibo/
+├── src/                    # Código fuente
+├── docker/                 # Configuración Docker
+├── scripts/               # Scripts de instalación
+├── docs/                  # Documentación
+├── install.sh            # Instalador principal
+├── docker-compose.yml    # Orquestación completa
+└── README.md             # Este archivo
+```
 
-## Deploy on Vercel
+## 🚀 Características del Instalador
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Instalación en 1 comando**
+- **Base de datos automática**
+- **Configuración SSL opcional**
+- **Backup automático**
+- **Actualizaciones fáciles**
+- **Soporte para Windows/Linux/Mac**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📞 Soporte
+
+Para soporte técnico: soporte@elceibo.com

@@ -10,8 +10,14 @@ export async function GET(request, { params }) {
     try {
         client = await pool.connect();
         const { id } = await params; // id_mascota
-        // Traer visitas
-        const visitasResult = await client.query('SELECT * FROM visita WHERE id_mascota = $1 ORDER BY fecha DESC', [id]);
+        // Traer visitas con información del veterinario
+        const visitasResult = await client.query(`
+            SELECT v.*, u.nombre, u.apellido 
+            FROM visita v 
+            LEFT JOIN usuario u ON v.id_usuario = u.id_usuario 
+            WHERE v.id_mascota = $1 
+            ORDER BY v.fecha DESC
+        `, [id]);
         const visitas = visitasResult.rows;
         // Traer vacunas aplicadas agrupadas por visita
         const vacunasResult = await client.query('SELECT * FROM vacuna_aplicada WHERE id_mascota = $1', [id]);
