@@ -110,7 +110,10 @@ export default function ImageDisplay({
           alt={alt}
           className="w-full h-full object-cover rounded-full"
           onError={(e) => {
-            console.error("Error loading image:", e.target.src);
+            console.error(
+              "Error loading image:",
+              (e.target as HTMLImageElement).src
+            );
             setImageError(true);
           }}
           onLoad={() => {
