@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, PlusCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // Importar componentes modulares
 import {
@@ -208,19 +216,13 @@ export default function FichaPaciente({ mascotaId }) {
     setIsDecesoDialogOpen(true);
   };
 
-  const handleActualizacionDeceso = async (e) => {
-    e.preventDefault();
-    if (decesoForm.deceso && !decesoForm.fecha_seceso) {
-      toast.error("Por favor ingresa la fecha de deceso");
-      return;
-    }
-
+  const handleActualizacionDeceso = async () => {
     setIsActualizandoDeceso(true);
     try {
       const mascotaActualizada = {
         ...ficha.mascota,
-        deceso: decesoForm.deceso,
-        fecha_seceso: decesoForm.deceso ? decesoForm.fecha_seceso : null,
+        deceso: !ficha.mascota.deceso,
+        fecha_seceso: !ficha.mascota.deceso ? new Date().toISOString().split('T')[0] : null,
       };
 
       const response = await fetch(`/api/mascotas/${mascotaId}`, {
@@ -238,9 +240,9 @@ export default function FichaPaciente({ mascotaId }) {
       await cargarDatosMascota();
       setIsDecesoDialogOpen(false);
       toast.success(
-        decesoForm.deceso
-          ? "Estado de deceso actualizado"
-          : "Estado de deceso removido"
+        !ficha.mascota.deceso
+          ? "Mascota marcada como fallecida"
+          : "Estado de fallecido removido"
       );
     } catch (error) {
       console.error("Error al actualizar deceso:", error);
@@ -351,7 +353,7 @@ export default function FichaPaciente({ mascotaId }) {
             <TarjetaInfoMascota
               ficha={ficha}
               onEditPet={() => setIsEditarMascotaDialogOpen(true)}
-              onDeletePet={handleEliminarMascota}
+              onDeletePet={handleAbrirEdicionDeceso}
               onAddNewPet={() => setIsNuevaMascotaDialogOpen(true)}
               historial={historial}
             />
@@ -511,79 +513,38 @@ export default function FichaPaciente({ mascotaId }) {
       )}
 
       {/* Diálogo para editar estado de deceso */}
-      {isDecesoDialogOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-xl font-bold text-purple-800 mb-4">
-              Estado de {mascota?.nombre}
-            </h2>
-            <form onSubmit={handleActualizacionDeceso} className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="deceso"
-                  checked={decesoForm.deceso}
-                  onChange={(e) =>
-                    setDecesoForm((prev) => ({
-                      ...prev,
-                      deceso: e.target.checked,
-                    }))
-                  }
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="deceso"
-                  className="text-base font-semibold text-gray-700"
-                >
-                  Marcar como fallecido
-                </label>
-              </div>
-
-              {decesoForm.deceso && (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="fecha_seceso"
-                    className="text-base font-semibold text-gray-700"
-                  >
-                    Fecha de deceso *
-                  </label>
-                  <input
-                    id="fecha_seceso"
-                    type="date"
-                    value={decesoForm.fecha_seceso}
-                    onChange={(e) =>
-                      setDecesoForm((prev) => ({
-                        ...prev,
-                        fecha_seceso: e.target.value,
-                      }))
-                    }
-                    max={new Date().toISOString().split("T")[0]}
-                    required={decesoForm.deceso}
-                    className="w-full h-10 px-3 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDecesoDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isActualizandoDeceso}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {isActualizandoDeceso ? "Actualizando..." : "Actualizar Estado"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Dialog open={isDecesoDialogOpen} onOpenChange={() => setIsDecesoDialogOpen(false)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-purple-800 text-center">
+              {ficha?.mascota?.deceso ? "Desmarcar Fallecido" : "Marcar como Fallecido"}
+            </DialogTitle>
+            <div className="text-center text-gray-600 py-4">
+              {ficha?.mascota?.deceso 
+                ? "¿Estás seguro de que quieres desmarcar a esta mascota como fallecida?"
+                : "¿Estás seguro de que quieres marcar a esta mascota como fallecida?"
+              }
+            </div>
+          </DialogHeader>
+          
+          <DialogFooter className="flex justify-end space-x-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDecesoDialogOpen(false)}
+              disabled={isActualizandoDeceso}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleActualizacionDeceso}
+              disabled={isActualizandoDeceso}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {isActualizandoDeceso ? "Procesando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

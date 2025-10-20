@@ -202,16 +202,14 @@ export default function TarjetaInfoMascota({
                     {owner?.nombre} {owner?.apellido}
                   </span>
                 </div>
-                {!mascota.deceso && (
-                  <div className="flex justify-end py-2">
-                    <Button
-                      onClick={onDeletePet}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      Marcar como fallecido
-                    </Button>
-                  </div>
-                )}
+                <div className="flex justify-end py-2">
+                  <Button
+                    onClick={onDeletePet}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {mascota.deceso ? "Desmarcar Fallecido" : "Marcar como fallecido"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

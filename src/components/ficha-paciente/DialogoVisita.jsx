@@ -102,15 +102,9 @@ export default function DialogoVisita({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-purple-800">
+          <DialogTitle className="text-xl font-bold text-purple-800 text-center">
             {isEditing ? "Editar Visita" : "Nueva Visita Médica"}
           </DialogTitle>
-          <DialogDescription className="text-gray-600">
-            {isEditing 
-              ? "Modifica los datos de la visita médica." 
-              : "Registra una nueva visita médica para el paciente."
-            }
-          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">

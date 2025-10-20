@@ -12,7 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Syringe, AlertTriangle, CheckCircle, Clock, PlusCircle } from "lucide-react";
+import { Syringe, AlertTriangle, CheckCircle, Clock, PlusCircle, Edit, Trash2 } from "lucide-react";
 import { formatearFechaCorta, validarFormularioVacuna } from "./utils";
 
 const InfoCard = ({ title, children, className, headerAction }) => (
@@ -275,11 +275,31 @@ export default function SeccionVacunas({
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`text-sm font-semibold ${color}`}>
-                      {fechaProxima.toLocaleDateString("es-ES")}
+                  <div className="flex items-center space-x-2">
+                    <div className="text-right">
+                      <div className={`text-sm font-semibold ${color}`}>
+                        {fechaProxima.toLocaleDateString("es-ES")}
+                      </div>
+                      <div className={`text-xs ${color}`}>{aviso}</div>
                     </div>
-                    <div className={`text-xs ${color}`}>{aviso}</div>
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditVaccination(vac)}
+                        className="h-6 px-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
+                      >
+                        <Edit size={12} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onDeleteVaccination(vac.id_vacuna_aplicada)}
+                        className="h-6 px-2 text-xs border-red-300 text-red-700 hover:bg-red-100"
+                      >
+                        <Trash2 size={12} />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

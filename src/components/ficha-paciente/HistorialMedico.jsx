@@ -43,9 +43,45 @@ export default function HistorialMedico({
 
   return (
     <div className="lg:col-span-2 bg-white rounded-lg p-4">
-      <h2 className="text-xl font-bold text-purple-800 mb-4">
-        Historial Médico de {mascotaNombre}
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-purple-800">
+          Historial Médico de {mascotaNombre}
+        </h2>
+        
+        {/* Botones de acción al lado del título */}
+        <div className="flex items-center space-x-2">
+          <Button
+            onClick={onAddVisit}
+            className="bg-purple-600 hover:bg-purple-700"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Visita
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              visitaSeleccionada && handleEditVisit(visitaSeleccionada)
+            }
+            disabled={!visitaSeleccionada}
+            className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            size="sm"
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Modificar Visita
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => handleDeleteVisit(visitaSeleccionada?.id_visita)}
+            disabled={!visitaSeleccionada}
+            className="bg-red-600 hover:bg-red-700"
+            size="sm"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Eliminar Visita
+          </Button>
+        </div>
+      </div>
       
       {/* Historial real */}
       {historial.length === 0 ? (
@@ -256,33 +292,6 @@ export default function HistorialMedico({
         </div>
       )}
 
-      {/* Botones de acción */}
-      <div className="flex justify-start space-x-2 mt-4">
-        <Button
-          onClick={onAddVisit}
-          className="bg-purple-600 hover:bg-purple-700"
-        >
-          Nueva Visita
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() =>
-            visitaSeleccionada && handleEditVisit(visitaSeleccionada)
-          }
-          disabled={!visitaSeleccionada}
-          className="border-blue-600 text-blue-600 hover:bg-blue-50"
-        >
-          Modificar Visita
-        </Button>
-        <Button
-          variant="destructive"
-          onClick={() => handleDeleteVisit(visitaSeleccionada?.id_visita)}
-          disabled={!visitaSeleccionada}
-          className="bg-red-600 hover:bg-red-700"
-        >
-          Eliminar Visita
-        </Button>
-      </div>
     </div>
   );
 }
