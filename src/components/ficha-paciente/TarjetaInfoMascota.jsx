@@ -6,9 +6,7 @@ import ImageDisplay from "@/components/ImageDisplay";
 import { getPetIcon } from "./utils";
 
 const InfoCard = ({ title, children, className, headerAction }) => (
-  <div
-    className={`bg-white rounded-lg p-4 ${className}`}
-  >
+  <div className={`bg-white rounded-lg p-4 ${className}`}>
     <div className="flex justify-between items-center border-b border-purple-200 pb-2 mb-3">
       <h3 className="font-bold text-purple-700">{title}</h3>
       {headerAction}
@@ -17,20 +15,25 @@ const InfoCard = ({ title, children, className, headerAction }) => (
   </div>
 );
 
-export default function TarjetaInfoMascota({ 
-  ficha, 
-  onEditPet, 
-  onDeletePet, 
+export default function TarjetaInfoMascota({
+  ficha,
+  onEditPet,
+  onDeletePet,
   onAddNewPet,
-  historial = []
+  historial = [],
 }) {
   if (!ficha?.mascota) {
     return (
       <div className="lg:col-span-1">
         <InfoCard title="Información de la Mascota">
           <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">No hay información de mascota disponible</p>
-            <Button onClick={onAddNewPet} className="bg-purple-600 hover:bg-purple-700">
+            <p className="text-gray-500 mb-4">
+              No hay información de mascota disponible
+            </p>
+            <Button
+              onClick={onAddNewPet}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
               Agregar Nueva Mascota
             </Button>
           </div>
@@ -46,11 +49,7 @@ export default function TarjetaInfoMascota({
       <InfoCard
         title="Info del animal"
         headerAction={
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onEditPet}
-          >
+          <Button size="icon" variant="ghost" onClick={onEditPet}>
             <Settings
               size={20}
               className="text-gray-500 hover:text-purple-700"
@@ -151,39 +150,17 @@ export default function TarjetaInfoMascota({
                       : "No registrado"}
                   </span>
                 </div>
-                {mascota.deceso && (
-                  <>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-sm font-medium text-gray-600">
-                        Estado
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                          Fallecido
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={onDeletePet}
-                          className="h-6 px-2 text-xs border-gray-300 hover:bg-gray-50"
-                        >
-                          Editar
-                        </Button>
-                      </div>
-                    </div>
-                    {mascota.fecha_seceso && (
-                      <div className="flex justify-between items-center py-2">
-                        <span className="text-sm font-medium text-gray-600">
-                          Fecha de deceso
-                        </span>
-                        <span className="text-sm font-semibold text-red-600">
-                          {new Date(
-                            mascota.fecha_seceso
-                          ).toLocaleDateString("es-ES")}
-                        </span>
-                      </div>
-                    )}
-                  </>
+                {mascota.deceso && mascota.fecha_seceso && (
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Fecha de deceso
+                    </span>
+                    <span className="text-sm font-semibold text-red-600">
+                      {new Date(mascota.fecha_seceso).toLocaleDateString(
+                        "es-ES"
+                      )}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -202,16 +179,16 @@ export default function TarjetaInfoMascota({
                     {owner?.nombre} {owner?.apellido}
                   </span>
                 </div>
-                {!mascota.deceso && (
-                  <div className="flex justify-end py-2">
-                    <Button
-                      onClick={onDeletePet}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      Marcar como fallecido
-                    </Button>
-                  </div>
-                )}
+                <div className="flex justify-center py-2">
+                  <Button
+                    onClick={onDeletePet}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {mascota.deceso
+                      ? "Desmarcar Fallecido"
+                      : "Marcar como fallecido"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

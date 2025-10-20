@@ -1,10 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, PlusCircle } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useConfirm } from "@/hooks/useConfirm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, PlusCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // Importar componentes modulares
 import {
@@ -15,20 +25,24 @@ import {
   EditPetDialog,
   VisitDialog,
   useFichaPaciente,
-  getPetIcon
+  getPetIcon,
 } from "@/components/ficha-paciente";
 
 export default function FichaPaciente({ mascotaId }) {
   const router = useRouter();
-  
+  const confirm = useConfirm();
+
   // Estados para diálogos
-  const [isNuevaMascotaDialogOpen, setIsNuevaMascotaDialogOpen] = useState(false);
-  const [isEditarMascotaDialogOpen, setIsEditarMascotaDialogOpen] = useState(false);
+  const [isNuevaMascotaDialogOpen, setIsNuevaMascotaDialogOpen] =
+    useState(false);
+  const [isEditarMascotaDialogOpen, setIsEditarMascotaDialogOpen] =
+    useState(false);
   const [isVisitaDialogOpen, setIsVisitaDialogOpen] = useState(false);
-  const [isEditarVisitaDialogOpen, setIsEditarVisitaDialogOpen] = useState(false);
+  const [isEditarVisitaDialogOpen, setIsEditarVisitaDialogOpen] =
+    useState(false);
   const [isFotoDialogOpen, setIsFotoDialogOpen] = useState(false);
   const [isDecesoDialogOpen, setIsDecesoDialogOpen] = useState(false);
-  
+
   // Estados para edición
   const [visitaSeleccionada, setVisitaSeleccionada] = useState(null);
   const [nuevaFoto, setNuevaFoto] = useState("");
@@ -36,7 +50,7 @@ export default function FichaPaciente({ mascotaId }) {
   const [isActualizandoDeceso, setIsActualizandoDeceso] = useState(false);
   const [decesoForm, setDecesoForm] = useState({
     deceso: false,
-    fecha_seceso: new Date().toISOString().split('T')[0],
+    fecha_seceso: new Date().toISOString().split("T")[0],
   });
 
   // Hook personalizado para manejar la lógica de la ficha
@@ -53,7 +67,7 @@ export default function FichaPaciente({ mascotaId }) {
     eliminarVisita,
     agregarMascota,
     eliminarMascota,
-    actualizarFotoMascota
+    actualizarFotoMascota,
   } = useFichaPaciente(mascotaId);
 
   // Estados de carga
@@ -93,13 +107,21 @@ export default function FichaPaciente({ mascotaId }) {
   };
 
   const handleEliminarVisita = async (idVisita) => {
-    if (window.confirm("¿Seguro que deseas eliminar esta visita?")) {
-      try {
-        await eliminarVisita(idVisita);
-      } catch (error) {
-        console.error("Error al eliminar visita:", error);
+    confirm.confirm(
+      {
+        title: "Eliminar visita",
+        description: "¿Estás seguro de que quieres eliminar esta visita?",
+        confirmText: "Eliminar",
+        variant: "destructive",
+      },
+      async () => {
+        try {
+          await eliminarVisita(idVisita);
+        } catch (error) {
+          console.error("Error al eliminar visita:", error);
+        }
       }
-    }
+    );
   };
 
   const handleGuardarVisita = async (visitaData) => {
@@ -146,14 +168,23 @@ export default function FichaPaciente({ mascotaId }) {
   };
 
   const handleEliminarMascota = async () => {
-    if (window.confirm("¿Seguro que deseas eliminar esta mascota?")) {
-      try {
-        await eliminarMascota(mascotaId);
-        router.push("/");
-      } catch (error) {
-        console.error("Error al eliminar mascota:", error);
+    confirm.confirm(
+      {
+        title: "Eliminar mascota",
+        description:
+          "¿Estás seguro de que quieres eliminar esta mascota? Esta acción no se puede deshacer.",
+        confirmText: "Eliminar",
+        variant: "destructive",
+      },
+      async () => {
+        try {
+          await eliminarMascota(mascotaId);
+          router.push("/");
+        } catch (error) {
+          console.error("Error al eliminar mascota:", error);
+        }
       }
-    }
+    );
   };
 
   const handleCambiarFoto = () => {
@@ -203,24 +234,21 @@ export default function FichaPaciente({ mascotaId }) {
   const handleAbrirEdicionDeceso = () => {
     setDecesoForm({
       deceso: ficha?.mascota?.deceso || false,
-      fecha_seceso: ficha?.mascota?.fecha_seceso || new Date().toISOString().split('T')[0],
+      fecha_seceso:
+        ficha?.mascota?.fecha_seceso || new Date().toISOString().split("T")[0],
     });
     setIsDecesoDialogOpen(true);
   };
 
-  const handleActualizacionDeceso = async (e) => {
-    e.preventDefault();
-    if (decesoForm.deceso && !decesoForm.fecha_seceso) {
-      toast.error("Por favor ingresa la fecha de deceso");
-      return;
-    }
-
+  const handleActualizacionDeceso = async () => {
     setIsActualizandoDeceso(true);
     try {
       const mascotaActualizada = {
         ...ficha.mascota,
-        deceso: decesoForm.deceso,
-        fecha_seceso: decesoForm.deceso ? decesoForm.fecha_seceso : null,
+        deceso: !ficha.mascota.deceso,
+        fecha_seceso: !ficha.mascota.deceso
+          ? new Date().toISOString().split("T")[0]
+          : null,
       };
 
       const response = await fetch(`/api/mascotas/${mascotaId}`, {
@@ -231,16 +259,18 @@ export default function FichaPaciente({ mascotaId }) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Error al actualizar el estado de deceso");
+        throw new Error(
+          error.error || "Error al actualizar el estado de deceso"
+        );
       }
 
       // Recargar datos
       await cargarDatosMascota();
       setIsDecesoDialogOpen(false);
       toast.success(
-        decesoForm.deceso
-          ? "Estado de deceso actualizado"
-          : "Estado de deceso removido"
+        !ficha.mascota.deceso
+          ? "Mascota marcada como fallecida"
+          : "Estado de fallecido removido"
       );
     } catch (error) {
       console.error("Error al actualizar deceso:", error);
@@ -274,11 +304,36 @@ export default function FichaPaciente({ mascotaId }) {
 
   const handleEditarVacuna = async (vacunaData) => {
     try {
-      const response = await fetch(`/api/vacunas-aplicadas/${vacunaData.id_vacuna}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(vacunaData),
-      });
+      // Filtrar campos undefined/null antes de enviar
+      const datosLimpios = {
+        nombre_vacuna: vacunaData.nombre_vacuna,
+        fecha_aplicacion: vacunaData.fecha_aplicacion,
+        duracion_meses: vacunaData.duracion_meses,
+        observaciones: vacunaData.observaciones,
+        id_vacuna: vacunaData.id_vacuna,
+      };
+
+      // Solo incluir id_item si tiene un valor válido
+      if (
+        vacunaData.id_item &&
+        vacunaData.id_item !== "undefined" &&
+        vacunaData.id_item !== "null" &&
+        vacunaData.id_item !== null &&
+        vacunaData.id_item !== undefined
+      ) {
+        datosLimpios.id_item = vacunaData.id_item;
+      }
+
+      console.log("Datos limpios a enviar:", datosLimpios);
+
+      const response = await fetch(
+        `/api/vacunas-aplicadas/${vacunaData.id_vacuna}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(datosLimpios),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -294,35 +349,39 @@ export default function FichaPaciente({ mascotaId }) {
   };
 
   const handleEliminarVacuna = async (idVacuna) => {
-    if (window.confirm("¿Seguro que deseas eliminar esta vacuna?")) {
-      try {
-        const response = await fetch(`/api/vacunas-aplicadas/${idVacuna}`, {
-          method: "DELETE",
-        });
+    confirm.confirm(
+      {
+        title: "Eliminar vacuna",
+        description: "¿Estás seguro de que quieres eliminar esta vacuna?",
+        confirmText: "Eliminar",
+        variant: "destructive",
+      },
+      async () => {
+        try {
+          const response = await fetch(`/api/vacunas-aplicadas/${idVacuna}`, {
+            method: "DELETE",
+          });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Error al eliminar la vacuna");
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || "Error al eliminar la vacuna");
+          }
+
+          toast.success("Vacuna eliminada exitosamente");
+          await cargarDatosMascota();
+        } catch (error) {
+          console.error("Error al eliminar vacuna:", error);
+          toast.error(error.message || "Error al eliminar la vacuna");
         }
-
-        toast.success("Vacuna eliminada exitosamente");
-        await cargarDatosMascota();
-      } catch (error) {
-        console.error("Error al eliminar vacuna:", error);
-        toast.error(error.message || "Error al eliminar la vacuna");
       }
-    }
+    );
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header */}
       <header className="p-4 flex items-center space-x-4">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => router.push("/")}
-        >
+        <Button variant="outline" size="icon" onClick={() => router.push("/")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold text-purple-800">
@@ -351,7 +410,7 @@ export default function FichaPaciente({ mascotaId }) {
             <TarjetaInfoMascota
               ficha={ficha}
               onEditPet={() => setIsEditarMascotaDialogOpen(true)}
-              onDeletePet={handleEliminarMascota}
+              onDeletePet={handleAbrirEdicionDeceso}
               onAddNewPet={() => setIsNuevaMascotaDialogOpen(true)}
               historial={historial}
             />
@@ -382,7 +441,8 @@ export default function FichaPaciente({ mascotaId }) {
                       <span className="font-semibold text-black">
                         {pet.nombre}
                       </span>{" "}
-                      - <span className="text-gray-700 ml-1">{pet.especie}</span>
+                      -{" "}
+                      <span className="text-gray-700 ml-1">{pet.especie}</span>
                     </li>
                   ))}
                 </ul>
@@ -453,10 +513,7 @@ export default function FichaPaciente({ mascotaId }) {
                   className="hidden"
                   required
                 />
-                <label
-                  htmlFor="foto_mascota"
-                  className="cursor-pointer block"
-                >
+                <label htmlFor="foto_mascota" className="cursor-pointer block">
                   <div className="space-y-3">
                     <div className="text-4xl text-gray-400">📷</div>
                     <div>
@@ -511,79 +568,54 @@ export default function FichaPaciente({ mascotaId }) {
       )}
 
       {/* Diálogo para editar estado de deceso */}
-      {isDecesoDialogOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-xl font-bold text-purple-800 mb-4">
-              Estado de {mascota?.nombre}
-            </h2>
-            <form onSubmit={handleActualizacionDeceso} className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="deceso"
-                  checked={decesoForm.deceso}
-                  onChange={(e) =>
-                    setDecesoForm((prev) => ({
-                      ...prev,
-                      deceso: e.target.checked,
-                    }))
-                  }
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="deceso"
-                  className="text-base font-semibold text-gray-700"
-                >
-                  Marcar como fallecido
-                </label>
-              </div>
+      <Dialog
+        open={isDecesoDialogOpen}
+        onOpenChange={() => setIsDecesoDialogOpen(false)}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-purple-800 text-center">
+              {ficha?.mascota?.deceso
+                ? "Desmarcar Fallecido"
+                : "Marcar como Fallecido"}
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-600 py-4">
+              {ficha?.mascota?.deceso
+                ? "¿Estás seguro de que quieres desmarcar a esta mascota como fallecida?"
+                : "¿Estás seguro de que quieres marcar a esta mascota como fallecida?"}
+            </DialogDescription>
+          </DialogHeader>
 
-              {decesoForm.deceso && (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="fecha_seceso"
-                    className="text-base font-semibold text-gray-700"
-                  >
-                    Fecha de deceso *
-                  </label>
-                  <input
-                    id="fecha_seceso"
-                    type="date"
-                    value={decesoForm.fecha_seceso}
-                    onChange={(e) =>
-                      setDecesoForm((prev) => ({
-                        ...prev,
-                        fecha_seceso: e.target.value,
-                      }))
-                    }
-                    max={new Date().toISOString().split("T")[0]}
-                    required={decesoForm.deceso}
-                    className="w-full h-10 px-3 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-              )}
+          <DialogFooter className="flex justify-end space-x-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDecesoDialogOpen(false)}
+              disabled={isActualizandoDeceso}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleActualizacionDeceso}
+              disabled={isActualizandoDeceso}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {isActualizandoDeceso ? "Procesando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDecesoDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isActualizandoDeceso}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {isActualizandoDeceso ? "Actualizando..." : "Actualizar Estado"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Diálogo de confirmación unificado */}
+      <ConfirmDialog
+        isOpen={confirm.isOpen}
+        onClose={confirm.handleClose}
+        onConfirm={confirm.handleConfirm}
+        title={confirm.options.title}
+        description={confirm.options.description}
+        confirmText={confirm.options.confirmText}
+        cancelText={confirm.options.cancelText}
+        variant={confirm.options.variant}
+      />
     </div>
   );
 }

@@ -45,14 +45,20 @@ export function useFichaPaciente(mascotaId) {
 
       // Procesar items de vacunas
       if (itemsRes.status === "fulfilled") {
+        console.log("Items de vacunas cargados:", itemsRes.value);
         setItemsVacunas(itemsRes.value);
+      } else {
+        console.error("Error al cargar items de vacunas:", itemsRes.reason);
       }
 
       // Procesar próximas vacunas
-      if (proximasVacunasRes.status === "fulfilled" && proximasVacunasRes.value.ok) {
+      if (
+        proximasVacunasRes.status === "fulfilled" &&
+        proximasVacunasRes.value.ok
+      ) {
         const proximasData = await proximasVacunasRes.value.json();
         setProximasVacunas(proximasData);
-        
+
         // Calcular alertas de vacunas
         const alertas = calcularAlertasVacunas(proximasData);
         setAlertasVacunas(alertas);
@@ -87,7 +93,7 @@ export function useFichaPaciente(mascotaId) {
       }
 
       const nuevaVisita = await response.json();
-      setHistorial(prev => [nuevaVisita, ...prev]);
+      setHistorial((prev) => [nuevaVisita, ...prev]);
       toast.success("Visita agregada correctamente");
       return nuevaVisita;
     } catch (error) {
@@ -100,7 +106,7 @@ export function useFichaPaciente(mascotaId) {
   // Función para actualizar visita
   const actualizarVisita = async (visitaData) => {
     try {
-      const response = await fetch(`/api/historial-mascota/${visitaData.id_visita}`, {
+      const response = await fetch("/api/historial-mascota", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -114,11 +120,10 @@ export function useFichaPaciente(mascotaId) {
       }
 
       const visitaActualizada = await response.json();
-      setHistorial(prev => 
-        prev.map(visita => 
-          visita.id_visita === visitaData.id_visita ? visitaActualizada : visita
-        )
-      );
+
+      // Recargar el historial completo para asegurar que tenemos todos los datos actualizados
+      await cargarDatosMascota();
+
       toast.success("Visita actualizada correctamente");
       return visitaActualizada;
     } catch (error) {
@@ -140,7 +145,9 @@ export function useFichaPaciente(mascotaId) {
         throw new Error(error.error || "Error al eliminar la visita");
       }
 
-      setHistorial(prev => prev.filter(visita => visita.id_visita !== idVisita));
+      setHistorial((prev) =>
+        prev.filter((visita) => visita.id_visita !== idVisita)
+      );
       toast.success("Visita eliminada correctamente");
     } catch (error) {
       console.error("Error al eliminar visita:", error);
@@ -153,12 +160,15 @@ export function useFichaPaciente(mascotaId) {
   const agregarMascota = async (mascotaData) => {
     try {
       const formData = new FormData();
-      
+
       // Agregar todos los campos del formulario
-      Object.keys(mascotaData).forEach(key => {
-        if (key === 'foto' && mascotaData[key]) {
-          formData.append('foto', mascotaData[key]);
-        } else if (mascotaData[key] !== null && mascotaData[key] !== undefined) {
+      Object.keys(mascotaData).forEach((key) => {
+        if (key === "foto" && mascotaData[key]) {
+          formData.append("foto", mascotaData[key]);
+        } else if (
+          mascotaData[key] !== null &&
+          mascotaData[key] !== undefined
+        ) {
           formData.append(key, mascotaData[key]);
         }
       });
@@ -175,10 +185,10 @@ export function useFichaPaciente(mascotaId) {
 
       const nuevaMascota = await response.json();
       toast.success("Mascota agregada correctamente");
-      
+
       // Recargar datos para mostrar la nueva mascota
       await cargarDatosMascota();
-      
+
       return nuevaMascota;
     } catch (error) {
       console.error("Error al agregar mascota:", error);
@@ -200,7 +210,7 @@ export function useFichaPaciente(mascotaId) {
       }
 
       toast.success("Mascota eliminada correctamente");
-      
+
       // Recargar datos
       await cargarDatosMascota();
     } catch (error) {
@@ -214,7 +224,7 @@ export function useFichaPaciente(mascotaId) {
   const actualizarFotoMascota = async (idMascota, foto) => {
     try {
       const formData = new FormData();
-      formData.append('foto', foto);
+      formData.append("foto", foto);
 
       const response = await fetch(`/api/mascotas/${idMascota}/foto`, {
         method: "PUT",
@@ -227,7 +237,7 @@ export function useFichaPaciente(mascotaId) {
       }
 
       toast.success("Foto actualizada correctamente");
-      
+
       // Recargar datos para mostrar la nueva foto
       await cargarDatosMascota();
     } catch (error) {
@@ -245,7 +255,7 @@ export function useFichaPaciente(mascotaId) {
     itemsVacunas,
     proximasVacunas,
     alertasVacunas,
-    
+
     // Acciones
     cargarDatosMascota,
     agregarVisita,

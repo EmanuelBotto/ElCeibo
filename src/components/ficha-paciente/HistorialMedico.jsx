@@ -2,17 +2,28 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FolderOpen, ChevronDown, ChevronRight, Edit, Trash2, Plus, Syringe } from "lucide-react";
+import {
+  FolderOpen,
+  ChevronDown,
+  ChevronRight,
+  Edit,
+  Trash2,
+  Plus,
+  Syringe,
+} from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useConfirm } from "@/hooks/useConfirm";
 
-export default function HistorialMedico({ 
-  historial, 
-  onAddVisit, 
-  onEditVisit, 
+export default function HistorialMedico({
+  historial,
+  onAddVisit,
+  onEditVisit,
   onDeleteVisit,
   mascotaNombre,
   visitaSeleccionada,
-  setVisitaSeleccionada
+  setVisitaSeleccionada,
 }) {
+  const confirm = useConfirm();
   const [carpetasAbiertas, setCarpetasAbiertas] = useState(new Set());
 
   const estaCarpetaAbierta = (idVisita) => {
@@ -36,17 +47,59 @@ export default function HistorialMedico({
   };
 
   const handleDeleteVisit = async (idVisita) => {
-    if (window.confirm("¿Estás seguro de que quieres eliminar esta visita?")) {
-      await onDeleteVisit(idVisita);
-    }
+    confirm.confirm(
+      {
+        title: "Eliminar visita",
+        description: "¿Estás seguro de que quieres eliminar esta visita?",
+        confirmText: "Eliminar",
+        variant: "destructive",
+      },
+      () => onDeleteVisit(idVisita)
+    );
   };
 
   return (
     <div className="lg:col-span-2 bg-white rounded-lg p-4">
-      <h2 className="text-xl font-bold text-purple-800 mb-4">
-        Historial Médico de {mascotaNombre}
-      </h2>
-      
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-purple-800">
+          Historial Médico de {mascotaNombre}
+        </h2>
+
+        {/* Botones de acción al lado del título */}
+        <div className="flex items-center space-x-2">
+          <Button
+            onClick={onAddVisit}
+            className="bg-purple-600 hover:bg-purple-700"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Visita
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              visitaSeleccionada && handleEditVisit(visitaSeleccionada)
+            }
+            disabled={!visitaSeleccionada}
+            className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            size="sm"
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Modificar Visita
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => handleDeleteVisit(visitaSeleccionada?.id_visita)}
+            disabled={!visitaSeleccionada}
+            className="bg-red-600 hover:bg-red-700"
+            size="sm"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Eliminar Visita
+          </Button>
+        </div>
+      </div>
+
       {/* Historial real */}
       {historial.length === 0 ? (
         <div className="flex items-center justify-center py-8">
@@ -77,20 +130,14 @@ export default function HistorialMedico({
                 >
                   <div className="flex items-center text-lg font-semibold text-purple-600">
                     {isAbierta ? (
-                      <ChevronDown
-                        className="mr-2 text-purple-600"
-                        size={20}
-                      />
+                      <ChevronDown className="mr-2 text-purple-600" size={20} />
                     ) : (
                       <ChevronRight
                         className="mr-2 text-purple-600"
                         size={20}
                       />
                     )}
-                    <FolderOpen
-                      className="mr-2 text-purple-600"
-                      size={18}
-                    />
+                    <FolderOpen className="mr-2 text-purple-600" size={18} />
                     {visita.fecha}
                   </div>
                   <div className="text-sm text-gray-600">
@@ -223,9 +270,7 @@ export default function HistorialMedico({
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() =>
-                                      onEditVisit(vac)
-                                    }
+                                    onClick={() => onEditVisit(vac)}
                                     className="h-6 px-2 text-xs border-purple-300 text-purple-700 hover:bg-purple-100"
                                   >
                                     Editar
@@ -256,33 +301,17 @@ export default function HistorialMedico({
         </div>
       )}
 
-      {/* Botones de acción */}
-      <div className="flex justify-start space-x-2 mt-4">
-        <Button
-          onClick={onAddVisit}
-          className="bg-purple-600 hover:bg-purple-700"
-        >
-          Nueva Visita
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() =>
-            visitaSeleccionada && handleEditVisit(visitaSeleccionada)
-          }
-          disabled={!visitaSeleccionada}
-          className="border-blue-600 text-blue-600 hover:bg-blue-50"
-        >
-          Modificar Visita
-        </Button>
-        <Button
-          variant="destructive"
-          onClick={() => handleDeleteVisit(visitaSeleccionada?.id_visita)}
-          disabled={!visitaSeleccionada}
-          className="bg-red-600 hover:bg-red-700"
-        >
-          Eliminar Visita
-        </Button>
-      </div>
+      {/* Diálogo de confirmación unificado */}
+      <ConfirmDialog
+        isOpen={confirm.isOpen}
+        onClose={confirm.handleClose}
+        onConfirm={confirm.handleConfirm}
+        title={confirm.options.title}
+        description={confirm.options.description}
+        confirmText={confirm.options.confirmText}
+        cancelText={confirm.options.cancelText}
+        variant={confirm.options.variant}
+      />
     </div>
   );
 }

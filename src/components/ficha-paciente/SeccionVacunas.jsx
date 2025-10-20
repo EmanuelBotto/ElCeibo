@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -12,13 +13,19 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Syringe, AlertTriangle, CheckCircle, Clock, PlusCircle } from "lucide-react";
+import {
+  Syringe,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  PlusCircle,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import { formatearFechaCorta, validarFormularioVacuna } from "./utils";
 
 const InfoCard = ({ title, children, className, headerAction }) => (
-  <div
-    className={`bg-white rounded-lg p-4 ${className}`}
-  >
+  <div className={`bg-white rounded-lg p-4 ${className}`}>
     <div className="flex justify-between items-center border-b border-purple-200 pb-2 mb-3">
       <h3 className="font-bold text-purple-700">{title}</h3>
       {headerAction}
@@ -27,17 +34,18 @@ const InfoCard = ({ title, children, className, headerAction }) => (
   </div>
 );
 
-export default function SeccionVacunas({ 
-  proximasVacunas, 
-  alertasVacunas, 
+export default function SeccionVacunas({
+  proximasVacunas,
+  alertasVacunas,
   itemsVacunas,
   onAddVaccination,
   onEditVaccination,
   onDeleteVaccination,
-  mascotaId 
+  mascotaId,
 }) {
   const [isVacunaDialogOpen, setIsVacunaDialogOpen] = useState(false);
-  const [isEditarVacunaDialogOpen, setIsEditarVacunaDialogOpen] = useState(false);
+  const [isEditarVacunaDialogOpen, setIsEditarVacunaDialogOpen] =
+    useState(false);
   const [vacunaForm, setVacunaForm] = useState({
     nombre_vacuna: "",
     fecha_aplicacion: new Date().toISOString().split("T")[0],
@@ -51,31 +59,53 @@ export default function SeccionVacunas({
   const [errores, setErrores] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Debugging
+  console.log("SeccionVacunas - itemsVacunas recibidos:", itemsVacunas);
+  console.log("SeccionVacunas - vacunaForm actual:", vacunaForm);
+
   const handleInputChange = (field, value) => {
-    setVacunaForm(prev => ({ ...prev, [field]: value }));
+    setVacunaForm((prev) => ({ ...prev, [field]: value }));
     // Limpiar error del campo cuando el usuario empiece a escribir
     if (errores[field]) {
-      setErrores(prev => ({ ...prev, [field]: null }));
+      setErrores((prev) => ({ ...prev, [field]: null }));
     }
   };
 
   const handleVacunaChange = (idItem) => {
-    const item = itemsVacunas.find(item => item.id_item === parseInt(idItem));
+    console.log("handleVacunaChange llamado con:", idItem, typeof idItem);
+    console.log("itemsVacunas disponibles:", itemsVacunas);
+
+    const item = itemsVacunas.find((item) => {
+      console.log(
+        "Comparando:",
+        item.id_item,
+        typeof item.id_item,
+        "con",
+        idItem,
+        typeof idItem
+      );
+      return item.id_item == idItem; // Usar == en lugar de === para comparación flexible
+    });
+
+    console.log("Item encontrado:", item);
     if (item) {
-      setVacunaForm(prev => ({
+      setVacunaForm((prev) => ({
         ...prev,
         id_item: idItem,
-        nombre_vacuna: item.nombre,
-        duracion_meses: item.duracion_meses.toString(),
+        nombre_vacuna: item.detalle,
+        duracion_meses: (item.duracion || 0).toString(),
       }));
       setDuracionEditable(false);
+      console.log("Formulario actualizado");
+    } else {
+      console.log("No se encontró el item");
     }
   };
 
   const handleManualToggle = () => {
     setVacunaManual(!vacunaManual);
     if (!vacunaManual) {
-      setVacunaForm(prev => ({
+      setVacunaForm((prev) => ({
         ...prev,
         id_item: "",
         nombre_vacuna: "",
@@ -86,7 +116,7 @@ export default function SeccionVacunas({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const validacion = validarFormularioVacuna(vacunaForm);
     if (!validacion.esValido) {
       setErrores(validacion.errores);
@@ -98,7 +128,7 @@ export default function SeccionVacunas({
       await onAddVaccination({
         ...vacunaForm,
         id_mascota: mascotaId,
-        duracion_meses: parseInt(vacunaForm.duracion_meses)
+        duracion_meses: parseInt(vacunaForm.duracion_meses),
       });
       handleClose();
     } catch (error) {
@@ -110,7 +140,7 @@ export default function SeccionVacunas({
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    
+
     const validacion = validarFormularioVacuna(vacunaForm);
     if (!validacion.esValido) {
       setErrores(validacion.errores);
@@ -119,11 +149,38 @@ export default function SeccionVacunas({
 
     setIsSubmitting(true);
     try {
-      await onEditVaccination({
-        ...vacunaForm,
-        id_vacuna: vacunaSeleccionada.id_vacuna,
-        duracion_meses: parseInt(vacunaForm.duracion_meses)
-      });
+      console.log("vacunaSeleccionada completa:", vacunaSeleccionada);
+
+      const idVacuna =
+        vacunaSeleccionada.id_vacuna_aplicada || vacunaSeleccionada.id_vacuna;
+
+      if (!idVacuna) {
+        console.error("No se encontró ID de vacuna válido");
+        toast.error("Error: No se pudo identificar la vacuna a editar");
+        return;
+      }
+
+      const vacunaData = {
+        nombre_vacuna: vacunaForm.nombre_vacuna,
+        fecha_aplicacion: vacunaForm.fecha_aplicacion,
+        duracion_meses: parseInt(vacunaForm.duracion_meses),
+        observaciones: vacunaForm.observaciones,
+        id_vacuna: idVacuna,
+      };
+
+      // Solo incluir id_item si tiene un valor válido
+      if (
+        vacunaForm.id_item &&
+        vacunaForm.id_item.trim() !== "" &&
+        vacunaForm.id_item !== "undefined" &&
+        vacunaForm.id_item !== "null" &&
+        !isNaN(parseInt(vacunaForm.id_item))
+      ) {
+        vacunaData.id_item = parseInt(vacunaForm.id_item);
+      }
+
+      console.log("Datos de vacuna a enviar:", vacunaData);
+      await onEditVaccination(vacunaData);
       handleClose();
     } catch (error) {
       console.error("Error al actualizar vacuna:", error);
@@ -149,14 +206,30 @@ export default function SeccionVacunas({
   };
 
   const handleEditVaccination = (vacuna) => {
+    console.log("Vacuna recibida para editar:", vacuna);
     setVacunaSeleccionada(vacuna);
-    setVacunaForm({
-      nombre_vacuna: vacuna.nombre_vacuna,
-      fecha_aplicacion: vacuna.fecha_aplicacion.split('T')[0],
-      duracion_meses: vacuna.duracion_meses.toString(),
+
+    const formData = {
+      nombre_vacuna: vacuna.nombre_vacuna || "",
+      fecha_aplicacion: vacuna.fecha_aplicacion
+        ? vacuna.fecha_aplicacion.split("T")[0]
+        : "",
+      duracion_meses: vacuna.duracion_meses
+        ? vacuna.duracion_meses.toString()
+        : "",
       observaciones: vacuna.observaciones || "",
-      id_item: vacuna.id_item?.toString() || "",
-    });
+      id_item:
+        vacuna.id_item &&
+        vacuna.id_item !== null &&
+        vacuna.id_item !== undefined &&
+        vacuna.id_item !== "undefined" &&
+        vacuna.id_item !== "null"
+          ? vacuna.id_item.toString()
+          : "",
+    };
+
+    console.log("Form data inicializado:", formData);
+    setVacunaForm(formData);
     setVacunaManual(true);
     setDuracionEditable(true);
     setIsEditarVacunaDialogOpen(true);
@@ -269,17 +342,39 @@ export default function SeccionVacunas({
                       </span>
                       <p className="text-xs text-gray-500">
                         Aplicada:{" "}
-                        {new Date(
-                          vac.fecha_aplicacion
-                        ).toLocaleDateString("es-ES")}
+                        {new Date(vac.fecha_aplicacion).toLocaleDateString(
+                          "es-ES"
+                        )}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`text-sm font-semibold ${color}`}>
-                      {fechaProxima.toLocaleDateString("es-ES")}
+                  <div className="flex items-center space-x-2">
+                    <div className="text-right">
+                      <div className={`text-sm font-semibold ${color}`}>
+                        {fechaProxima.toLocaleDateString("es-ES")}
+                      </div>
+                      <div className={`text-xs ${color}`}>{aviso}</div>
                     </div>
-                    <div className={`text-xs ${color}`}>{aviso}</div>
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditVaccination(vac)}
+                        className="h-6 px-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
+                      >
+                        <Edit size={12} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          onDeleteVaccination(vac.id_vacuna_aplicada)
+                        }
+                        className="h-6 px-2 text-xs border-red-300 text-red-700 hover:bg-red-100"
+                      >
+                        <Trash2 size={12} />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -295,11 +390,8 @@ export default function SeccionVacunas({
             <DialogTitle className="text-xl font-bold text-purple-800">
               Nueva Vacuna
             </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              Registra una nueva vacuna aplicada al paciente.
-            </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               {/* Modo de entrada */}
@@ -311,7 +403,10 @@ export default function SeccionVacunas({
                   onChange={handleManualToggle}
                   className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                 />
-                <Label htmlFor="vacuna_manual" className="text-gray-700 font-semibold">
+                <Label
+                  htmlFor="vacuna_manual"
+                  className="text-gray-700 font-semibold"
+                >
                   Ingresar vacuna manualmente
                 </Label>
               </div>
@@ -328,16 +423,36 @@ export default function SeccionVacunas({
                   <select
                     id="vacuna_item"
                     value={vacunaForm.id_item}
-                    onChange={(e) => handleVacunaChange(e.target.value)}
+                    onChange={(e) => {
+                      console.log(
+                        "Select onChange:",
+                        e.target.value,
+                        typeof e.target.value
+                      );
+                      console.log(
+                        "vacunaForm.id_item actual:",
+                        vacunaForm.id_item,
+                        typeof vacunaForm.id_item
+                      );
+                      handleVacunaChange(e.target.value);
+                    }}
                     required
                     className="mt-1 w-full h-12 px-3 border-2 border-purple-400 rounded-full focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="">Seleccionar vacuna...</option>
-                    {itemsVacunas.map((item) => (
-                      <option key={item.id_item} value={item.id_item}>
-                        {item.nombre} ({item.duracion_meses} meses)
-                      </option>
-                    ))}
+                    {itemsVacunas.map((item) => {
+                      console.log(
+                        "Renderizando opción:",
+                        item.id_item,
+                        typeof item.id_item,
+                        item.detalle
+                      );
+                      return (
+                        <option key={item.id_item} value={item.id_item}>
+                          {item.detalle}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}
@@ -354,15 +469,21 @@ export default function SeccionVacunas({
                   <Input
                     id="nombre_vacuna"
                     value={vacunaForm.nombre_vacuna}
-                    onChange={(e) => handleInputChange('nombre_vacuna', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("nombre_vacuna", e.target.value)
+                    }
                     placeholder="Nombre de la vacuna"
                     required
                     className={`mt-1 h-12 rounded-full border-2 focus:ring-purple-500 ${
-                      errores.nombre_vacuna ? 'border-red-400' : 'border-purple-400'
+                      errores.nombre_vacuna
+                        ? "border-red-400"
+                        : "border-purple-400"
                     }`}
                   />
                   {errores.nombre_vacuna && (
-                    <p className="text-red-500 text-xs mt-1">{errores.nombre_vacuna}</p>
+                    <p className="text-red-500 text-xs mt-1">
+                      {errores.nombre_vacuna}
+                    </p>
                   )}
                 </div>
               )}
@@ -379,53 +500,75 @@ export default function SeccionVacunas({
                   id="fecha_aplicacion"
                   type="date"
                   value={vacunaForm.fecha_aplicacion}
-                  onChange={(e) => handleInputChange('fecha_aplicacion', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("fecha_aplicacion", e.target.value)
+                  }
                   required
                   className={`mt-1 h-12 rounded-full border-2 focus:ring-purple-500 ${
-                    errores.fecha_aplicacion ? 'border-red-400' : 'border-purple-400'
+                    errores.fecha_aplicacion
+                      ? "border-red-400"
+                      : "border-purple-400"
                   }`}
                 />
                 {errores.fecha_aplicacion && (
-                  <p className="text-red-500 text-xs mt-1">{errores.fecha_aplicacion}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errores.fecha_aplicacion}
+                  </p>
                 )}
               </div>
 
               {/* Duración */}
               <div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <Label
-                    htmlFor="duracion_meses"
-                    className="text-gray-700 font-semibold"
-                  >
-                    Duración (meses) <span className="text-red-500">*</span>
-                  </Label>
-                  {!vacunaManual && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDuracionEditable(!duracionEditable)}
-                      className="text-xs"
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="duracion_meses"
+                      className="text-gray-700 font-semibold"
                     >
-                      {duracionEditable ? "Usar predeterminado" : "Editar"}
-                    </Button>
+                      Duración (meses) <span className="text-red-500">*</span>
+                    </Label>
+                    {!vacunaManual && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDuracionEditable(!duracionEditable)}
+                        className="text-xs px-3 py-1 h-7"
+                      >
+                        {duracionEditable
+                          ? "Usar predeterminado"
+                          : "Personalizar"}
+                      </Button>
+                    )}
+                  </div>
+                  {!vacunaManual && !duracionEditable && (
+                    <p className="text-xs text-gray-500 italic">
+                      Se usará la duración predeterminada de la vacuna
+                      seleccionada
+                    </p>
                   )}
                 </div>
                 <Input
                   id="duracion_meses"
                   type="number"
                   value={vacunaForm.duracion_meses}
-                  onChange={(e) => handleInputChange('duracion_meses', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("duracion_meses", e.target.value)
+                  }
                   placeholder="Duración en meses"
                   required
                   min="1"
                   disabled={!vacunaManual && !duracionEditable}
-                  className={`mt-1 h-12 rounded-full border-2 focus:ring-purple-500 ${
-                    errores.duracion_meses ? 'border-red-400' : 'border-purple-400'
-                  }`}
+                  className={`mt-2 h-12 rounded-full border-2 focus:ring-purple-500 ${
+                    errores.duracion_meses
+                      ? "border-red-400"
+                      : "border-purple-400"
+                  } ${!vacunaManual && !duracionEditable ? "bg-gray-100" : ""}`}
                 />
                 {errores.duracion_meses && (
-                  <p className="text-red-500 text-xs mt-1">{errores.duracion_meses}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errores.duracion_meses}
+                  </p>
                 )}
               </div>
 
@@ -440,7 +583,9 @@ export default function SeccionVacunas({
                 <textarea
                   id="observaciones"
                   value={vacunaForm.observaciones}
-                  onChange={(e) => handleInputChange('observaciones', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("observaciones", e.target.value)
+                  }
                   placeholder="Observaciones adicionales"
                   rows={3}
                   className="mt-1 w-full px-3 py-2 border-2 border-purple-400 rounded-lg focus:ring-purple-500 focus:border-transparent resize-none"
@@ -480,7 +625,7 @@ export default function SeccionVacunas({
               Modifica los datos de la vacuna.
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleEditSubmit} className="space-y-6">
             <div className="space-y-4">
               {/* Nombre de vacuna */}
@@ -494,15 +639,21 @@ export default function SeccionVacunas({
                 <Input
                   id="edit_nombre_vacuna"
                   value={vacunaForm.nombre_vacuna}
-                  onChange={(e) => handleInputChange('nombre_vacuna', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("nombre_vacuna", e.target.value)
+                  }
                   placeholder="Nombre de la vacuna"
                   required
                   className={`mt-1 h-12 rounded-full border-2 focus:ring-purple-500 ${
-                    errores.nombre_vacuna ? 'border-red-400' : 'border-purple-400'
+                    errores.nombre_vacuna
+                      ? "border-red-400"
+                      : "border-purple-400"
                   }`}
                 />
                 {errores.nombre_vacuna && (
-                  <p className="text-red-500 text-xs mt-1">{errores.nombre_vacuna}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errores.nombre_vacuna}
+                  </p>
                 )}
               </div>
 
@@ -518,14 +669,20 @@ export default function SeccionVacunas({
                   id="edit_fecha_aplicacion"
                   type="date"
                   value={vacunaForm.fecha_aplicacion}
-                  onChange={(e) => handleInputChange('fecha_aplicacion', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("fecha_aplicacion", e.target.value)
+                  }
                   required
                   className={`mt-1 h-12 rounded-full border-2 focus:ring-purple-500 ${
-                    errores.fecha_aplicacion ? 'border-red-400' : 'border-purple-400'
+                    errores.fecha_aplicacion
+                      ? "border-red-400"
+                      : "border-purple-400"
                   }`}
                 />
                 {errores.fecha_aplicacion && (
-                  <p className="text-red-500 text-xs mt-1">{errores.fecha_aplicacion}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errores.fecha_aplicacion}
+                  </p>
                 )}
               </div>
 
@@ -541,16 +698,22 @@ export default function SeccionVacunas({
                   id="edit_duracion_meses"
                   type="number"
                   value={vacunaForm.duracion_meses}
-                  onChange={(e) => handleInputChange('duracion_meses', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("duracion_meses", e.target.value)
+                  }
                   placeholder="Duración en meses"
                   required
                   min="1"
                   className={`mt-1 h-12 rounded-full border-2 focus:ring-purple-500 ${
-                    errores.duracion_meses ? 'border-red-400' : 'border-purple-400'
+                    errores.duracion_meses
+                      ? "border-red-400"
+                      : "border-purple-400"
                   }`}
                 />
                 {errores.duracion_meses && (
-                  <p className="text-red-500 text-xs mt-1">{errores.duracion_meses}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errores.duracion_meses}
+                  </p>
                 )}
               </div>
 
@@ -565,7 +728,9 @@ export default function SeccionVacunas({
                 <textarea
                   id="edit_observaciones"
                   value={vacunaForm.observaciones}
-                  onChange={(e) => handleInputChange('observaciones', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("observaciones", e.target.value)
+                  }
                   placeholder="Observaciones adicionales"
                   rows={3}
                   className="mt-1 w-full px-3 py-2 border-2 border-purple-400 rounded-lg focus:ring-purple-500 focus:border-transparent resize-none"
