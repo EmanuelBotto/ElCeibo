@@ -45,8 +45,8 @@ export const calcularAlertasVacunas = (vacunas) => {
 // Función para obtener items de vacunas con caché
 export const obtenerItemsVacunas = async () => {
   const ahora = Date.now();
-  
-  if (itemsVacunasCache && (ahora - itemsVacunasCacheTime) < CACHE_DURATION) {
+
+  if (itemsVacunasCache && ahora - itemsVacunasCacheTime < CACHE_DURATION) {
     return itemsVacunasCache;
   }
 
@@ -61,7 +61,7 @@ export const obtenerItemsVacunas = async () => {
   } catch (error) {
     console.error("Error al obtener items de vacunas:", error);
   }
-  
+
   return [];
 };
 
@@ -88,23 +88,23 @@ export const formatearFechaCorta = (fecha) => {
 // Función para calcular la edad de la mascota
 export const calcularEdad = (fechaNacimiento) => {
   if (!fechaNacimiento) return "No especificada";
-  
+
   const hoy = new Date();
   const nacimiento = new Date(fechaNacimiento);
   const diffTime = Math.abs(hoy - nacimiento);
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays < 30) {
     return `${diffDays} días`;
   } else if (diffDays < 365) {
     const meses = Math.floor(diffDays / 30);
-    return `${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+    return `${meses} ${meses === 1 ? "mes" : "meses"}`;
   } else {
     const años = Math.floor(diffDays / 365);
     const meses = Math.floor((diffDays % 365) / 30);
-    let resultado = `${años} ${años === 1 ? 'año' : 'años'}`;
+    let resultado = `${años} ${años === 1 ? "año" : "años"}`;
     if (meses > 0) {
-      resultado += ` y ${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+      resultado += ` y ${meses} ${meses === 1 ? "mes" : "meses"}`;
     }
     return resultado;
   }
@@ -113,59 +113,64 @@ export const calcularEdad = (fechaNacimiento) => {
 // Función para validar formularios
 export const validarFormularioVisita = (formData) => {
   const errores = {};
-  
+
   if (!formData.fecha?.trim()) {
     errores.fecha = "La fecha es requerida";
   }
-  
-  if (!formData.diagnostico?.trim()) {
-    errores.diagnostico = "El diagnóstico es requerido";
-  }
-  
+
+  // El diagnóstico ya no es obligatorio
+
   return {
     esValido: Object.keys(errores).length === 0,
-    errores
+    errores,
   };
 };
 
 export const validarFormularioVacuna = (formData) => {
   const errores = {};
-  
+
   if (!formData.nombre_vacuna?.trim()) {
     errores.nombre_vacuna = "El nombre de la vacuna es requerido";
   }
-  
+
   if (!formData.fecha_aplicacion?.trim()) {
     errores.fecha_aplicacion = "La fecha de aplicación es requerida";
   }
-  
+
   if (!formData.duracion_meses || formData.duracion_meses <= 0) {
     errores.duracion_meses = "La duración debe ser mayor a 0";
   }
-  
+
   return {
     esValido: Object.keys(errores).length === 0,
-    errores
+    errores,
   };
 };
 
 export const validarFormularioMascota = (formData) => {
   const errores = {};
-  
+
   if (!formData.nombre?.trim()) {
     errores.nombre = "El nombre es requerido";
   }
-  
-  if (!formData.especie?.trim()) {
-    errores.especie = "La especie es requerida";
+
+  // Validar especie considerando especieCustom
+  if (formData.especie === "Otro") {
+    if (!formData.especieCustom?.trim()) {
+      errores.especie = "Debe especificar la especie";
+    }
+  } else {
+    if (!formData.especie?.trim()) {
+      errores.especie = "La especie es requerida";
+    }
   }
-  
+
   if (!formData.sexo?.trim()) {
     errores.sexo = "El sexo es requerido";
   }
-  
+
   return {
     esValido: Object.keys(errores).length === 0,
-    errores
+    errores,
   };
 };

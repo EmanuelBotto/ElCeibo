@@ -14,13 +14,13 @@ import {
 } from "@/components/ui/dialog";
 import { validarFormularioVisita } from "./utils";
 
-export default function DialogoVisita({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
+export default function DialogoVisita({
+  isOpen,
+  onClose,
+  onSubmit,
   mascotaId,
   visitaData = null, // Para edición
-  isEditing = false
+  isEditing = false,
 }) {
   const [formData, setFormData] = useState({
     fecha: "",
@@ -55,16 +55,16 @@ export default function DialogoVisita({
   }, [isEditing, visitaData, isOpen]);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Limpiar error del campo cuando el usuario empiece a escribir
     if (errores[field]) {
-      setErrores(prev => ({ ...prev, [field]: null }));
+      setErrores((prev) => ({ ...prev, [field]: null }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const validacion = validarFormularioVisita(formData);
     if (!validacion.esValido) {
       setErrores(validacion.errores);
@@ -76,7 +76,7 @@ export default function DialogoVisita({
       await onSubmit({
         ...formData,
         id_mascota: mascotaId,
-        id_visita: isEditing ? visitaData.id_visita : undefined
+        id_visita: isEditing ? visitaData.id_visita : undefined,
       });
       handleClose();
     } catch (error) {
@@ -105,26 +105,28 @@ export default function DialogoVisita({
           <DialogTitle className="text-xl font-bold text-purple-800 text-center">
             {isEditing ? "Editar Visita" : "Nueva Visita Médica"}
           </DialogTitle>
+          <DialogDescription className="text-center text-gray-600">
+            {isEditing
+              ? "Modifica los datos de la visita médica"
+              : "Registra una nueva visita médica para la mascota"}
+          </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             {/* Fecha */}
             <div>
-              <Label
-                htmlFor="fecha"
-                className="text-gray-700 font-semibold"
-              >
+              <Label htmlFor="fecha" className="text-gray-700 font-semibold">
                 Fecha <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="fecha"
                 type="date"
                 value={formData.fecha}
-                onChange={(e) => handleInputChange('fecha', e.target.value)}
+                onChange={(e) => handleInputChange("fecha", e.target.value)}
                 required
                 className={`mt-1 h-12 rounded-full border-2 focus:ring-purple-500 ${
-                  errores.fecha ? 'border-red-400' : 'border-purple-400'
+                  errores.fecha ? "border-red-400" : "border-purple-400"
                 }`}
               />
               {errores.fecha && (
@@ -138,21 +140,24 @@ export default function DialogoVisita({
                 htmlFor="diagnostico"
                 className="text-gray-700 font-semibold"
               >
-                Diagnóstico <span className="text-red-500">*</span>
+                Diagnóstico
               </Label>
               <textarea
                 id="diagnostico"
                 value={formData.diagnostico}
-                onChange={(e) => handleInputChange('diagnostico', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("diagnostico", e.target.value)
+                }
                 placeholder="Describe el diagnóstico o motivo de la visita"
-                required
                 rows={3}
                 className={`mt-1 w-full px-3 py-2 border-2 rounded-lg focus:ring-purple-500 focus:border-transparent resize-none ${
-                  errores.diagnostico ? 'border-red-400' : 'border-purple-400'
+                  errores.diagnostico ? "border-red-400" : "border-purple-400"
                 }`}
               />
               {errores.diagnostico && (
-                <p className="text-red-500 text-xs mt-1">{errores.diagnostico}</p>
+                <p className="text-red-500 text-xs mt-1">
+                  {errores.diagnostico}
+                </p>
               )}
             </div>
 
@@ -169,7 +174,9 @@ export default function DialogoVisita({
                   id="frecuencia_cardiaca"
                   type="number"
                   value={formData.frecuencia_cardiaca}
-                  onChange={(e) => handleInputChange('frecuencia_cardiaca', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("frecuencia_cardiaca", e.target.value)
+                  }
                   placeholder="Ej: 120"
                   min="0"
                   className="mt-1 h-12 rounded-full border-2 border-purple-400 focus:ring-purple-500"
@@ -186,7 +193,9 @@ export default function DialogoVisita({
                   id="frecuencia_respiratoria"
                   type="number"
                   value={formData.frecuencia_respiratoria}
-                  onChange={(e) => handleInputChange('frecuencia_respiratoria', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("frecuencia_respiratoria", e.target.value)
+                  }
                   placeholder="Ej: 20"
                   min="0"
                   className="mt-1 h-12 rounded-full border-2 border-purple-400 focus:ring-purple-500"
@@ -196,17 +205,14 @@ export default function DialogoVisita({
 
             {/* Peso */}
             <div>
-              <Label
-                htmlFor="peso"
-                className="text-gray-700 font-semibold"
-              >
+              <Label htmlFor="peso" className="text-gray-700 font-semibold">
                 Peso (kg)
               </Label>
               <Input
                 id="peso"
                 type="number"
                 value={formData.peso}
-                onChange={(e) => handleInputChange('peso', e.target.value)}
+                onChange={(e) => handleInputChange("peso", e.target.value)}
                 placeholder="Peso actual del paciente"
                 min="0"
                 step="0.1"
@@ -229,10 +235,13 @@ export default function DialogoVisita({
               className="bg-purple-600 hover:bg-purple-700"
               disabled={isSubmitting}
             >
-              {isSubmitting 
-                ? (isEditing ? "Actualizando..." : "Guardando...") 
-                : (isEditing ? "Actualizar Visita" : "Guardar Visita")
-              }
+              {isSubmitting
+                ? isEditing
+                  ? "Actualizando..."
+                  : "Guardando..."
+                : isEditing
+                ? "Actualizar Visita"
+                : "Guardar Visita"}
             </Button>
           </DialogFooter>
         </form>
