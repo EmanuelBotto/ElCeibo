@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react'
-import { useEgreso } from '@/lib/modales';
+import { useEgreso, useModalConfirmacion, useModalVenta, useVerRegistro, useVerRegistroIngreso, ModalConfirmacionFactura, ModalNotificacionFactura } from '@/lib/modales';
 import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/modal';
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ export default function Caja({ onTabChange }) {
     const [filtroFecha, setFiltroFecha] = useState(''); // Filtro por fecha específica
     const [usuarios, setUsuarios] = useState([]);
     
-
     const obtenerFacturas = async () => {
         try {
             setCargando(true);
@@ -48,6 +47,12 @@ export default function Caja({ onTabChange }) {
         }
     };
 
+    const { title, renderContent } = useEgreso({ onEgresoSuccess: obtenerFacturas });
+    const { isModalOpen: isConfirmOpen, modalData, isLoading: isDeleting, showConfirmModal, closeModal, handleConfirm } = useModalConfirmacion();
+    const { isModalOpen: isNotificationOpen, modalType, modalMessage, showErrorModal, showSuccessModal, closeModal: closeNotificationModal } = useModalVenta();
+    const { isModalOpen: isVerRegistroOpen, title: verRegistroTitle, renderContent: verRegistroContent, handleOpenModal: handleVerRegistro, handleCloseModal: handleCloseVerRegistro } = useVerRegistro();
+    const { isModalOpen: isVerRegistroIngresoOpen, title: verRegistroIngresoTitle, renderContent: verRegistroIngresoContent, handleOpenModal: handleVerRegistroIngreso, handleCloseModal: handleCloseVerRegistroIngreso } = useVerRegistroIngreso();
+
     const obtenerUsuarios = async () => {
         try {
             const res = await fetch('/api/usuarios', {
@@ -68,8 +73,6 @@ export default function Caja({ onTabChange }) {
             setUsuarios([]);
         }
     };
-
-    const { title, renderContent } = useEgreso({ onEgresoSuccess: obtenerFacturas });
 
     useEffect(() => {
         obtenerFacturas();
@@ -94,6 +97,20 @@ export default function Caja({ onTabChange }) {
         setIsModalOpen(false);
     };
 
+    const handleVerRegistroClick = () => {
+        if (!facturaSeleccionada) {
+            alert('Por favor selecciona una factura para ver su registro');
+            return;
+        }
+        
+        // Detectar si es ingreso o egreso y usar el modal correspondiente
+        if (facturaSeleccionada.tipo_factura === 'ingreso') {
+            handleVerRegistroIngreso(facturaSeleccionada);
+        } else {
+            handleVerRegistro(facturaSeleccionada);
+        }
+    };
+
     const toggleFiltros = () => {
         setMostrarFiltros(!mostrarFiltros);
     };
@@ -102,6 +119,60 @@ export default function Caja({ onTabChange }) {
         setFiltroTipo('todos');
         setFiltroUsuario('todos');
         setFiltroFecha('');
+    };
+
+    const eliminarFactura = async () => {
+        if (!facturaSeleccionada) {
+            alert('Por favor selecciona una factura para eliminar');
+            return;
+        }
+
+        const eliminarFacturaConfirmada = async () => {
+            try {
+                const response = await fetch('/api/caja', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id_factura: facturaSeleccionada.id_factura
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al eliminar la factura');
+                }
+
+                const result = await response.json();
+                
+                // Recargar la lista de facturas
+                await obtenerFacturas();
+                
+                // Limpiar la selección
+                setFacturaSeleccionada(null);
+                
+                // Mostrar notificación de éxito
+                showSuccessModal('Factura eliminada exitosamente');
+                
+            } catch (error) {
+                console.error('Error al eliminar factura:', error);
+                showErrorModal('Error al eliminar la factura: ' + error.message);
+            }
+        };
+
+        // Mostrar modal de confirmación
+        showConfirmModal({
+            title: 'Confirmar Eliminación',
+            message: `¿Estás seguro de que deseas eliminar esta factura?\n\n` +
+                   `Fecha: ${facturaSeleccionada.dia}/${facturaSeleccionada.mes}/${facturaSeleccionada.anio}\n` +
+                   `Tipo: ${facturaSeleccionada.tipo_factura}\n` +
+                   `Monto: $${facturaSeleccionada.monto_total}\n\n` +
+                   `Esta acción no se puede deshacer.`,
+            onConfirm: eliminarFacturaConfirmada,
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar'
+        });
     };
 
     // Filtrar facturas según los filtros aplicados
@@ -143,6 +214,7 @@ export default function Caja({ onTabChange }) {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
             <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-6xl flex flex-col gap-6">
+
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-4">
                     <div className="flex gap-2">
                         <Button
@@ -181,12 +253,15 @@ export default function Caja({ onTabChange }) {
                         <Button
                             variant="outline"
                             className="px-6 py-2"
+                            disabled={!facturaSeleccionada}
+                            onClick={handleVerRegistroClick}
                         >
                             Ver Registro
                         </Button>
                         <Button
                             variant="destructive"
                             disabled={!facturaSeleccionada}
+                            onClick={eliminarFactura}
                             className="px-6 py-2"
                         >
                             Eliminar
@@ -286,7 +361,7 @@ export default function Caja({ onTabChange }) {
                                     key={factura.id_factura}
                                     className={
                                         facturaSeleccionada?.id_factura === factura.id_factura
-                                            ? "bg-gray-200 !border-2 !border-gray-500"
+                                            ? "bg-blue-200 !border-2 !border-blue-500 font-semibold"
                                             : "hover:bg-gray-100 transition-colors"
                                     }
                                     onClick={() => setFacturaSeleccionada(factura)}
@@ -338,6 +413,47 @@ export default function Caja({ onTabChange }) {
                     <h2 className="text-lg font-semibold mb-4 text-gray-900">{title}</h2>
                     <div className="text-gray-900">
                         {renderContent}
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal de confirmación para eliminar factura */}
+            <Modal isOpen={isConfirmOpen} onClose={closeModal}>
+                <ModalConfirmacionFactura
+                    isOpen={isConfirmOpen}
+                    onClose={closeModal}
+                    onConfirm={handleConfirm}
+                    isLoading={isDeleting}
+                    modalData={modalData}
+                />
+            </Modal>
+
+            {/* Modal de notificaciones */}
+            <Modal isOpen={isNotificationOpen} onClose={closeNotificationModal}>
+                <ModalNotificacionFactura
+                    isOpen={isNotificationOpen}
+                    onClose={closeNotificationModal}
+                    type={modalType}
+                    message={modalMessage}
+                />
+            </Modal>
+
+            {/* Modal para ver registro de egresos */}
+            <Modal isOpen={isVerRegistroOpen} onClose={handleCloseVerRegistro}>
+                <div className="text-gray-900">
+                    <h2 className="text-lg font-semibold mb-4 text-gray-900">{verRegistroTitle}</h2>
+                    <div className="text-gray-900">
+                        {verRegistroContent}
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal para ver registro de ingresos */}
+            <Modal isOpen={isVerRegistroIngresoOpen} onClose={handleCloseVerRegistroIngreso} contentClassName="max-w-4xl">
+                <div className="text-gray-900">
+                    <h2 className="text-lg font-semibold mb-4 text-gray-900">{verRegistroIngresoTitle}</h2>
+                    <div className="text-gray-900">
+                        {verRegistroIngresoContent}
                     </div>
                 </div>
             </Modal>

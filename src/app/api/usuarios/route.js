@@ -2,7 +2,7 @@
 
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
-import { hasPermission } from "../../../lib/permissions";
+import { hasPermission } from "../../../lib/permisos";
 
 const pool = new Pool({
     connectionString: 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-base-ac7ax3c8-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require'
@@ -233,8 +233,8 @@ export async function POST(request) {
         }
 
         const { nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, password, usuario: usuarioIngresado } = data;
-        // Usar el usuario ingresado o generar uno del email
-        const usuario = usuarioIngresado || email.split('@')[0].toLowerCase();
+        // Usar el usuario ingresado exactamente como se escribió o generar uno del email
+        const usuario = usuarioIngresado || email.split('@')[0];
 
         // Verificar si el usuario ya existe
         const userExistsError = await checkUserExists(email, usuario);

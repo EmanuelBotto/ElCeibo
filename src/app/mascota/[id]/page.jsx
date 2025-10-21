@@ -1,6 +1,6 @@
 "use client";
 
-import FichaPaciente from '@/app/Ventana/ficha-paciente';
+import FichaPaciente from '@/app/mascota/ficha-paciente';
 import { useParams } from 'next/navigation';
 
 export default function MascotaDetailPage() {

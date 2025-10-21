@@ -1,4 +1,4 @@
-import { hasPermission } from './permissions';
+import { hasPermission } from './permisos';
 
 // Middleware para verificar permisos en rutas de API
 export const requirePermission = (permission) => {

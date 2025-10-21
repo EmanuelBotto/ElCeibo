@@ -16,6 +16,8 @@ import {
 import Modal from "@/components/ui/modal";
 import { buildProductoFormContent } from "@/lib/modales";
 import { useAuth } from '@/components/AuthProvider';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 export default function Producto() {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -44,9 +46,13 @@ export default function Producto() {
     totalItems: 0
   });
   const [tipoCliente, setTipoCliente] = useState('cliente final');
-  const productosPorPagina = 10;
+  const productosPorPagina = 20; // cantidad de productos mostrados
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const [mostrarConfirmacionEliminar, setMostrarConfirmacionEliminar] = useState(false);
+  const [productoAEliminar, setProductoAEliminar] = useState(null);
+  const [mostrarDialogoDuplicado, setMostrarDialogoDuplicado] = useState(false);
+  const [infoDuplicado, setInfoDuplicado] = useState(null);
   
   const [porcentajePersonalizado, setPorcentajePersonalizado] = useState(false);
  
@@ -118,6 +124,7 @@ export default function Producto() {
       }
     } catch (err) {
       console.error('Error al cargar productos:', err);
+      toast.error('Error al cargar productos. Por favor, intenta de nuevo.');
       setProductos([]);
     } finally {
       setCargando(false);
@@ -172,16 +179,28 @@ export default function Producto() {
       // Manejar diferentes tipos de errores
       if (!res.ok) {
         let errorMessage = 'Error al crear producto';
+        let isDuplicate = false;
+        let duplicateInfo = null;
         
         try {
           const errorData = await res.json();
           errorMessage = errorData.error || errorMessage;
+          
+          // Si es un error de duplicado, mostrar información específica
+          if (res.status === 409 && errorData.duplicate) {
+            isDuplicate = true;
+            duplicateInfo = errorData.duplicate;
+            errorMessage = `Ya existe un producto con el nombre "${errorData.duplicate.nombre}" y el mismo tipo. Por favor, cambia el nombre o el tipo para crear un producto diferente.`;
+          }
         } catch (jsonError) {
           // Si no podemos parsear el JSON, usamos el status text
           errorMessage = `Error: ${res.status} - ${res.statusText}`;
         }
         
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage);
+        error.isDuplicate = isDuplicate;
+        error.duplicateInfo = duplicateInfo;
+        throw error;
       }
 
       // Intentar parsear la respuesta exitosa
@@ -202,10 +221,18 @@ export default function Producto() {
       cargarProductos(); // recargar lista
       
       // Mostrar mensaje de éxito
-      alert('Producto creado exitosamente');
+      toast.success('Producto creado exitosamente');
     } catch (err) {
-      alert(err.message);
-      console.error('Error completo:', err);
+      if (err.isDuplicate) {
+        // Mostrar popup de duplicado
+        setInfoDuplicado(err.duplicateInfo);
+        setMostrarDialogoDuplicado(true);
+        // No logear como error ya que es un comportamiento esperado
+        console.log('Producto duplicado detectado:', err.duplicateInfo);
+      } else {
+        toast.error(err.message);
+        console.error('Error completo:', err);
+      }
     }
   };
 
@@ -246,8 +273,18 @@ export default function Producto() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Error al actualizar producto');
+        const errorData = await res.json();
+        let errorMessage = errorData.error || 'Error al actualizar producto';
+        
+        // Si es un error de duplicado, mostrar información específica
+        if (res.status === 409 && errorData.duplicate) {
+          errorMessage = `Ya existe un producto con el nombre "${errorData.duplicate.nombre}" y el mismo tipo. Por favor, cambia el nombre o el tipo para actualizar el producto.`;
+        }
+        
+        const error = new Error(errorMessage);
+        error.isDuplicate = res.status === 409 && errorData.duplicate;
+        error.duplicateInfo = errorData.duplicate;
+        throw error;
       }
 
       // Si hay porcentajes personalizados, actualizarlos
@@ -271,27 +308,45 @@ export default function Producto() {
       setMostrarFormularioEdicion(false);
       setProductoEditando(null);
       setPorcentajePersonalizado(false);
+      
+      toast.success('Producto actualizado exitosamente');
       cargarProductos();
 
     } catch (err) {
-      alert(err.message);
-      console.error('Error completo:', err);
+      if (err.isDuplicate) {
+        // Mostrar popup de duplicado
+        setInfoDuplicado(err.duplicateInfo);
+        setMostrarDialogoDuplicado(true);
+        // No logear como error ya que es un comportamiento esperado
+        console.log('Producto duplicado detectado:', err.duplicateInfo);
+      } else {
+        toast.error(err.message);
+        console.error('Error completo:', err);
+      }
     }
   };
 
   // Eliminar producto
   
   const eliminarProducto = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+    // Buscar el producto para mostrar su nombre
+    const producto = productos.find(p => p.id_producto === id);
+    setProductoAEliminar(producto);
+    setMostrarConfirmacionEliminar(true);
+  };
 
+  const ejecutarEliminacion = async () => {
     try {
-      
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/products/${productoAEliminar.id_producto}`, { method: 'DELETE' });
       // Verificar si la respuesta fue exitosa
       if (!res.ok) throw new Error('Error al eliminar producto');
+      
+      toast.success('Producto eliminado exitosamente');
+      setMostrarConfirmacionEliminar(false);
+      setProductoAEliminar(null);
       cargarProductos();
     } catch (err) {
-      alert('Error al eliminar producto');
+      toast.error('Error al eliminar producto');
       console.error(err);
     }
   };
@@ -348,8 +403,8 @@ export default function Producto() {
       <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-4xl flex flex-col gap-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
           <div className="text-center md:text-left">
-            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Productos</h1>
-            <p className="text-gray-600 text-lg">Administra el inventario y precios</p>
+            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Productos</h1>
+            
           </div>
           <div className="flex gap-2">
             <Button onClick={() => setMostrarFormulario(true)} className="px-6 py-2">
@@ -381,119 +436,136 @@ export default function Producto() {
           </div>
         </div>
 
-        <div className="mb-6 bg-gray-50 rounded-xl p-6 border border-gray-200">
-          <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-start">
-            {/* Sección de búsqueda */}
-            <div className="flex flex-col gap-4 w-full lg:w-1/2">
-              <Label className="text-base font-semibold text-gray-800">Buscar Producto</Label>
-              
-              {/* Campo de búsqueda */}
+        {/* Sección de búsqueda y filtros integrada */}
+        <div className="mb-4">
+          {/* Barra de búsqueda principal */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+            <div className="flex-1">
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">Buscar Producto</Label>
               <Input
                 id="busqueda"
                 placeholder={tipoBusqueda === 'codigo' ? "Buscar por código..." : "Buscar por descripción..."}
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12 transition-colors"
+                className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 h-12 transition-all duration-200"
               />
-              
-              {/* Radio buttons para tipo de búsqueda - Debajo del buscador */}
-              <div className="flex items-center gap-6">
-                <label className="inline-flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="tipoBusqueda"
-                    checked={tipoBusqueda === 'nombre'}
-                    onChange={() => setTipoBusqueda('nombre')}
-                    className="w-5 h-5 text-purple-600 focus:ring-purple-500 focus:ring-2"
-                  />
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
-                    Por Descripción
-                  </span>
-                </label>
-                <label className="inline-flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="tipoBusqueda"
-                    checked={tipoBusqueda === 'codigo'}
-                    onChange={() => setTipoBusqueda('codigo')}
-                    className="w-5 h-5 text-purple-600 focus:ring-purple-500 focus:ring-2"
-                  />
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
-                    Por Código
-                  </span>
-                </label>
-              </div>
             </div>
-
-            {/* Sección de tipo de cliente */}
-            <div className="flex flex-col gap-4 w-full lg:w-1/2">
-              <Label className="text-base font-semibold text-gray-800">Tipo de Cliente</Label>
-              
-              {/* Radio buttons para tipo de cliente */}
-              <div className="flex items-center gap-6">
-                <label className="inline-flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="tipoCliente"
-                    checked={tipoCliente === 'cliente final'}
-                    onChange={() => setTipoCliente('cliente final')}
-                    className="w-5 h-5 text-purple-600 focus:ring-purple-500 focus:ring-2"
-                  />
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
-                    Cliente Final
-                  </span>
-                </label>
-                <label className="inline-flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="tipoCliente"
-                    checked={tipoCliente === 'mayorista'}
-                    onChange={() => setTipoCliente('mayorista')}
-                    className="w-5 h-5 text-purple-600 focus:ring-purple-500 focus:ring-2"
-                  />
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
-                    Mayorista
-                  </span>
-                </label>
+            
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+              {/* Tipo de búsqueda */}
+              <div className="flex flex-col gap-2">
+                <Label className="text-sm font-medium text-gray-700">Buscar por</Label>
+                <div className="flex gap-4">
+                  <label className="inline-flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="tipoBusqueda"
+                      checked={tipoBusqueda === 'nombre'}
+                      onChange={() => setTipoBusqueda('nombre')}
+                      className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                      Descripción
+                    </span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="tipoBusqueda"
+                      checked={tipoBusqueda === 'codigo'}
+                      onChange={() => setTipoBusqueda('codigo')}
+                      className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                      Código
+                    </span>
+                  </label>
+                </div>
               </div>
 
-              {/* Select como respaldo (oculto) */}
-              <select
-                id="tipoCliente"
-                value={tipoCliente}
-                onChange={(e) => setTipoCliente(e.target.value)}
-                className="hidden"
-              >
-                <option value="cliente final">Cliente Final</option>
-                <option value="mayorista">Mayorista</option>
-              </select>
+              {/* Tipo de cliente */}
+              <div className="flex flex-col gap-2">
+                <Label className="text-sm font-medium text-gray-700">Tipo de Cliente</Label>
+                <div className="flex gap-4">
+                  <label className="inline-flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="tipoCliente"
+                      checked={tipoCliente === 'cliente final'}
+                      onChange={() => setTipoCliente('cliente final')}
+                      className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                      Final
+                    </span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="tipoCliente"
+                      checked={tipoCliente === 'mayorista'}
+                      onChange={() => setTipoCliente('mayorista')}
+                      className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                      Mayorista
+                    </span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {cargando ? (
-          <p className="text-center text-lg font-semibold py-8">Cargando productos...</p>
-        ) : !Array.isArray(productos) || productos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-center text-lg font-semibold bg-red-100 text-red-700 px-6 py-4 rounded-lg border border-red-300">No hay productos disponibles.</p>
-          </div>
-        ) : productosActuales.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-center text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay productos que coincidan con la búsqueda.</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
+        {/* Tabla estática - siempre visible */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="font-bold text-white">Descripción</TableHead>
+              <TableHead className="font-bold text-white">Código</TableHead>
+              <TableHead className="font-bold text-white">Stock</TableHead>
+              <TableHead className="font-bold text-white text-center">Tipo</TableHead>
+              <TableHead className="font-bold text-white text-center">{tipoCliente === 'mayorista' ? 'Mayorista' : 'Final'}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {cargando ? (
+              // Estado de carga - fila especial
               <TableRow>
-                <TableHead className="font-bold text-white">Descripción</TableHead>
-                <TableHead className="font-bold text-white">Código</TableHead>
-                <TableHead className="font-bold text-white">Stock</TableHead>
-                <TableHead className="font-bold text-white">Tipo</TableHead>
-                <TableHead className="font-bold text-white">Precio {tipoCliente === 'mayorista' ? 'Mayorista' : 'Final'}</TableHead>
+                <TableCell colSpan={5} className="text-center py-12">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                    <span className="text-lg font-semibold text-gray-600">Cargando productos...</span>
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {productosActuales.map((p, idx) => {
+            ) : !Array.isArray(productos) || productos.length === 0 ? (
+              // Sin productos disponibles
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-12">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                      <span className="text-red-600 text-xl">⚠️</span>
+                    </div>
+                    <p className="text-lg font-semibold text-red-700">No hay productos disponibles</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : productosActuales.length === 0 ? (
+              // Sin resultados de búsqueda
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-12">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <span className="text-yellow-600 text-xl">🔍</span>
+                    </div>
+                    <p className="text-lg font-semibold text-yellow-800">No hay productos que coincidan con la búsqueda</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              // Productos - contenido dinámico
+              productosActuales.map((p, idx) => {
                 const precioMostrar = calcularPrecio(
                   p,
                   tipoCliente === 'mayorista' ? 'mayorista' : 'final'
@@ -518,10 +590,10 @@ export default function Producto() {
                     <TableCell className="text-center">${precioMostrar.toFixed(2)}</TableCell>
                   </TableRow>
                 );
-              })}
-            </TableBody>
-          </Table>
-        )}
+              })
+            )}
+          </TableBody>
+        </Table>
 
 
         {/* Paginación */}
@@ -549,13 +621,31 @@ export default function Producto() {
               ‹
             </Button>
             
-            {/* Números de página - Solo páginas 1, 2 y 3 */}
+            {/* Números de página dinámicos */}
             {(() => {
               const paginas = [];
-              const maxPaginas = Math.min(3, totalPaginas);
+              const paginasVisibles = 5; // Mostrar hasta 5 páginas a la vez
+              const mitad = Math.floor(paginasVisibles / 2);
               
-              // Botones de páginas 1, 2 y 3
-              for (let i = 1; i <= maxPaginas; i++) {
+              let inicio = Math.max(1, paginaActual - mitad);
+              let fin = Math.min(totalPaginas, inicio + paginasVisibles - 1);
+              
+              // Ajustar inicio si estamos cerca del final
+              if (fin - inicio + 1 < paginasVisibles) {
+                inicio = Math.max(1, fin - paginasVisibles + 1);
+              }
+              
+              // Mostrar puntos suspensivos al inicio si es necesario
+              if (inicio > 1) {
+                paginas.push(
+                  <span key="start-ellipsis" className="px-3 py-2 text-sm text-gray-500">
+                    ...
+                  </span>
+                );
+              }
+              
+              // Generar botones de páginas
+              for (let i = inicio; i <= fin; i++) {
                 paginas.push(
                   <Button
                     key={i}
@@ -570,6 +660,15 @@ export default function Producto() {
                   >
                     {i}
                   </Button>
+                );
+              }
+              
+              // Mostrar puntos suspensivos al final si es necesario
+              if (fin < totalPaginas) {
+                paginas.push(
+                  <span key="end-ellipsis" className="px-3 py-2 text-sm text-gray-500">
+                    ...
+                  </span>
                 );
               }
               
@@ -636,6 +735,88 @@ export default function Producto() {
           onSubmit: actualizarProducto,
         })}
       </Modal>
+
+      {/* Popup de confirmación de eliminación */}
+      <Dialog open={mostrarConfirmacionEliminar} onOpenChange={setMostrarConfirmacionEliminar}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-gray-900">
+              ¿Eliminar producto?
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              {productoAEliminar && (
+                <>
+                  Estás a punto de eliminar el producto <strong>"{productoAEliminar.nombre_producto}"</strong>.
+                  <br />
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMostrarConfirmacionEliminar(false);
+                setProductoAEliminar(null);
+              }}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={ejecutarEliminacion}
+              className="flex-1"
+            >
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Popup de duplicado */}
+      <Dialog open={mostrarDialogoDuplicado} onOpenChange={setMostrarDialogoDuplicado}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-orange-600">
+              ⚠️ Producto duplicado
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              {infoDuplicado && (
+                <>
+                  Ya existe un producto con el nombre <strong>"{infoDuplicado.nombre}"</strong> y el mismo tipo.
+                  <br />
+                  <span className="text-orange-600 font-medium">
+                    ID del producto existente: {infoDuplicado.id}
+                  </span>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMostrarDialogoDuplicado(false);
+                setInfoDuplicado(null);
+              }}
+              className="flex-1"
+            >
+              Entendido
+            </Button>
+            <Button
+              onClick={() => {
+                setMostrarDialogoDuplicado(false);
+                setInfoDuplicado(null);
+                // Mantener el formulario abierto para que el usuario pueda modificar
+              }}
+              className="flex-1"
+            >
+              Modificar datos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

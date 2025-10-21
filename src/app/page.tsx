@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState } from "react";
-import Caja from './Ventana/caja';
-import Producto from './Ventana/producto';
-import FichasClientes from './Ventana/fichas-clientes';
+import Caja from './ventana/caja';
+import Producto from './ventana/producto';
+import FichasClientes from './mascota/fichas-clientes';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardPage from './dashboard/page';
-import Item from './Ventana/item';
-import Ingreso from './Ventana/ingreso';
-import DistribuidoresDeudas from './Ventana/distribuidores-deudas';
+import Item from './ventana/item';
+import Ingreso from './ventana/ingreso';
+import DistribuidoresDeudas from './ventana/distribuidores-deudas';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function HomePage() {
@@ -36,10 +36,8 @@ export default function HomePage() {
   };
 
   return (
-    <ProtectedRoute>
-      <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-        {renderContent()}
-      </DashboardLayout>
-    </ProtectedRoute>
+    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {renderContent()}
+    </DashboardLayout>
   );
 }

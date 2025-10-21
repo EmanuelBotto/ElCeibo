@@ -87,9 +87,21 @@ export default function DashboardPage() {
           {
             title: "Ingresos del Mes",
             value: `$${statsData.ingresosMes?.valor?.toLocaleString() || "0"}`,
-            change: statsData.ingresosMes?.cambio !== undefined ? 
-              `${statsData.ingresosMes.cambio >= 0 ? '+' : ''}${statsData.ingresosMes.cambio}%` : 
-              "Sin datos previos",
+            change: (() => {
+              const ingresos = statsData.ingresosMes?.valor || 0;
+              const cambio = statsData.ingresosMes?.cambio;
+              
+              console.log('Debug ingresos:', { ingresos, cambio, tipo: typeof ingresos });
+              
+              // Solo mostrar porcentaje si los ingresos son mayores a 100,000
+              if (ingresos > 100000 && cambio !== null && cambio !== undefined) {
+                return `${cambio >= 0 ? '+' : ''}${cambio}%`;
+              } else if (ingresos <= 100000) {
+                return "Ingresos insuficientes para comparar";
+              } else {
+                return "Datos insuficientes para comparar";
+              }
+            })(),
             icon: DollarSign,
             color: "text-orange-600",
             bgColor: "bg-orange-100"
@@ -147,7 +159,7 @@ export default function DashboardPage() {
           {
             title: "Ingresos del Mes",
             value: "$0",
-            change: "Sin datos previos",
+            change: "Ingresos insuficientes para comparar",
             icon: DollarSign,
             color: "text-orange-600",
             bgColor: "bg-orange-100"
@@ -214,9 +226,17 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
                 {stat.title === "Ingresos del Mes" ? (
-                  <p className={`text-xs mt-1 ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                    <TrendingUp className="inline h-3 w-3 mr-1" />
-                    {stat.change} desde el mes pasado
+                  <p className={`text-xs mt-1 ${
+                    stat.change.includes('insuficientes') || stat.change.includes('Datos insuficientes') ? 'text-gray-500' : 
+                    (stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600')
+                  }`}>
+                    {!stat.change.includes('insuficientes') && !stat.change.includes('Datos insuficientes') && (
+                      <TrendingUp className="inline h-3 w-3 mr-1" />
+                    )}
+                    {stat.change.includes('insuficientes') || stat.change.includes('Datos insuficientes') ? 
+                      stat.change : 
+                      `${stat.change} desde el mes pasado`
+                    }
                   </p>
                 ) : (
                   <p className="text-xs mt-1 text-gray-500">

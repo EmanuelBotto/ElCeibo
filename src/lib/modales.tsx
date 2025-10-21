@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ====== Modales reutilizables para Productos ======
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Trash2, Camera } from 'lucide-react';
 
 type NuevoProducto = {
   nombre: string;
@@ -668,194 +668,245 @@ export function buildProductoFormContent(args: {
   // ========================================
   return (
     <div className={isEdit ? "w-full" : "w-full"}>
-      <h2 className="text-center text-base font-semibold mb-4">
+      <h2 className="text-center text-xl font-bold text-purple-800 mb-4">
         {isEdit ? "Actualizar Producto" : "Nuevo Producto"}
       </h2>
       
-      <div className="grid grid-cols-3 gap-4">
-        {/* ID Producto */}
-        <div>
-          <Label className="text-sm" htmlFor="idProducto">ID Producto</Label>
-          <Input
-            id="idProducto"
-            value={String((isEdit ? ((productoEditando as any)?.id_producto) : (nextIdPreview ?? "")) ?? "")}
-            disabled
-            className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-          />
-        </div>
-
-        {/* Descripción/Nombre */}
-        <div>
-          <Label className="text-sm" htmlFor={isEdit ? "nombreEdit" : "nombre"}>Descripción</Label>
-          <Input
-            id={isEdit ? "nombreEdit" : "nombre"}
-            value={String(isEdit ? getEditValue("nombre") : getCreateValue("nombre"))}
-            onChange={(e) => (isEdit ? handleEditChange("nombre", e.target.value) : handleCreateChange("nombre", e.target.value))}
-            className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-          />
-        </div>
-
-        {/* Rubro/Tipo (solo en edición) */}
-        {isEdit && (
+      <div className="space-y-6">
+        {/* Primera fila: ID, Descripción, Marca, Tipo */}
+        <div className="grid grid-cols-4 gap-4">
+          {/* ID Producto */}
           <div>
-            <Label className="text-sm" htmlFor="rubro">Rubro</Label>
-            <select
-              id="rubro"
-              value={String(((productoEditando as any)?.id_tipo) ?? "1")}
-              onChange={(e) => handleEditChange("id_tipo", e.target.value)}
-              className="w-full border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black"
-            >
-              {Array.isArray(tipos) && tipos.length > 0 ? (
-                tipos.map((t) => (
-                  <option key={t.id_tipo} value={String(t.id_tipo)}>{t.nombre}</option>
-                ))
-              ) : (
-                <>
-                  <option value="1">Balanceado</option>
-                  <option value="2">Medicamento</option>
-                  <option value="3">Accesorio</option>
-                  <option value="4">Acuario</option>
-                </>
-              )}
-            </select>
-          </div>
-        )}
-
-        {/* Stock (solo en edición) */}
-        {isEdit && (
-          <div>
-            <Label htmlFor={"stockEdit"}>Stock</Label>
+            <Label className="text-sm" htmlFor="idProducto">ID Producto</Label>
             <Input
-              id={"stockEdit"}
-              type="number"
-              value={String(getEditValue("stock"))}
-              onChange={(e) => handleEditChange("stock", e.target.value)}
+              id="idProducto"
+              value={String((isEdit ? ((productoEditando as any)?.id_producto) : (nextIdPreview ?? "")) ?? "")}
+              disabled
               className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
             />
           </div>
-        )}
 
-        {/* Marca (solo en edición) */}
-        {isEdit && (
+          {/* Descripción/Nombre */}
           <div>
-            <Label className="text-sm" htmlFor="marcaEdit">Marca</Label>
+            <Label className="text-sm" htmlFor={isEdit ? "nombreEdit" : "nombre"}>Descripción</Label>
             <Input
-              id="marcaEdit"
-              value={String(((productoEditando as any)?.marca) ?? "")}
-              onChange={(e) => handleEditChange("marca", e.target.value)}
+              id={isEdit ? "nombreEdit" : "nombre"}
+              value={String(isEdit ? getEditValue("nombre") : getCreateValue("nombre"))}
+              onChange={(e) => (isEdit ? handleEditChange("nombre", e.target.value) : handleCreateChange("nombre", e.target.value))}
               className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
             />
           </div>
-        )}
 
-        {/* Marca (solo en creación) */}
-        {!isEdit && (
-          <div>
-            <Label htmlFor="marca">Marca</Label>
-            <Input
-              id="marca"
-              value={String(getCreateValue("marca"))}
-              onChange={(e) => handleCreateChange("marca", e.target.value)}
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-            />
-          </div>
-        )}
-
-        {/* Tipo (solo en creación) */}
-        {!isEdit && (
-          <div>
-            <Label htmlFor="tipo">Tipo</Label>
-            <select
-              id="tipo"
-              value={String(getCreateValue("id_tipo"))}
-              onChange={(e) => {
-                const selected = e.target.value;
-                handleCreateChange("id_tipo", selected);
-                const t = tipos.find((x) => String(x.id_tipo) === String(selected));
-                if (t && setNuevoProducto) {
-                  setNuevoProducto((prev) => {
-                    const prevObj = prev as NuevoProducto & {
-                      porcentaje_final?: string | number;
-                      porcentaje_mayorista?: string | number;
-                    };
-                    return {
-                      ...prevObj,
-                      porcentaje_final: t.porcentaje_final,
-                      porcentaje_mayorista: t.porcentaje_mayorista,
-                    } as NuevoProducto;
-                  });
-                }
-              }}
-              className="border-2 border-purple-400 rounded-full px-3 py-2"
-            >
-              {tipos.length > 0 ? (
-                tipos.map((t) => (
-                  <option key={t.id_tipo} value={t.id_tipo}>{t.nombre}</option>
-                ))
-              ) : (
-                <>
-                  <option value="1">Balanceado</option>
-                  <option value="2">Medicamento</option>
-                  <option value="3">Accesorio</option>
-                  <option value="4">Acuario</option>
-                </>
-              )}
-            </select>
-          </div>
-        )}
-
-        {/* Precio Costo */}
-        {isEdit ? (
-          <div className="col-start-1 row-start-3">
-            <Label htmlFor="precioEdit">Precio Costo</Label>
-            <Input
-              id="precioEdit"
-              type="number"
-              value={String(getEditValue("precio_costo"))}
-              onChange={(e) => handleEditChange("precio_costo", e.target.value)}
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-            />
-          </div>
-        ) : (
-          <div>
-            <Label htmlFor="precio">Precio Costo</Label>
-            <Input
-              id="precio"
-              type="number"
-              value={String(getCreateValue("precio_costo"))}
-              onChange={(e) => handleCreateChange("precio_costo", e.target.value)}
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
-            />
-          </div>
-        )}
-
-        {/* Porcentajes y Precios Finales - Solo en creación */}
-        {!isEdit && (
-          <>
-            <div className="col-start-2 row-start-3">
-              <Label className="text-sm">% incremento CF</Label>
+          {/* Marca */}
+          {isEdit ? (
+            <div className="flex flex-col">
+              <Label className="text-sm mb-1" htmlFor="marcaEdit">Marca</Label>
               <Input
-                id="incCFCreate"
-                type="number"
-                step="0.01"
-                value={String(getCreateValue("porcentaje_final"))}
-                disabled
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                id="marcaEdit"
+                value={String(((productoEditando as any)?.marca) ?? "")}
+                onChange={(e) => handleEditChange("marca", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
               />
             </div>
-            <div className="col-start-3 row-start-3">
-              <Label className="text-sm">% de incremento R</Label>
+          ) : (
+            <div className="flex flex-col">
+              <Label className="mb-1" htmlFor="marca">Marca</Label>
               <Input
-                id="incRCreate"
-                type="number"
-                step="0.01"
-                value={String(getCreateValue("porcentaje_mayorista"))}
-                disabled
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                id="marca"
+                value={String(getCreateValue("marca"))}
+                onChange={(e) => handleCreateChange("marca", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
               />
             </div>
-            <div className="col-start-2 row-start-4">
-              <Label className="text-sm">Precio final</Label>
+          )}
+
+          {/* Tipo/Rubro */}
+          {isEdit ? (
+            <div className="flex flex-col">
+              <Label className="text-sm mb-1" htmlFor="rubro">Rubro</Label>
+              <select
+                id="rubro"
+                value={String(((productoEditando as any)?.id_tipo) ?? "1")}
+                onChange={(e) => handleEditChange("id_tipo", e.target.value)}
+                className="w-full h-12 border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black focus:ring-purple-500 focus:border-transparent text-base"
+                style={{ height: '3rem', lineHeight: '1.5rem' }}
+              >
+                {Array.isArray(tipos) && tipos.length > 0 ? (
+                  tipos.map((t) => (
+                    <option key={t.id_tipo} value={String(t.id_tipo)}>{t.nombre}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="1">Balanceado</option>
+                    <option value="2">Medicamento</option>
+                    <option value="3">Accesorio</option>
+                    <option value="4">Acuario</option>
+                  </>
+                )}
+              </select>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              <Label className="mb-1" htmlFor="tipo">Tipo</Label>
+              <select
+                id="tipo"
+                value={String(getCreateValue("id_tipo"))}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  handleCreateChange("id_tipo", selected);
+                  const t = tipos.find((x) => String(x.id_tipo) === String(selected));
+                  if (t && setNuevoProducto) {
+                    setNuevoProducto((prev) => {
+                      const prevObj = prev as NuevoProducto & {
+                        porcentaje_final?: string | number;
+                        porcentaje_mayorista?: string | number;
+                      };
+                      return {
+                        ...prevObj,
+                        porcentaje_final: t.porcentaje_final,
+                        porcentaje_mayorista: t.porcentaje_mayorista,
+                      } as NuevoProducto;
+                    });
+                  }
+                }}
+                className="w-full h-12 border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black focus:ring-purple-500 focus:border-transparent text-base"
+                style={{ height: '3rem', lineHeight: '1.5rem' }}
+              >
+                {tipos.length > 0 ? (
+                  tipos.map((t) => (
+                    <option key={t.id_tipo} value={t.id_tipo}>{t.nombre}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="1">Balanceado</option>
+                    <option value="2">Medicamento</option>
+                    <option value="3">Accesorio</option>
+                    <option value="4">Acuario</option>
+                  </>
+                )}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Tercera fila: Stock, Precio Costo, Porcentajes */}
+        <div className="grid grid-cols-4 gap-4">
+          {/* Stock */}
+          {isEdit ? (
+            <div>
+              <Label htmlFor={"stockEdit"}>Stock</Label>
+              <Input
+                id={"stockEdit"}
+                type="number"
+                value={String(getEditValue("stock"))}
+                onChange={(e) => handleEditChange("stock", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              />
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="stock">Stock</Label>
+              <Input
+                id="stock"
+                type="number"
+                value={String(getCreateValue("stock"))}
+                onChange={(e) => handleCreateChange("stock", e.target.value)}
+                placeholder="0"
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              />
+            </div>
+          )}
+
+          {/* Precio Costo */}
+          {isEdit ? (
+            <div>
+              <Label htmlFor="precioEdit">Precio Costo</Label>
+              <Input
+                id="precioEdit"
+                type="number"
+                value={String(getEditValue("precio_costo"))}
+                onChange={(e) => handleEditChange("precio_costo", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              />
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="precio">Precio Costo</Label>
+              <Input
+                id="precio"
+                type="number"
+                value={String(getCreateValue("precio_costo"))}
+                onChange={(e) => handleCreateChange("precio_costo", e.target.value)}
+                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              />
+            </div>
+          )}
+
+          {/* Porcentajes - Solo en creación */}
+          {!isEdit && (
+            <>
+              <div>
+                <Label className="text-sm">% incremento CF</Label>
+                <Input
+                  id="incCFCreate"
+                  type="number"
+                  step="0.01"
+                  value={String(getCreateValue("porcentaje_final"))}
+                  disabled
+                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                />
+              </div>
+              <div>
+                <Label className="text-sm">% de incremento R</Label>
+                <Input
+                  id="incRCreate"
+                  type="number"
+                  step="0.01"
+                  value={String(getCreateValue("porcentaje_mayorista"))}
+                  disabled
+                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Porcentajes - Solo en edición */}
+          {isEdit && (
+            <>
+              <div>
+                <Label className="text-sm" htmlFor="incCF">% incremento CF</Label>
+                <Input
+                  id="incCF"
+                  type="number"
+                  step="0.01"
+                  value={String(((productoEditando as any)?.porcentaje_final) ?? "")}
+                  onChange={(e) => handleEditChange("precio_costo", e.target.value)}
+                  disabled={!porcentajePersonalizado}
+                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
+                />
+              </div>
+              <div>
+                <Label className="text-sm" htmlFor="incR">% de incremento R</Label>
+                <Input
+                  id="incR"
+                  type="number"
+                  step="0.01"
+                  value={String(((productoEditando as any)?.porcentaje_mayorista) ?? "")}
+                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value } as any)}
+                  disabled={!porcentajePersonalizado}
+                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+
+        {/* Precios Finales - Solo en creación */}
+        {!isEdit && (
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <Label className="text-sm">Precio final CF</Label>
               <Input
                 disabled
                 value={(() => {
@@ -867,8 +918,8 @@ export function buildProductoFormContent(args: {
                 className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
               />
             </div>
-            <div className="col-start-3 row-start-4">
-              <Label className="text-sm">Precio final</Label>
+            <div>
+              <Label className="text-sm">Precio final R</Label>
               <Input
                 disabled
                 value={(() => {
@@ -880,71 +931,55 @@ export function buildProductoFormContent(args: {
                 className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
               />
             </div>
-          </>
+          </div>
         )}
 
-        {/* Porcentajes y Precios Finales - Solo en edición */}
+        {/* Checkbox y Precios Finales - Solo en edición */}
         {isEdit && (
           <>
-            <div className="col-start-2 row-start-3">
-              <Label className="text-sm" htmlFor="incCF">% incremento CF</Label>
-              <Input
-                id="incCF"
-                type="number"
-                step="0.01"
-                value={String(((productoEditando as any)?.porcentaje_final) ?? "")}
-                onChange={(e) => handleEditChange("precio_costo", e.target.value)}
-                disabled={!porcentajePersonalizado}
-                className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
-              />
+            {/* Cuarta fila: Checkbox */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="flex items-center gap-2">
+                <input
+                  id="manual"
+                  type="checkbox"
+                  checked={porcentajePersonalizado}
+                  onChange={(e) => setPorcentajePersonalizado && setPorcentajePersonalizado(e.target.checked)}
+                  className="mr-2"
+                />
+                <Label htmlFor="manual" className="text-sm">% Manual</Label>
+              </div>
+              <div></div>
             </div>
-            <div className="col-start-3 row-start-3">
-              <Label className="text-sm" htmlFor="incR">% de incremento R</Label>
-              <Input
-                id="incR"
-                type="number"
-                step="0.01"
-                value={String(((productoEditando as any)?.porcentaje_mayorista) ?? "")}
-                onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value } as any)}
-                disabled={!porcentajePersonalizado}
-                className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
-              />
-            </div>
-            <div className="col-start-1 row-start-4 flex items-center gap-2">
-              <input
-                id="manual"
-                type="checkbox"
-                checked={porcentajePersonalizado}
-                onChange={(e) => setPorcentajePersonalizado && setPorcentajePersonalizado(e.target.checked)}
-                className="mr-2"
-              />
-              <Label htmlFor="manual" className="text-sm">% Manual</Label>
-            </div>
-            <div className="col-start-2 row-start-4">
-              <Label className="text-sm">Precio final</Label>
-              <Input
-                disabled
-                value={(() => {
-                  const base = Number(((productoEditando as any)?.precio_costo ?? 0));
-                  const mult = Number(((productoEditando as any)?.porcentaje_final ?? 0));
-                  const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
-                  return `$ ${v}`;
-                })()}
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
-              />
-            </div>
-            <div className="col-start-3 row-start-4">
-              <Label className="text-sm">Precio final</Label>
-              <Input
-                disabled
-                value={(() => {
-                  const base = Number(((productoEditando as any)?.precio_costo ?? 0));
-                  const mult = Number(((productoEditando as any)?.porcentaje_mayorista ?? 0));
-                  const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
-                  return `$ ${v}`;
-                })()}
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
-              />
+
+            {/* Quinta fila: Precios finales */}
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <Label className="text-sm">Precio final CF</Label>
+                <Input
+                  disabled
+                  value={(() => {
+                    const base = Number(((productoEditando as any)?.precio_costo ?? 0));
+                    const mult = Number(((productoEditando as any)?.porcentaje_final ?? 0));
+                    const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
+                    return `$ ${v}`;
+                  })()}
+                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                />
+              </div>
+              <div>
+                <Label className="text-sm">Precio final R</Label>
+                <Input
+                  disabled
+                  value={(() => {
+                    const base = Number(((productoEditando as any)?.precio_costo ?? 0));
+                    const mult = Number(((productoEditando as any)?.porcentaje_mayorista ?? 0));
+                    const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
+                    return `$ ${v}`;
+                  })()}
+                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                />
+              </div>
             </div>
           </>
         )}
@@ -968,32 +1003,6 @@ export function buildProductoFormContent(args: {
 // 
 // import { ModalVenta, useModalVenta } from '@/lib/modales';
 // 
-// function MiComponente() {
-//   const { isModalOpen, modalType, modalMessage, showErrorModal, showSuccessModal, closeModal } = useModalVenta();
-//   
-//   const handleError = () => {
-//     showErrorModal('Error al procesar la venta');
-//   };
-//   
-//   const handleSuccess = () => {
-//     showSuccessModal('Venta completada exitosamente');
-//   };
-//   
-//   return (
-//     <>
-//       <button onClick={handleError}>Mostrar Error</button>
-//       <button onClick={handleSuccess}>Mostrar Éxito</button>
-//       
-//       <ModalVenta
-//         isOpen={isModalOpen}
-//         type={modalType}
-//         message={modalMessage}
-//         onClose={closeModal}
-//         onSuccessRedirect={() => console.log('Redirigir a caja')}
-//       />
-//     </>
-//   );
-// }
 
 type ModalVentaType = 'error' | 'success' | '';
 
@@ -1475,5 +1484,848 @@ export function useModalConfirmacion() {
     showConfirmModal,
     closeModal,
     handleConfirm
+  };
+}
+
+// ====== Modal de Nueva Mascota ======
+
+type NuevaMascota = {
+  nombre: string;
+  especie: string;
+  raza: string;
+  sexo: string;
+  edad: string;
+  peso: string;
+  estado_reproductivo: boolean;
+  deceso: boolean;
+  foto: File | null;
+};
+
+export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () => void } = {}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [nuevaMascotaForm, setNuevaMascotaForm] = useState<NuevaMascota>({
+    nombre: '',
+    especie: '',
+    raza: '',
+    sexo: '',
+    edad: '',
+    peso: '',
+    estado_reproductivo: false,
+    deceso: false,
+    foto: null
+  });
+  const [ownerInfo, setOwnerInfo] = useState({ nombre: '', apellido: '', id_clinete: '' });
+
+  const abrirModal = (owner: any) => {
+    setOwnerInfo(owner);
+    setNuevaMascotaForm({
+      nombre: '',
+      especie: '',
+      raza: '',
+      sexo: '',
+      edad: '',
+      peso: '',
+      estado_reproductivo: false,
+      deceso: false,
+      foto: null
+    });
+    setIsModalOpen(true);
+  };
+
+  const cerrarModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const manejarEnvioNuevaMascota = async (e: any) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      
+      console.log('Datos del formulario:', nuevaMascotaForm);
+      console.log('Información del propietario:', ownerInfo);
+      
+      // Convertir foto a Base64 si existe
+      let fotoBase64 = null;
+      if (nuevaMascotaForm.foto) {
+        console.log('Convirtiendo foto a Base64...');
+        fotoBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(nuevaMascotaForm.foto!);
+        });
+        console.log('Foto convertida a Base64');
+      }
+      
+      // Validar campos requeridos antes de enviar
+      console.log('Validando campos:', {
+        nombre: nuevaMascotaForm.nombre,
+        especie: nuevaMascotaForm.especie,
+        sexo: nuevaMascotaForm.sexo,
+        id_cliente: ownerInfo.id_clinete
+      });
+      
+      if (!nuevaMascotaForm.nombre || !nuevaMascotaForm.especie || !nuevaMascotaForm.sexo) {
+        throw new Error('Nombre, especie y sexo son campos requeridos');
+      }
+
+      if (!ownerInfo.id_clinete) {
+        throw new Error('ID del cliente no encontrado');
+      }
+      
+      // Preparar datos para enviar como JSON
+      const data = {
+        nombre: nuevaMascotaForm.nombre,
+        especie: nuevaMascotaForm.especie,
+        raza: nuevaMascotaForm.raza || '',
+        sexo: nuevaMascotaForm.sexo,
+        edad: parseFloat(nuevaMascotaForm.edad) || 0,
+        peso: parseFloat(nuevaMascotaForm.peso) || 0,
+        estado_reproductivo: nuevaMascotaForm.estado_reproductivo,
+        deceso: false,
+        id_cliente: ownerInfo.id_clinete,
+        foto: fotoBase64
+      };
+      
+      console.log('Datos a enviar:', data);
+      
+      const response = await fetch('/api/mascotas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data),
+      });
+
+      console.log('Respuesta del servidor:', response.status, response.statusText);
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { error: `Error ${response.status}: ${response.statusText}` };
+        }
+        console.error('Error del servidor:', errorData);
+        console.error('Status:', response.status);
+        console.error('Status Text:', response.statusText);
+        throw new Error(errorData.error || 'Error al crear la mascota');
+      }
+
+      const result = await response.json();
+      console.log('Mascota creada exitosamente:', result);
+
+      // Cerrar modal y ejecutar callback
+      setIsModalOpen(false);
+      if (onMascotaSuccess) {
+        onMascotaSuccess();
+      }
+      
+    } catch (error) {
+      console.error('Error al crear mascota:', error);
+      alert((error as any).message || 'Error al crear la mascota');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderContent = (
+    <div className="text-gray-900">
+      <h2 className="text-center text-base font-semibold mb-4 text-purple-800">
+        AGREGAR NUEVA MASCOTA
+      </h2>
+      <p className="text-center text-sm text-gray-600 mb-6">
+        Complete los datos de la nueva mascota para {ownerInfo.nombre} {ownerInfo.apellido}
+      </p>
+      
+      <form onSubmit={manejarEnvioNuevaMascota} className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Panel izquierdo - Foto de la mascota */}
+          <div className="lg:col-span-1">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 h-full">
+              
+              <div className="text-center">
+                <div 
+                  className="w-32 h-32 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer group hover:shadow-lg transition-all duration-200 overflow-hidden"
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                  title="Hacer click para seleccionar foto"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, foto: e.target.files?.[0] || null }))}
+                    className="hidden"
+                  />
+                  {nuevaMascotaForm.foto ? (
+                    <img
+                      src={URL.createObjectURL(nuevaMascotaForm.foto)}
+                      alt="Vista previa"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <Camera className="text-purple-600" size={32} />
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                  className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Seleccionar Foto
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Panel derecho - Formulario */}
+          <div className="lg:col-span-2">
+            <div className="space-y-4">
+              {/* Primera fila */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="nombre_mascota" className="text-gray-700 font-semibold">Nombre *</Label>
+                  <Input
+                    id="nombre_mascota"
+                    value={nuevaMascotaForm.nombre}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, nombre: e.target.value }))}
+                    placeholder="Nombre de la mascota"
+                    required
+                    className="mt-1 h-12"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="especie_mascota" className="text-gray-700 font-semibold">Especie *</Label>
+                  <select
+                    id="especie_mascota"
+                    value={nuevaMascotaForm.especie}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, especie: e.target.value }))}
+                    required
+                    className="mt-1 w-full h-12 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Seleccionar especie...</option>
+                    <option value="Perro">Perro</option>
+                    <option value="Gato">Gato</option>
+                    <option value="Conejo">Conejo</option>
+                    <option value="Ave">Ave</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Segunda fila */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="raza_mascota" className="text-gray-700 font-semibold">Raza</Label>
+                  <Input
+                    id="raza_mascota"
+                    value={nuevaMascotaForm.raza}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, raza: e.target.value }))}
+                    placeholder="Raza de la mascota"
+                    className="mt-1 h-12"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="sexo_mascota" className="text-gray-700 font-semibold">Sexo *</Label>
+                  <select
+                    id="sexo_mascota"
+                    value={nuevaMascotaForm.sexo}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, sexo: e.target.value }))}
+                    required
+                    className="mt-1 w-full h-12 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Seleccionar sexo...</option>
+                    <option value="Macho">Macho</option>
+                    <option value="Hembra">Hembra</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tercera fila */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edad_mascota" className="text-gray-700 font-semibold">Edad (años)</Label>
+                  <Input
+                    id="edad_mascota"
+                    type="number"
+                    value={nuevaMascotaForm.edad}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, edad: e.target.value }))}
+                    placeholder="Edad en años"
+                    min="0"
+                    step="0.1"
+                    className="mt-1 h-12"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="peso_mascota" className="text-gray-700 font-semibold">Peso (kg)</Label>
+                  <Input
+                    id="peso_mascota"
+                    type="number"
+                    value={nuevaMascotaForm.peso}
+                    onChange={e => setNuevaMascotaForm(f => ({ ...f, peso: e.target.value }))}
+                    placeholder="Peso en kg"
+                    min="0"
+                    step="0.1"
+                    className="mt-1 h-12"
+                  />
+                </div>
+              </div>
+
+              {/* Estado reproductivo */}
+              <div className="flex items-center space-x-2 py-2">
+                <input
+                  type="checkbox"
+                  id="estado_reproductivo_mascota"
+                  checked={nuevaMascotaForm.estado_reproductivo}
+                  onChange={e => setNuevaMascotaForm(f => ({ ...f, estado_reproductivo: e.target.checked }))}
+                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <Label htmlFor="estado_reproductivo_mascota" className="text-gray-700 font-semibold">
+                  Esterilizado/a
+                </Label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center space-x-6 pt-6">
+          <Button type="button" variant="outline" onClick={cerrarModal} className="border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-2">
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isLoading} className="bg-green-600 hover:bg-green-700 px-8 py-2">
+            {isLoading ? 'Agregando...' : 'Agregar Mascota'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+
+  return {
+    isModalOpen,
+    abrirModal,
+    cerrarModal,
+    renderContent
+  };
+}
+
+// ====== Modal de Confirmación de Eliminación de Factura ======
+
+interface ModalConfirmacionFacturaProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+  modalData: {
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+  };
+}
+
+export function ModalConfirmacionFactura({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  isLoading, 
+  modalData 
+}: ModalConfirmacionFacturaProps) {
+  return (
+    <div className="text-center p-6">
+      <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+        <Trash2 className="h-6 w-6 text-red-600" />
+      </div>
+      <h3 className="text-lg font-medium text-gray-900 mb-2">{modalData.title}</h3>
+      <p className="text-sm text-gray-500 mb-6 whitespace-pre-line">{modalData.message}</p>
+      <div className="flex gap-3 justify-center">
+        <Button
+          onClick={onClose}
+          variant="outline"
+          disabled={isLoading}
+          className="px-4 py-2"
+        >
+          {modalData.cancelText}
+        </Button>
+        <Button
+          onClick={onConfirm}
+          disabled={isLoading}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2"
+        >
+          {isLoading ? "Eliminando..." : modalData.confirmText}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ====== Modal de Notificaciones de Factura ======
+
+interface ModalNotificacionFacturaProps {
+  isOpen: boolean;
+  onClose: () => void;
+  type: 'success' | 'error';
+  message: string;
+}
+
+export function ModalNotificacionFactura({ 
+  isOpen, 
+  onClose, 
+  type, 
+  message 
+}: ModalNotificacionFacturaProps) {
+  return (
+    <div className="text-center p-6">
+      {type === 'error' ? (
+        <>
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+            <AlertTriangle className="h-6 w-6 text-red-600" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error</h3>
+          <p className="text-sm text-gray-500 mb-4">{message}</p>
+          <Button
+            onClick={onClose}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+          >
+            Entendido
+          </Button>
+        </>
+      ) : type === 'success' ? (
+        <>
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">¡Éxito!</h3>
+          <p className="text-sm text-gray-500 mb-4">{message}</p>
+          <Button
+            onClick={onClose}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+          >
+            Entendido
+          </Button>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+// ====== Hook para Ver Registro ======
+
+type FacturaData = {
+  id_factura: number;
+  tipo_factura: string;
+  dia: number;
+  mes: number;
+  anio: number;
+  hora: string;
+  forma_de_pago: string;
+  monto_total: number;
+  detalle: string;
+  num_factura: string;
+  nombre_usuario: string;
+};
+
+type Distribuidor = {
+  id_distribuidor: number;
+  nombre: string;
+  nombre_fantasia?: string;
+  cuit: string;
+  telefono: string;
+  email: string;
+};
+
+type FacturaSeleccionada = {
+  id_factura: number;
+  tipo_factura: string;
+};
+
+export function useVerRegistro() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [facturaData, setFacturaData] = useState<any>(null);
+  const [distribuidorData, setDistribuidorData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("otros");
+
+  const handleOpenModal = async (factura: FacturaSeleccionada) => {
+    setIsLoading(true);
+    try {
+      // Obtener detalles de la factura
+      const response = await fetch(`/api/caja/detalle/${factura.id_factura}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFacturaData(data.factura);
+        
+        // Determinar el tipo basado en si tiene distribuidor asociado
+        if (data.factura.id_distribuidor) {
+          setActiveTab("distribuidores");
+          
+          try {
+            const distribuidorResponse = await fetch(`/api/distribuidores/${data.factura.id_distribuidor}`);
+            if (distribuidorResponse.ok) {
+              const distribuidorData = await distribuidorResponse.json();
+              setDistribuidorData(distribuidorData);
+            } else {
+              console.error('Error al cargar distribuidor:', distribuidorResponse.status);
+            }
+          } catch (error) {
+            console.error('Error al cargar distribuidor:', error);
+          }
+        } else {
+          setActiveTab("otros");
+        }
+        
+        setIsModalOpen(true);
+      } else {
+        const errorData = await response.json();
+        console.error('Error al cargar detalles de la factura:', errorData);
+      }
+    } catch (error) {
+      console.error('Error al cargar detalles:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFacturaData(null);
+    setDistribuidorData(null);
+  };
+
+  const renderOtrosContent = () => {
+    return (
+      <div className="space-y-4">
+        {/* Campo Monto */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Monto
+          </label>
+          <input
+            type="text"
+            placeholder="$ Monto"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 cursor-not-allowed"
+            value={facturaData?.monto_total || ''}
+            readOnly
+          />
+        </div>
+
+        {/* Campo Detalle */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Detalle
+          </label>
+          <input
+            type="text"
+            placeholder="Detalle"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 cursor-not-allowed"
+            value={facturaData?.detalle || ''}
+            readOnly
+          />
+        </div>
+
+        {/* Forma de Pago */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Forma de pago
+          </label>
+          <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+            <div className="space-y-2">
+              {facturaData?.forma_de_pago ? (
+                facturaData.forma_de_pago.split(' - ').map((forma: string, index: number) => (
+                  <label key={index} className="flex items-center cursor-not-allowed">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      readOnly
+                      className="mr-2 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">{forma}</span>
+                  </label>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500">No especificado</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDistribuidoresContent = () => {
+    return (
+      <div className="space-y-4">
+        {/* Campo Número de Recibo/Factura */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Número de Recibo/Factura
+          </label>
+          <input
+            type="text"
+            placeholder="N° Recibo/Factura"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 cursor-not-allowed"
+            value={facturaData?.num_factura || ''}
+            readOnly
+          />
+        </div>
+
+        {/* Campo Monto */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Monto
+          </label>
+          <input
+            type="text"
+            placeholder="$ Monto"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 cursor-not-allowed"
+            value={facturaData?.monto_total || ''}
+            readOnly
+          />
+        </div>
+
+        {/* Forma de Pago */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Forma de pago
+          </label>
+          <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+            <div className="space-y-2">
+              {facturaData?.forma_de_pago ? (
+                facturaData.forma_de_pago.split(' - ').map((forma: string, index: number) => (
+                  <label key={index} className="flex items-center cursor-not-allowed">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      readOnly
+                      className="mr-2 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">{forma}</span>
+                  </label>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500">No especificado</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Desplegable de Distribuidores */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Distribuidor
+          </label>
+          <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+            <div className="text-sm text-gray-700">
+              {distribuidorData ? (distribuidorData.nombre_fantasia || distribuidorData.nombre) : 'No especificado'}
+            </div>
+          </div>
+        </div>
+
+        {/* Información adicional del distribuidor si existe */}
+        {distribuidorData && (
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h4 className="font-semibold text-blue-800 mb-3">Información del Distribuidor</h4>
+            <div className="space-y-2">
+              <div className="text-sm">
+                <span className="font-medium text-blue-700">CUIT:</span> {distribuidorData.cuit}
+              </div>
+              <div className="text-sm">
+                <span className="font-medium text-blue-700">Teléfono:</span> {distribuidorData.telefono}
+              </div>
+              <div className="text-sm">
+                <span className="font-medium text-blue-700">Email:</span> {distribuidorData.email}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return {
+    isModalOpen,
+    facturaData,
+    isLoading,
+    activeTab,
+    handleOpenModal,
+    handleCloseModal,
+    title: activeTab === "distribuidores" ? 'EGRESO - DISTRIBUIDOR' : 'EGRESO - VARIOS',
+    renderContent: (
+      <div className="p-4">
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <span className="ml-2 text-gray-600">Cargando detalles...</span>
+          </div>
+        ) : (
+          <>
+            {/* Mostrar pestañas solo si hay datos para ambos tipos */}
+            {/* En modo solo lectura, siempre mostramos solo el contenido correspondiente */}
+            
+            {/* Contenido dinámico según la pestaña activa */}
+            {activeTab === "otros" ? renderOtrosContent() : renderDistribuidoresContent()}
+          </>
+        )}
+      </div>
+    )
+  };
+}
+
+// ====== Hook para Ver Registro de Ingresos ======
+
+export function useVerRegistroIngreso() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [facturaData, setFacturaData] = useState<any>(null);
+  const [productosData, setProductosData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleOpenModal = async (factura: FacturaSeleccionada) => {
+    setIsLoading(true);
+    try {
+      // Obtener detalles de la factura
+      const response = await fetch(`/api/caja/detalle/${factura.id_factura}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFacturaData(data.factura);
+        setProductosData(data.productos || []);
+        setIsModalOpen(true);
+      } else {
+        const errorData = await response.json();
+        console.error('Error al cargar detalles de la factura:', errorData);
+      }
+    } catch (error) {
+      console.error('Error al cargar detalles:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFacturaData(null);
+    setProductosData([]);
+  };
+
+  const renderIngresoContent = () => {
+    const totalProductos = productosData.reduce((sum, producto) => sum + (producto.cantidad || 0), 0);
+    
+    return (
+      <div className="space-y-6">
+        {/* Información General */}
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h4 className="font-semibold text-blue-800 mb-3">📊 Información General</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-blue-700 mb-1">Fecha y Hora</label>
+              <div className="text-sm text-gray-700">
+                {facturaData?.dia}/{facturaData?.mes}/{facturaData?.anio} - {facturaData?.hora}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-blue-700 mb-1">Usuario</label>
+              <div className="text-sm text-gray-700">
+                {facturaData?.nombre_usuario || 'No especificado'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Resumen Financiero */}
+        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+          <h4 className="font-semibold text-green-800 mb-3">💰 Resumen Financiero</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-green-700 mb-1">Total de la Venta</label>
+              <div className="text-lg font-bold text-green-800">
+                ${facturaData?.monto_total || '0.00'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-green-700 mb-1">Formas de Pago</label>
+              <div className="text-sm text-gray-700">
+                {facturaData?.forma_de_pago || 'No especificado'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Productos Vendidos */}
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h4 className="font-semibold text-gray-800 mb-3">🛒 Productos Vendidos</h4>
+          {productosData.length > 0 ? (
+            <div className="space-y-3">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-300">
+                      <th className="text-left py-2 font-medium text-gray-700">Producto</th>
+                      <th className="text-center py-2 font-medium text-gray-700">Cantidad</th>
+                      <th className="text-right py-2 font-medium text-gray-700">Precio Unit.</th>
+                      <th className="text-right py-2 font-medium text-gray-700">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productosData.map((producto, index) => (
+                      <tr key={index} className="border-b border-gray-200">
+                        <td className="py-2 text-gray-700">
+                          {producto.nombre_producto || 'Producto'}
+                          {producto.marca && <span className="text-gray-500"> - {producto.marca}</span>}
+                        </td>
+                        <td className="py-2 text-center text-gray-700">{producto.cantidad}</td>
+                        <td className="py-2 text-right text-gray-700">${producto.precio_unidad}</td>
+                        <td className="py-2 text-right font-medium text-gray-700">${producto.precio_tot}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+                <span className="text-sm font-medium text-gray-700">
+                  📊 Total productos: {totalProductos}
+                </span>
+                <span className="text-lg font-bold text-gray-800">
+                  Total: ${facturaData?.monto_total || '0.00'}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              No hay productos registrados para esta venta
+            </div>
+          )}
+        </div>
+
+      </div>
+    );
+  };
+
+  return {
+    isModalOpen,
+    facturaData,
+    productosData,
+    isLoading,
+    handleOpenModal,
+    handleCloseModal,
+    title: 'INGRESO - RESUMEN DE VENTA',
+    renderContent: (
+      <div className="p-4">
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <span className="ml-2 text-gray-600">Cargando detalles...</span>
+          </div>
+        ) : (
+          renderIngresoContent()
+        )}
+      </div>
+    )
   };
 }

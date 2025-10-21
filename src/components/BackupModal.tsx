@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Download, Database, AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import Modal from "@/components/ui/modal";
 
 interface BackupModalProps {
@@ -15,46 +15,52 @@ const TABLAS_DISPONIBLES = [
   { 
     id: 'productos', 
     nombre: 'Productos', 
-    descripcion: 'Inventario de productos y precios',
-    icon: '📦'
+    descripcion: 'Inventario de productos y precios'
   },
   { 
     id: 'caja', 
     nombre: 'Caja', 
-    descripcion: 'Transacciones de ingresos y egresos',
-    icon: '💰'
+    descripcion: 'Transacciones de ingresos y egresos'
   },
   { 
     id: 'pacientes', 
     nombre: 'Pacientes', 
-    descripcion: 'Fichas de mascotas y clientes',
-    icon: '🐕'
+    descripcion: 'Fichas de mascotas y clientes'
   },
   { 
     id: 'usuarios', 
     nombre: 'Usuarios', 
-    descripcion: 'Usuarios del sistema',
-    icon: '👥'
+    descripcion: 'Usuarios del sistema'
   },
   { 
     id: 'mascotas', 
     nombre: 'Mascotas', 
-    descripcion: 'Registro de mascotas',
-    icon: '🐾'
+    descripcion: 'Registro de mascotas'
   },
   { 
     id: 'facturas', 
     nombre: 'Facturas', 
-    descripcion: 'Historial de ventas',
-    icon: '🧾'
+    descripcion: 'Historial de ventas'
+  },
+  { 
+    id: 'detalle_factura', 
+    nombre: 'Detalle Facturas', 
+    descripcion: 'Productos vendidos en cada factura'
   }
 ];
 
 export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
-  const [tablasSeleccionadas, setTablasSeleccionadas] = useState<string[]>([]);
+  const [tablasSeleccionadas, setTablasSeleccionadas] = useState<string[]>(TABLAS_DISPONIBLES.map(t => t.id));
   const [generando, setGenerando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error' | 'info', texto: string } | null>(null);
   const [activeTab, setActiveTab] = useState('completo');
+  
+  // Estados para importación
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState<File | null>(null);
+  const [importando, setImportando] = useState(false);
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [tablaImportacion, setTablaImportacion] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleTabla = (tablaId: string) => {
     setTablasSeleccionadas(prev => 
@@ -73,7 +79,12 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
   };
 
   const generarBackup = async () => {
-    if (tablasSeleccionadas.length === 0) {
+    // Para backup completo, usar todas las tablas si no hay selección específica
+    const tablasParaBackup = activeTab === 'completo' && tablasSeleccionadas.length === 0 
+      ? TABLAS_DISPONIBLES.map(t => t.id)
+      : tablasSeleccionadas;
+    
+    if (tablasParaBackup.length === 0) {
       setMensaje({ tipo: 'error', texto: 'Selecciona al menos una tabla para hacer backup' });
       return;
     }
@@ -87,7 +98,7 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ tablas: tablasSeleccionadas }),
+        body: JSON.stringify({ tablas: tablasParaBackup }),
       });
 
       if (!response.ok) {
@@ -103,9 +114,9 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
       // Generar nombre de archivo más descriptivo
       const fecha = new Date().toISOString().split('T')[0];
       const hora = new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
-      const tablasStr = tablasSeleccionadas.length === TABLAS_DISPONIBLES.length 
+      const tablasStr = tablasParaBackup.length === TABLAS_DISPONIBLES.length 
         ? 'completo' 
-        : tablasSeleccionadas.join('_');
+        : tablasParaBackup.join('_');
       
       a.download = `backup_elceibo_${tablasStr}_${fecha}_${hora}.xlsx`;
       document.body.appendChild(a);
@@ -131,10 +142,78 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+    setMensaje(null); // Limpiar mensajes al cambiar de pestaña
     if (tab === 'completo') {
       setTablasSeleccionadas(TABLAS_DISPONIBLES.map(t => t.id));
     } else if (tab === 'personalizado') {
       setTablasSeleccionadas([]);
+    } else if (tab === 'importar') {
+      // Limpiar datos de importación al cambiar a esta pestaña
+      setArchivoSeleccionado(null);
+      setPreviewData([]);
+      setTablaImportacion('');
+    }
+  };
+
+  // Funciones para importación
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.includes('sheet') || file?.name.endsWith('.xlsx') || file?.name.endsWith('.xls')) {
+      setArchivoSeleccionado(file);
+      setMensaje({ tipo: 'info', texto: 'Archivo seleccionado. Ahora elige la tabla de destino.' });
+    } else {
+      setMensaje({ tipo: 'error', texto: 'Por favor selecciona un archivo Excel válido (.xlsx o .xls)' });
+    }
+  };
+
+  const procesarArchivo = async () => {
+    if (!archivoSeleccionado || !tablaImportacion) {
+      setMensaje({ tipo: 'error', texto: 'Selecciona un archivo y una tabla de destino' });
+      return;
+    }
+
+    try {
+      setImportando(true);
+      setMensaje({ tipo: 'info', texto: 'Procesando archivo...' });
+
+      const formData = new FormData();
+      formData.append('archivo', archivoSeleccionado);
+      formData.append('tabla', tablaImportacion);
+
+      const response = await fetch('/api/backup/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al procesar el archivo');
+      }
+
+      const result = await response.json();
+      setMensaje({ 
+        tipo: 'success', 
+        texto: `Archivo procesado exitosamente. ${result.registrosInsertados} registros importados.` 
+      });
+
+      // Limpiar después del éxito
+      setTimeout(() => {
+        setArchivoSeleccionado(null);
+        setPreviewData([]);
+        setTablaImportacion('');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error al procesar archivo:', error);
+      setMensaje({ 
+        tipo: 'error', 
+        texto: `Error al procesar el archivo: ${error instanceof Error ? error.message : 'Error desconocido'}` 
+      });
+    } finally {
+      setImportando(false);
     }
   };
 
@@ -166,21 +245,26 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
           >
             Selección Personalizada
           </button>
+          <button 
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "importar" 
+                ? "text-purple-600 bg-purple-100 border-b-2 border-purple-600" 
+                : "text-gray-500 hover:text-purple-600"
+            }`}
+            onClick={() => handleTabChange("importar")}
+          >
+            Importar Datos
+          </button>
         </div>
 
         {/* Contenido según la pestaña activa */}
         {activeTab === "completo" ? (
           <div className="space-y-4">
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <Database className="h-6 w-6 text-purple-600" />
-                <div>
-                  <h3 className="font-semibold text-purple-800">Backup Completo del Sistema</h3>
-                  <p className="text-sm text-purple-600">
-                    Se incluirán todas las tablas: Productos, Caja, Pacientes, Usuarios, Mascotas y Facturas
-                  </p>
-                </div>
-              </div>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-800 mb-2">Backup Completo del Sistema</h3>
+              <p className="text-sm text-gray-600">
+                Se incluirán todas las tablas: Productos, Caja, Pacientes, Usuarios, Mascotas, Facturas y Detalle Facturas
+              </p>
             </div>
             
             <div className="text-center">
@@ -195,15 +279,12 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
                     Generando Backup Completo...
                   </>
                 ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Generar Backup Completo
-                  </>
+                  'Generar Backup Completo'
                 )}
               </Button>
             </div>
           </div>
-        ) : (
+        ) : activeTab === "personalizado" ? (
           <div className="space-y-4">
             <div className="mb-4">
               <p className="text-gray-600 mb-4">
@@ -250,7 +331,6 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
                       onClick={(e) => e.stopPropagation()}
                       className="w-5 h-5 text-purple-600 focus:ring-purple-500"
                     />
-                    <span className="text-2xl">{tabla.icon}</span>
                     <div>
                       <h3 className="font-semibold text-gray-800">{tabla.nombre}</h3>
                       <p className="text-sm text-gray-600">{tabla.descripcion}</p>
@@ -272,15 +352,92 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
                     Generando...
                   </>
                 ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Generar Backup
-                  </>
+                  'Generar Backup'
                 )}
               </Button>
             </div>
           </div>
-        )}
+        ) : activeTab === "importar" ? (
+          <div className="space-y-6">
+            {/* Selección de archivo */}
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Seleccionar Archivo Excel
+                </Label>
+                <div className="flex items-center gap-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Seleccionar Archivo
+                  </Button>
+                  {archivoSeleccionado && (
+                    <span className="text-sm text-gray-600">
+                      {archivoSeleccionado.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Selección de tabla de destino */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Tabla de Destino
+                </Label>
+                <select
+                  value={tablaImportacion}
+                  onChange={(e) => setTablaImportacion(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Selecciona una tabla...</option>
+                  {TABLAS_DISPONIBLES.map((tabla) => (
+                    <option key={tabla.id} value={tabla.id}>
+                      {tabla.nombre} - {tabla.descripcion}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Información sobre el formato */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-800 mb-2">Formato Requerido</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• El archivo debe ser un Excel (.xlsx o .xls)</li>
+                  <li>• La primera fila debe contener los nombres de las columnas</li>
+                  <li>• Los nombres de columnas deben coincidir con la estructura de la tabla</li>
+                  <li>• Los datos se importarán respetando las validaciones del sistema</li>
+                </ul>
+              </div>
+
+              {/* Botón de procesar */}
+              <div className="flex justify-center">
+                <Button
+                  onClick={procesarArchivo}
+                  disabled={!archivoSeleccionado || !tablaImportacion || importando}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3"
+                >
+                  {importando ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Procesando Archivo...
+                    </>
+                  ) : (
+                    'Importar Datos'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {mensaje && (
           <div className={`mt-4 p-4 rounded-lg flex items-center gap-2 ${
@@ -295,7 +452,7 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
             ) : mensaje.tipo === 'error' ? (
               <AlertCircle className="h-5 w-5" />
             ) : (
-              <Database className="h-5 w-5" />
+              <div className="h-5 w-5 rounded-full bg-blue-500"></div>
             )}
             <span className="font-medium">{mensaje.texto}</span>
           </div>

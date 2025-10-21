@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, Download, X } from 'lucide-react';
+import { ZoomIn, Download, X } from "lucide-react";
 
 interface ImageDisplayProps {
   src: string;
@@ -11,42 +11,74 @@ interface ImageDisplayProps {
   showControls?: boolean;
 }
 
-export default function ImageDisplay({ 
-  src, 
-  alt, 
+export default function ImageDisplay({
+  src,
+  alt,
   className = "",
-  showControls = true
+  showControls = true,
 }: ImageDisplayProps) {
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   // Función para limpiar y normalizar el src
   const normalizeSrc = (imageSrc: string): string => {
-    if (!imageSrc) return '';
-    
+    if (!imageSrc) return "";
+
+    // Validar que no sea un objeto vacío o malformado
+    if (
+      imageSrc.includes("{}") ||
+      imageSrc.includes("[object Object]") ||
+      imageSrc === "{}"
+    ) {
+      return "";
+    }
+
+    // Validar que no sea solo llaves vacías
+    if (
+      imageSrc.trim() === "{}" ||
+      imageSrc.trim() === "null" ||
+      imageSrc.trim() === "undefined"
+    ) {
+      return "";
+    }
+
     // Si contiene múltiples prefijos data:image, limpiar duplicados
     // Patrón 1: con espacio entre prefijos
-    if (imageSrc.includes('data:image/jpeg;base64, data:image/jpeg;base64,')) {
-      const cleanSrc = imageSrc.replace('data:image/jpeg;base64, data:image/jpeg;base64,', 'data:image/jpeg;base64,');
+    if (imageSrc.includes("data:image/jpeg;base64, data:image/jpeg;base64,")) {
+      const cleanSrc = imageSrc.replace(
+        "data:image/jpeg;base64, data:image/jpeg;base64,",
+        "data:image/jpeg;base64,"
+      );
       return cleanSrc;
     }
-    
+
     // Patrón 2: sin espacio entre prefijos (tu caso específico)
-    if (imageSrc.includes('data:image/jpeg;base64,data:image/jpeg;base64,')) {
-      const cleanSrc = imageSrc.replace('data:image/jpeg;base64,data:image/jpeg;base64,', 'data:image/jpeg;base64,');
+    if (imageSrc.includes("data:image/jpeg;base64,data:image/jpeg;base64,")) {
+      const cleanSrc = imageSrc.replace(
+        "data:image/jpeg;base64,data:image/jpeg;base64,",
+        "data:image/jpeg;base64,"
+      );
       return cleanSrc;
     }
-    
-    // Si ya es una data URL válida, devolverla tal como está
-    if (imageSrc.startsWith('data:image/')) {
+
+    // Si ya es una data URL válida, validar que tenga contenido base64
+    if (imageSrc.startsWith("data:image/")) {
+      const base64Part = imageSrc.split(",")[1];
+      if (!base64Part || base64Part.length < 10 || base64Part === "{}") {
+        return ""; // Base64 muy corto o vacío
+      }
       return imageSrc;
     }
-    
+
     // Si es solo base64 sin prefijo, agregar el prefijo
-    if (!imageSrc.startsWith('data:')) {
+    if (!imageSrc.startsWith("data:")) {
+      // Validar que sea base64 válido
+      if (imageSrc.length < 10) {
+        return ""; // Base64 muy corto
+      }
       return `data:image/jpeg;base64,${imageSrc}`;
     }
-    
+
     return imageSrc;
   };
 
@@ -62,7 +94,9 @@ export default function ImageDisplay({
   // Si no hay src o hay error, mostrar placeholder
   if (!normalizedSrc || imageError) {
     return (
-      <div className={`w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center ${className}`}>
+      <div
+        className={`w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center ${className}`}
+      >
         <span className="text-gray-500 text-sm">Sin imagen</span>
       </div>
     );
@@ -74,16 +108,16 @@ export default function ImageDisplay({
         <img
           src={normalizedSrc}
           alt={alt}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover rounded-full"
           onError={(e) => {
-            console.error('Error loading image:', e);
+            console.error("Error loading image:", e.target.src);
             setImageError(true);
           }}
           onLoad={() => {
             setImageError(false);
           }}
         />
-        
+
         {/* Controles superpuestos */}
         {showControls && (
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-full flex items-center justify-center">
@@ -100,9 +134,11 @@ export default function ImageDisplay({
                 size="sm"
                 variant="secondary"
                 onClick={() => {
-                  const link = document.createElement('a');
+                  const link = document.createElement("a");
                   link.href = normalizedSrc;
-                  link.download = `${alt}_${new Date().toISOString().split('T')[0]}.jpg`;
+                  link.download = `${alt}_${
+                    new Date().toISOString().split("T")[0]
+                  }.jpg`;
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
@@ -125,7 +161,7 @@ export default function ImageDisplay({
               alt={alt}
               className="max-w-full max-h-full object-contain"
             />
-            
+
             {/* Botón cerrar */}
             <Button
               size="sm"
@@ -135,15 +171,17 @@ export default function ImageDisplay({
             >
               <X className="h-4 w-4" />
             </Button>
-            
+
             {/* Botón descargar */}
             <Button
               size="sm"
               variant="secondary"
               onClick={() => {
-                const link = document.createElement('a');
+                const link = document.createElement("a");
                 link.href = normalizedSrc;
-                link.download = `${alt}_${new Date().toISOString().split('T')[0]}.jpg`;
+                link.download = `${alt}_${
+                  new Date().toISOString().split("T")[0]
+                }.jpg`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);

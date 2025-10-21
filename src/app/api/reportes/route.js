@@ -14,11 +14,7 @@ export async function GET() {
 
 export async function POST(request) {
     try {
-        console.log('🔧 API de reportes recibida');
-        
         const { tipoReporte, fechaInicio, fechaFin } = await request.json();
-        
-        console.log('🔧 Generando reporte:', { tipoReporte, fechaInicio, fechaFin });
         
         if (!tipoReporte) {
             return new Response(JSON.stringify({ error: 'Tipo de reporte es requerido' }), { 
@@ -51,12 +47,6 @@ export async function POST(request) {
                 (f.anio = EXTRACT(YEAR FROM $2::date) AND f.mes = EXTRACT(MONTH FROM $2::date) AND f.dia <= EXTRACT(DAY FROM $2::date))
             )`;
             queryParams = [fechaInicioFormatted, fechaFinFormatted];
-            console.log('📅 Filtro de fechas aplicado:', { 
-                fechaInicio, 
-                fechaFin, 
-                fechaInicioFormatted, 
-                fechaFinFormatted 
-            });
         }
         
         switch (tipoReporte) {
@@ -65,13 +55,21 @@ export async function POST(request) {
                     SELECT 
                         f.id_factura,
                         f.tipo_factura,
-                        f.dia,
-                        f.mes,
-                        f.anio,
+                        CONCAT(f.dia, '/', f.mes, '/', f.anio) as fecha_factura,
                         f.hora,
                         f.forma_de_pago,
                         f.monto_total,
-                        f.detalle,
+                        COALESCE(
+                            (SELECT STRING_AGG(
+                                p.nombre, 
+                                ', ' 
+                                ORDER BY df.id_detalle
+                            )
+                            FROM detalle_factura df
+                            LEFT JOIN producto p ON df.id_producto = p.id_producto
+                            WHERE df.id_factura = f.id_factura),
+                            f.detalle
+                        ) as detalle,
                         CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario,
                         f.num_factura
                     FROM factura f
@@ -88,13 +86,21 @@ export async function POST(request) {
                     SELECT 
                         f.id_factura,
                         f.tipo_factura,
-                        f.dia,
-                        f.mes,
-                        f.anio,
+                        CONCAT(f.dia, '/', f.mes, '/', f.anio) as fecha_factura,
                         f.hora,
                         f.forma_de_pago,
                         f.monto_total,
-                        f.detalle,
+                        COALESCE(
+                            (SELECT STRING_AGG(
+                                p.nombre, 
+                                ', ' 
+                                ORDER BY df.id_detalle
+                            )
+                            FROM detalle_factura df
+                            LEFT JOIN producto p ON df.id_producto = p.id_producto
+                            WHERE df.id_factura = f.id_factura),
+                            f.detalle
+                        ) as detalle,
                         CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario,
                         f.num_factura
                     FROM factura f
@@ -174,21 +180,9 @@ export async function POST(request) {
                 });
         }
         
-        // Primero, verificar qué datos hay en la tabla factura
-        console.log('🔍 Verificando datos en tabla factura...');
-        const testQuery = `SELECT id_factura, tipo_factura, dia, mes, anio, monto_total FROM factura ORDER BY anio DESC, mes DESC, dia DESC LIMIT 5`;
-        const testResult = await pool.query(testQuery);
-        console.log('📊 Datos de prueba en factura:', testResult.rows);
-        
-        console.log('📝 Ejecutando consulta:', query);
-        console.log('📋 Parámetros:', queryParams);
-        
         const result = await pool.query(query, queryParams);
         
-        console.log('✅ Consulta ejecutada. Filas obtenidas:', result.rows.length);
-        
         if (result.rows.length === 0) {
-            console.log('⚠️ No hay datos para el reporte');
             return new Response(JSON.stringify({ error: 'No hay datos para generar el reporte' }), { 
                 status: 404,
                 headers: { 'Content-Type': 'application/json' }
@@ -207,9 +201,6 @@ export async function POST(request) {
         
         // Generar el archivo Excel como buffer
         const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-        
-        // Cambiar la extensión del archivo a .xlsx
-        fileName = fileName.replace('.csv', '.xlsx');
         
         return new Response(excelBuffer, {
             status: 200,
