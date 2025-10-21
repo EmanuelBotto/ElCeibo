@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
 
 type NuevoProducto = {
   nombre: string;
@@ -1367,5 +1367,113 @@ export function useNuevoDistribuidor({ onDistribuidorSuccess }: { onDistribuidor
     modalType,
     modalMessage,
     closeModal
+  };
+}
+
+// ====== Modal de Confirmación de Eliminación ======
+
+interface ModalConfirmacionProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  isLoading?: boolean;
+}
+
+export function ModalConfirmacion({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message, 
+  confirmText = "Eliminar",
+  cancelText = "Cancelar",
+  isLoading = false
+}: ModalConfirmacionProps) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="text-center p-6">
+        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+          <Trash2 className="h-6 w-6 text-red-600" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
+        <p className="text-sm text-gray-500 mb-6">{message}</p>
+        <div className="flex gap-3 justify-center">
+          <Button
+            onClick={onClose}
+            variant="outline"
+            disabled={isLoading}
+            className="px-4 py-2"
+          >
+            {cancelText}
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2"
+          >
+            {isLoading ? "Eliminando..." : confirmText}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// Hook para manejar el modal de confirmación
+export function useModalConfirmacion() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalData, setModalData] = useState({
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar'
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const showConfirmModal = (data: {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }) => {
+    setModalData({
+      title: data.title,
+      message: data.message,
+      onConfirm: data.onConfirm,
+      confirmText: data.confirmText || 'Eliminar',
+      cancelText: data.cancelText || 'Cancelar'
+    });
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setIsLoading(false);
+  };
+
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    try {
+      await modalData.onConfirm();
+      closeModal();
+    } catch (error) {
+      console.error('Error en confirmación:', error);
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    isModalOpen,
+    modalData,
+    isLoading,
+    showConfirmModal,
+    closeModal,
+    handleConfirm
   };
 }

@@ -19,8 +19,12 @@ export default function Caja({ onTabChange }) {
     const [facturas, setFacturas] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [cargando, setCargando] = useState(true);
-    const [busqueda, setBusqueda] = useState('');
     const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
+    const [mostrarFiltros, setMostrarFiltros] = useState(false);
+    const [filtroTipo, setFiltroTipo] = useState('todos'); // 'todos', 'ingreso', 'egreso'
+    const [filtroUsuario, setFiltroUsuario] = useState('todos');
+    const [filtroFecha, setFiltroFecha] = useState(''); // Filtro por fecha específica
+    const [usuarios, setUsuarios] = useState([]);
     
 
     const obtenerFacturas = async () => {
@@ -44,10 +48,32 @@ export default function Caja({ onTabChange }) {
         }
     };
 
+    const obtenerUsuarios = async () => {
+        try {
+            const res = await fetch('/api/usuarios', {
+                headers: {
+                    'x-user-type': 'admin'
+                }
+            });
+            const data = await res.json();
+            
+            if (data.users && Array.isArray(data.users)) {
+                setUsuarios(data.users);
+            } else {
+                console.error('La API de usuarios no devolvió un array:', data);
+                setUsuarios([]);
+            }
+        } catch (error) {
+            console.error('Error al obtener usuarios:', error);
+            setUsuarios([]);
+        }
+    };
+
     const { title, renderContent } = useEgreso({ onEgresoSuccess: obtenerFacturas });
 
     useEffect(() => {
         obtenerFacturas();
+        obtenerUsuarios();
     }, []);
 
     // Recargar facturas cuando se regrese a la caja
@@ -68,23 +94,78 @@ export default function Caja({ onTabChange }) {
         setIsModalOpen(false);
     };
 
-    // Filtrar facturas según la búsqueda
+    const toggleFiltros = () => {
+        setMostrarFiltros(!mostrarFiltros);
+    };
+
+    const limpiarFiltros = () => {
+        setFiltroTipo('todos');
+        setFiltroUsuario('todos');
+        setFiltroFecha('');
+    };
+
+    // Filtrar facturas según los filtros aplicados
     const facturasFiltradas = facturas.filter(factura => {
         if (!factura) return false;
-        return (
-            factura.usuario?.toLowerCase().includes(busqueda.toLowerCase()) ||
-            factura.forma_de_pago?.toLowerCase().includes(busqueda.toLowerCase()) ||
-            factura.monto_total?.toString().includes(busqueda)
-        );
+        
+        // Filtro por tipo - si no es ingreso, se considera egreso
+        if (filtroTipo !== 'todos') {
+            if (filtroTipo === 'ingreso' && factura.tipo_factura !== 'ingreso') {
+                return false;
+            }
+            if (filtroTipo === 'egreso' && factura.tipo_factura === 'ingreso') {
+                return false;
+            }
+        }
+        
+        // Filtro por usuario - comparar por ID de usuario
+        if (filtroUsuario !== 'todos' && factura.id_usuario !== parseInt(filtroUsuario)) {
+            return false;
+        }
+        
+        // Filtro por fecha - comparar fecha específica
+        if (filtroFecha) {
+            // Parsear la fecha del filtro (formato YYYY-MM-DD)
+            const [anioFiltro, mesFiltro, diaFiltro] = filtroFecha.split('-').map(Number);
+            
+            // Comparar directamente los componentes numéricos
+            if (factura.anio !== anioFiltro || 
+                factura.mes !== mesFiltro || 
+                factura.dia !== diaFiltro) {
+                return false;
+            }
+        }
+        
+        return true;
     });
+
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
             <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-6xl flex flex-col gap-6">
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-                    <div className="text-center md:text-left">
-                        <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Caja</h1>
-                        <p className="text-gray-600 text-lg">Control de ingresos, egresos y transacciones</p>
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-4">
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            className="px-4 py-2"
+                            onClick={toggleFiltros}
+                            title={mostrarFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+                        >
+                            <svg 
+                                className="w-5 h-5" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24" 
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    strokeWidth={2} 
+                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" 
+                                />
+                            </svg>
+                        </Button>
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={handleOpenModal} className="px-6 py-2">
@@ -113,18 +194,69 @@ export default function Caja({ onTabChange }) {
                     </div>
                 </div>
 
-                <div className="mb-6 flex flex-col md:flex-row md:items-end gap-6">
-                    <div className="flex flex-col gap-2 w-full md:w-1/2">
-                        <Label htmlFor="busqueda" className="text-base font-semibold">Buscar</Label>
-                        <Input
-                            id="busqueda"
-                            placeholder="Buscar por usuario, forma de pago o monto..."
-                            value={busqueda}
-                            onChange={(e) => setBusqueda(e.target.value)}
-                            className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12"
-                        />
+                {/* Panel de filtros */}
+                {mostrarFiltros && (
+                    <div className="mb-4 p-4 bg-purple-50 border-2 border-purple-200 rounded-xl shadow-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* Filtro por tipo */}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="filtro-tipo" className="text-sm font-semibold text-purple-800">Tipo de transacción</Label>
+                                <select
+                                    id="filtro-tipo"
+                                    value={filtroTipo}
+                                    onChange={(e) => setFiltroTipo(e.target.value)}
+                                    className="px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-700 font-medium h-10"
+                                >
+                                    <option value="todos">Todos</option>
+                                    <option value="ingreso">Solo Ingresos</option>
+                                    <option value="egreso">Solo Egresos</option>
+                                </select>
+                            </div>
+
+                            {/* Filtro por usuario */}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="filtro-usuario" className="text-sm font-semibold text-purple-800">Usuario</Label>
+                                <select
+                                    id="filtro-usuario"
+                                    value={filtroUsuario}
+                                    onChange={(e) => setFiltroUsuario(e.target.value)}
+                                    className="px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-700 font-medium h-10"
+                                >
+                                    <option value="todos">Todos los usuarios</option>
+                                    {usuarios.map((usuario) => (
+                                        <option key={usuario.id_usuario} value={usuario.id_usuario}>
+                                            {usuario.nombre} {usuario.apellido}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Filtro por fecha */}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="filtro-fecha" className="text-sm font-semibold text-purple-800">Fecha</Label>
+                                <Input
+                                    id="filtro-fecha"
+                                    type="date"
+                                    value={filtroFecha}
+                                    onChange={(e) => setFiltroFecha(e.target.value)}
+                                    className="px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-700 font-medium h-10"
+                                />
+                            </div>
+
+                            {/* Botón para limpiar filtros */}
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-sm font-semibold text-transparent">Acciones</Label>
+                                <Button
+                                    variant="outline"
+                                    onClick={limpiarFiltros}
+                                    className="px-4 py-3 border-2 border-purple-300 text-purple-700 hover:bg-purple-100 hover:border-purple-400 font-medium"
+                                >
+                                    Limpiar Filtros
+                                </Button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {cargando ? (
                     <p className="text-center text-lg font-semibold py-8">Cargando facturas...</p>
@@ -134,7 +266,7 @@ export default function Caja({ onTabChange }) {
                     </div>
                 ) : facturasFiltradas.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12">
-                        <p className="text-center text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay facturas que coincidan con la búsqueda.</p>
+                        <p className="text-center text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay facturas que coincidan con los filtros aplicados.</p>
                     </div>
                 ) : (
                     <Table>
