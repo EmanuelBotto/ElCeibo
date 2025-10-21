@@ -2291,9 +2291,6 @@ export function useVerRegistroIngreso() {
                 <span className="text-sm font-medium text-gray-700">
                   📊 Total productos: {totalProductos}
                 </span>
-                <span className="text-lg font-bold text-gray-800">
-                  Total: ${facturaData?.monto_total || '0.00'}
-                </span>
               </div>
             </div>
           ) : (
