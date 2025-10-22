@@ -27,7 +27,7 @@ interface Factura {
     hora: string;
     tipo: string;
     tipo_factura: string;
-    monto: number;
+    monto_total: number;
     descripcion: string;
     forma_de_pago: string;
     cantidad_productos: number;
@@ -187,7 +187,7 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
             message: `¿Estás seguro de que deseas eliminar esta factura?\n\n` +
                    `Fecha: ${facturaSeleccionada.dia}/${facturaSeleccionada.mes}/${facturaSeleccionada.anio}\n` +
                    `Tipo: ${facturaSeleccionada.tipo_factura}\n` +
-                    `Monto: $${facturaSeleccionada.monto}\n\n` +
+                    `Monto: $${facturaSeleccionada.monto_total}\n\n` +
                    `Esta acción no se puede deshacer.`,
             onConfirm: eliminarFacturaConfirmada,
             confirmText: 'Eliminar',
@@ -409,7 +409,7 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
                                     </TableCell>
                                     <TableCell className="text-center font-semibold">
                                         <span className={factura.tipo_factura === 'ingreso' ? 'text-green-600' : 'text-red-600'}>
-                                            {factura.tipo_factura === 'ingreso' ? '+' : '-'}${factura.monto}
+                                            {factura.tipo_factura === 'ingreso' ? '+' : '-'}${factura.monto_total}
                                         </span>
                                         {factura.cantidad_productos > 0 && (
                                             <div className="text-xs text-gray-500 mt-1">
