@@ -2,8 +2,6 @@
 
 import { NextResponse } from 'next/server';
 import pkg from 'pg';
-import bcrypt from 'bcryptjs';
-
 const { Pool } = pkg;
 
 // ========================================
@@ -46,7 +44,7 @@ async function handleDatabaseOperation(operation) {
  */
 async function userExists(client, id) {
   const result = await client.query(
-    'SELECT id_usuario FROM usuario WHERE id_usuario = $1',
+    'SELECT id_usuario FROM usuario WHERE id_usuario = $1 AND estado = true',
     [id]
   );
   return result.rows.length > 0;
@@ -61,7 +59,7 @@ async function userExists(client, id) {
  */
 async function emailInUse(client, email, currentUserId) {
   const result = await client.query(
-    'SELECT id_usuario FROM usuario WHERE email = $1 AND id_usuario != $2',
+    'SELECT id_usuario FROM usuario WHERE email = $1 AND id_usuario != $2 AND estado = true',
     [email.trim(), currentUserId]
   );
   return result.rows.length > 0;
@@ -122,9 +120,9 @@ export async function GET(request, { params }) {
 
     const result = await client.query(
       `SELECT id_usuario, usuario, nombre, apellido, email, telefono, 
-              calle, numero, codigo_postal, tipo_usuario, foto
+              calle, numero, codigo_postal, tipo_usuario, foto, estado
        FROM usuario 
-       WHERE id_usuario = $1`,
+       WHERE id_usuario = $1 AND estado = true`,
       [id]
     );
 
@@ -179,16 +177,8 @@ export async function PUT(request, { params }) {
     }
     
     const { 
-      nombre, 
-      apellido, 
       email, 
-      telefono, 
-      tipo_usuario,
       usuario,
-      calle,
-      numero,
-      codigo_postal,
-      foto,
       password
     } = body;
 
@@ -228,7 +218,8 @@ export async function PUT(request, { params }) {
       { key: 'numero', column: 'numero' },
       { key: 'codigo_postal', column: 'codigo_postal' },
       { key: 'foto', column: 'foto' },
-      { key: 'tipo_usuario', column: 'tipo_usuario' }
+      { key: 'tipo_usuario', column: 'tipo_usuario' },
+      { key: 'estado', column: 'estado' }
     ];
 
     fields.forEach(field => {
@@ -240,7 +231,7 @@ export async function PUT(request, { params }) {
 
     // Manejar contraseña por separado para cifrarla
     if (password !== undefined && password !== null && password !== '') {
-      const bcrypt = require('bcryptjs');
+      const bcrypt = await import('bcryptjs');
       const contraseniaCifrada = await bcrypt.hash(String(password), 12);
       updates.push(`contrasenia = $${paramIndex++}`);
       values.push(contraseniaCifrada);
@@ -266,9 +257,9 @@ export async function PUT(request, { params }) {
     const result = await client.query(
       `UPDATE usuario 
        SET ${updates.join(', ')}
-       WHERE id_usuario = $${paramIndex}
+       WHERE id_usuario = $${paramIndex} AND estado = true
        RETURNING id_usuario, usuario, nombre, apellido, email, telefono, 
-                 calle, numero, codigo_postal, tipo_usuario, foto`,
+                 calle, numero, codigo_postal, tipo_usuario, foto, estado`,
       values
     );
 
@@ -295,14 +286,14 @@ export async function DELETE(request, { params }) {
       }, { status: 404 });
     }
 
-    // Eliminar usuario
+    // Proceder con el borrado lógico
     await client.query(
-      'DELETE FROM usuario WHERE id_usuario = $1',
+      'UPDATE usuario SET estado = false WHERE id_usuario = $1',
       [id]
     );
 
     return NextResponse.json({
-      message: 'Usuario eliminado exitosamente'
+      message: 'Usuario desactivado exitosamente'
     }, { status: 200 });
   });
 } 

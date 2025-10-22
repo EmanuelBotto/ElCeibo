@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from 'sonner';
 import { useAuth } from '../../components/AuthProvider';
 import { AdminOnly } from '../../components/HiddenIfNoPermission';
+import { ModalConfirmacion, useModalConfirmacion } from '../../lib/modales';
 import { 
   UserPlus, 
   Edit, 
@@ -41,6 +42,7 @@ interface User {
   codigo_postal: number;
   tipo_usuario: string;
   foto?: string;
+  estado: boolean;
 }
 
 export default function UsuariosPage() {
@@ -56,6 +58,9 @@ export default function UsuariosPage() {
   const [selectedUserForPhoto, setSelectedUserForPhoto] = useState<User | null>(null);
   const { user: currentUser } = useAuth();
   const router = useRouter();
+  
+  // Hook para el modal de confirmación
+  const { isModalOpen, modalData, isLoading, showConfirmModal, closeModal, handleConfirm } = useModalConfirmacion();
 
 
   useEffect(() => {
@@ -163,26 +168,34 @@ export default function UsuariosPage() {
     setIsEditarUsuarioDialogOpen(true);
   };
 
-  const handleDelete = async (userId: number) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
-      return;
-    }
+  const handleDelete = (userId: number) => {
+    const user = users.find(u => u.id_usuario === userId);
+    const userName = user ? `${user.nombre} ${user.apellido}` : 'este usuario';
+    
+    showConfirmModal({
+      title: 'Confirmar Desactivación',
+      message: `¿Estás seguro de que quieres desactivar a ${userName}? El usuario será desactivado pero sus datos se mantendrán en el sistema.`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/usuarios/${userId}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const response = await fetch(`/api/usuarios/${userId}`, {
-        method: 'DELETE',
-      });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error al eliminar usuario');
+          }
 
-      if (!response.ok) {
-        throw new Error('Error al eliminar usuario');
+          toast.success('Usuario desactivado exitosamente');
+          fetchUsers();
+        } catch (err) {
+          console.error('Error al eliminar usuario:', err);
+          const errorMessage = err instanceof Error ? err.message : 'Error al desactivar usuario';
+          toast.error(errorMessage);
+          throw err; // Re-throw para que el modal maneje el estado de loading
+        }
       }
-
-      toast.success('Usuario eliminado exitosamente');
-      fetchUsers();
-    } catch (err) {
-      console.error('Error al eliminar usuario:', err);
-      toast.error('Error al eliminar usuario');
-    }
+    });
   };
 
 
@@ -222,8 +235,9 @@ export default function UsuariosPage() {
       ));
 
       toast.success('Foto actualizada exitosamente');
-    } catch (error: any) {
-      toast.error(error.message || 'Error al actualizar la foto');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar la foto';
+      toast.error(errorMessage);
     }
   };
 
@@ -380,7 +394,7 @@ export default function UsuariosPage() {
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4 mr-1" />
-                            Eliminar
+                            Desactivar
                           </Button>
                         ) : (
                           <div className="flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -437,7 +451,6 @@ export default function UsuariosPage() {
             onSave={handlePhotoChange}
           />
         )}
-
         {/* Modales */}
         <DialogoNuevoUsuario
           isOpen={isNuevoUsuarioDialogOpen}

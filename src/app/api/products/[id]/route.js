@@ -51,8 +51,9 @@ export async function PUT(request, { params }) {
           precio_costo = COALESCE($3, precio_costo),
           id_tipo = COALESCE($4, id_tipo),
           modificado = $5,
-          marca = COALESCE($6, marca)
-        WHERE id_producto = $7
+          marca = COALESCE($6, marca),
+          activo = COALESCE($7, activo)
+        WHERE id_producto = $8
         RETURNING *
       `;
       
@@ -63,6 +64,7 @@ export async function PUT(request, { params }) {
         producto.id_tipo,
         producto.modificado,
         producto.marca,
+        producto.activo,
         id
       ];
 
@@ -86,16 +88,35 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE: Eliminar producto por ID
+// DELETE: Borrado lógico de producto por ID
 export async function DELETE(_, { params }) {
   const { id } = await params;
 
   try {
     const client = await pool.connect();
     try {
-      const query = 'DELETE FROM producto WHERE id_producto = $1';
+      // Verificar si el producto existe y está activo
+      const checkQuery = 'SELECT id_producto, nombre FROM producto WHERE id_producto = $1 AND activo = true';
+      const checkResult = await client.query(checkQuery, [id]);
+      
+      if (checkResult.rows.length === 0) {
+        return NextResponse.json(
+          { error: 'Producto no encontrado o ya está inactivo' },
+          { status: 404 }
+        );
+      }
+
+      // Realizar borrado lógico (marcar como inactivo)
+      const query = 'UPDATE producto SET activo = false WHERE id_producto = $1';
       await client.query(query, [id]);
-      return NextResponse.json({ message: 'Producto eliminado' });
+      
+      return NextResponse.json({ 
+        message: 'Producto eliminado',
+        producto: {
+          id: checkResult.rows[0].id_producto,
+          nombre: checkResult.rows[0].nombre
+        }
+      });
     } finally {
       client.release();
     }

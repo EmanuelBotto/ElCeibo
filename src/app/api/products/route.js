@@ -21,21 +21,21 @@ export async function GET(request) {
     
     try {
       // Construir consulta con filtros opcionales
-      let whereClause = '';
+      let whereClause = 'WHERE p.activo = true'; // Solo productos activos por defecto
       let queryParams = [];
       
       if (search) {
         if (searchType === 'nombre') {
-          whereClause = 'WHERE p.nombre ILIKE $1';
+          whereClause = 'WHERE p.activo = true AND p.nombre ILIKE $1';
           queryParams.push(`%${search}%`);
         } else if (searchType === 'codigo') {
-          whereClause = 'WHERE p.id_producto::text ILIKE $1';
+          whereClause = 'WHERE p.activo = true AND p.id_producto::text ILIKE $1';
           queryParams.push(`%${search}%`);
         } else if (searchType === 'marca') {
-          whereClause = 'WHERE p.marca ILIKE $1';
+          whereClause = 'WHERE p.activo = true AND p.marca ILIKE $1';
           queryParams.push(`%${search}%`);
         } else if (searchType === 'tipo') {
-          whereClause = 'WHERE t.nombre ILIKE $1';
+          whereClause = 'WHERE p.activo = true AND t.nombre ILIKE $1';
           queryParams.push(`%${search}%`);
         }
       }
@@ -62,6 +62,7 @@ export async function GET(request) {
           p.id_tipo,
           p.precio_costo,
           p.modificado,
+          p.activo,
           t.nombre AS nombre_tipo,
           t.porcentaje_final,
           t.porcentaje_mayorista
@@ -146,8 +147,8 @@ export async function POST(request) {
 
       // Insertar el producto
       const result = await client.query(
-        `INSERT INTO producto (nombre, marca, precio_costo, stock, id_tipo, modificado)
-         VALUES ($1, $2, $3, $4, $5, false)
+        `INSERT INTO producto (nombre, marca, precio_costo, stock, id_tipo, modificado, activo)
+         VALUES ($1, $2, $3, $4, $5, false, true)
          RETURNING id_producto`,
         [nombre.trim(), marca?.trim() || '', precio_costo, stock, id_tipo]
       );
@@ -163,7 +164,8 @@ export async function POST(request) {
           marca: marca?.trim() || '',
           precio_costo: precio_costo,
           stock: stock,
-          id_tipo: id_tipo
+          id_tipo: id_tipo,
+          activo: true
         }
       }, { status: 201 });
     

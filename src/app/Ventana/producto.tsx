@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ import { Loader2 } from "lucide-react";
 
 export default function Producto() {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  
+
   // Lista de productos
   const [productos, setProductos] = useState<any[]>([]);
   const [tipos, setTipos] = useState<any[]>([]);
@@ -44,7 +44,7 @@ export default function Producto() {
   const [pagination, setPagination] = useState<any>({
     currentPage: 1,
     totalPages: 1,
-    totalItems: 0
+    totalItems: 0,
   });
   const [tipoCliente, setTipoCliente] = useState<string>('cliente final');
   const productosPorPagina = 20; // cantidad de productos mostrados
@@ -54,9 +54,7 @@ export default function Producto() {
   const [productoAEliminar, setProductoAEliminar] = useState<any>(null);
   const [mostrarDialogoDuplicado, setMostrarDialogoDuplicado] = useState<boolean>(false);
   const [infoDuplicado, setInfoDuplicado] = useState<any>(null);
-  
   const [porcentajePersonalizado, setPorcentajePersonalizado] = useState<boolean>(false);
- 
 
   const validarNumero = (valor: any): number => {
     const numero = parseFloat(valor);
@@ -66,40 +64,38 @@ export default function Producto() {
   const cargarProductos = async () => {
     try {
       setCargando(true);
-  
-      
+
       if (!isAuthenticated) {
         setProductos([]);
         return;
       }
-      
+
       const params = new URLSearchParams({
         page: paginaActual.toString(),
-        limit: productosPorPagina.toString()
+        limit: productosPorPagina.toString(),
       });
-      
+
       if (busqueda) {
-        params.append('search', busqueda);
-        params.append('searchType', tipoBusqueda);
+        params.append("search", busqueda);
+        params.append("searchType", tipoBusqueda);
       }
-      
+
       const url = `/api/products?${params}`;
-      
+
       const res = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        credentials: 'include' // Incluir cookies para autenticación
+        credentials: "include", // Incluir cookies para autenticación
       });
-      
-      
+
       if (!res.ok) {
         throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
 
       const response = await res.json();
-      
+
       if (response.productos && Array.isArray(response.productos)) {
         setProductos(response.productos);
         setPaginaActual(paginaActual);
@@ -108,8 +104,10 @@ export default function Producto() {
         } else {
           setPagination({
             currentPage: paginaActual,
-            totalPages: Math.ceil(response.productos.length / productosPorPagina),
-            totalItems: response.productos.length
+            totalPages: Math.ceil(
+              response.productos.length / productosPorPagina
+            ),
+            totalItems: response.productos.length,
           });
         }
       } else if (Array.isArray(response)) {
@@ -118,14 +116,14 @@ export default function Producto() {
         setPagination({
           currentPage: paginaActual,
           totalPages: Math.ceil(response.length / productosPorPagina),
-          totalItems: response.length
+          totalItems: response.length,
         });
       } else {
         setProductos([]);
       }
     } catch (err) {
-      console.error('Error al cargar productos:', err);
-      toast.error('Error al cargar productos. Por favor, intenta de nuevo.');
+      console.error("Error al cargar productos:", err);
+      toast.error("Error al cargar productos. Por favor, intenta de nuevo.");
       setProductos([]);
     } finally {
       setCargando(false);
@@ -146,47 +144,47 @@ export default function Producto() {
     try {
       // Validaciones
       if (!nuevoProducto.nombre?.trim()) {
-        throw new Error('El nombre del producto es requerido');
+        throw new Error("El nombre del producto es requerido");
       }
 
       const precio_costo = validarNumero(nuevoProducto.precio_costo);
       const stock = validarNumero(nuevoProducto.stock);
 
       if (precio_costo <= 0) {
-        throw new Error('El precio debe ser mayor a 0');
+        throw new Error("El precio debe ser mayor a 0");
       }
 
       if (stock < 0) {
-        throw new Error('El stock no puede ser negativo');
+        throw new Error("El stock no puede ser negativo");
       }
 
       const productoParaEnviar = {
         nombre: nuevoProducto.nombre.trim(),
-        marca: nuevoProducto.marca?.trim() || '',
+        marca: nuevoProducto.marca?.trim() || "",
         precio_costo: precio_costo,
         stock: stock,
-        id_tipo: nuevoProducto.id_tipo || '1'
+        id_tipo: nuevoProducto.id_tipo || "1",
       };
 
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(productoParaEnviar),
       });
 
       // Manejar diferentes tipos de errores
       if (!res.ok) {
-        let errorMessage = 'Error al crear producto';
+        let errorMessage = "Error al crear producto";
         let isDuplicate = false;
         let duplicateInfo = null;
-        
+
         try {
           const errorData = await res.json();
           errorMessage = errorData.error || errorMessage;
-          
+
           // Si es un error de duplicado, mostrar información específica
           if (res.status === 409 && errorData.duplicate) {
             isDuplicate = true;
@@ -208,19 +206,18 @@ export default function Producto() {
       let responseData;
       try {
         responseData = await res.json();
-      } catch (jsonError) {
-      }
+      } catch (jsonError) {}
 
-      setNuevoProducto({ 
-        nombre: '', 
-        marca: '', 
-        precio_costo: '', 
-        stock: '', 
-        id_tipo: '1' 
+      setNuevoProducto({
+        nombre: "",
+        marca: "",
+        precio_costo: "",
+        stock: "",
+        id_tipo: "1",
       });
       setMostrarFormulario(false);
       cargarProductos(); // recargar lista
-      
+
       // Mostrar mensaje de éxito
       toast.success('Producto creado exitosamente');
     } catch (err: any) {
@@ -229,10 +226,10 @@ export default function Producto() {
         setInfoDuplicado(err.duplicateInfo);
         setMostrarDialogoDuplicado(true);
         // No logear como error ya que es un comportamiento esperado
-        console.log('Producto duplicado detectado:', err.duplicateInfo);
+        console.log("Producto duplicado detectado:", err.duplicateInfo);
       } else {
         toast.error(err.message);
-        console.error('Error completo:', err);
+        console.error("Error completo:", err);
       }
     }
   };
@@ -241,42 +238,44 @@ export default function Producto() {
   const actualizarProducto = async () => {
     try {
       if (!productoEditando.nombre_producto?.trim()) {
-        throw new Error('El nombre del producto es requerido');
+        throw new Error("El nombre del producto es requerido");
       }
 
       const precio_costo = validarNumero(productoEditando.precio_costo);
       const stock = validarNumero(productoEditando.stock);
-      const porcentajeMayorista = validarNumero(productoEditando.porcentaje_mayorista);
+      const porcentajeMayorista = validarNumero(
+        productoEditando.porcentaje_mayorista
+      );
       const porcentajeFinal = validarNumero(productoEditando.porcentaje_final);
 
       if (precio_costo <= 0) {
-        throw new Error('El precio debe ser mayor a 0');
+        throw new Error("El precio debe ser mayor a 0");
       }
 
       if (stock < 0) {
-        throw new Error('El stock no puede ser negativo');
+        throw new Error("El stock no puede ser negativo");
       }
 
       const datosActualizacion = {
         nombre: productoEditando.nombre_producto.trim(),
-        marca: productoEditando.marca?.trim() || '',
+        marca: productoEditando.marca?.trim() || "",
         precio_costo: precio_costo,
         stock: stock,
         id_tipo: productoEditando.id_tipo,
-        modificado: porcentajePersonalizado
+        modificado: porcentajePersonalizado,
       };
 
       // Actualizar el producto
       const res = await fetch(`/api/products/${productoEditando.id_producto}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(datosActualizacion)
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datosActualizacion),
       });
 
       if (!res.ok) {
         const errorData = await res.json();
-        let errorMessage = errorData.error || 'Error al actualizar producto';
-        
+        let errorMessage = errorData.error || "Error al actualizar producto";
+
         // Si es un error de duplicado, mostrar información específica
         if (res.status === 409 && errorData.duplicate) {
           errorMessage = `Ya existe un producto con el nombre "${errorData.duplicate.nombre}" y el mismo tipo. Por favor, cambia el nombre o el tipo para actualizar el producto.`;
@@ -290,18 +289,21 @@ export default function Producto() {
 
       // Si hay porcentajes personalizados, actualizarlos
       if (porcentajePersonalizado) {
-        const resPercentages = await fetch(`/api/products/${productoEditando.id_producto}/percentages`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            porcentaje_mayorista: porcentajeMayorista,
-            porcentaje_minorista: porcentajeFinal
-          })
-        });
+        const resPercentages = await fetch(
+          `/api/products/${productoEditando.id_producto}/percentages`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              porcentaje_mayorista: porcentajeMayorista,
+              porcentaje_minorista: porcentajeFinal,
+            }),
+          }
+        );
 
         if (!resPercentages.ok) {
           const error = await resPercentages.json();
-          throw new Error(error.error || 'Error al actualizar porcentajes');
+          throw new Error(error.error || "Error al actualizar porcentajes");
         }
       }
 
@@ -309,9 +311,6 @@ export default function Producto() {
       setMostrarFormularioEdicion(false);
       setProductoEditando(null);
       setPorcentajePersonalizado(false);
-      
-      toast.success('Producto actualizado exitosamente');
-      cargarProductos();
 
     } catch (err: any) {
       if (err.isDuplicate) {
@@ -319,10 +318,10 @@ export default function Producto() {
         setInfoDuplicado(err.duplicateInfo);
         setMostrarDialogoDuplicado(true);
         // No logear como error ya que es un comportamiento esperado
-        console.log('Producto duplicado detectado:', err.duplicateInfo);
+        console.log("Producto duplicado detectado:", err.duplicateInfo);
       } else {
         toast.error(err.message);
-        console.error('Error completo:', err);
+        console.error("Error completo:", err);
       }
     }
   };
@@ -331,42 +330,44 @@ export default function Producto() {
   
   const eliminarProducto = async (id: any) => {
     // Buscar el producto para mostrar su nombre
-    const producto = productos.find(p => p.id_producto === id);
+    const producto = productos.find((p) => p.id_producto === id);
     setProductoAEliminar(producto);
     setMostrarConfirmacionEliminar(true);
   };
 
   const ejecutarEliminacion = async () => {
     try {
-      const res = await fetch(`/api/products/${productoAEliminar.id_producto}`, { method: 'DELETE' });
+      const res = await fetch(
+        `/api/products/${productoAEliminar.id_producto}`,
+        { method: "DELETE" }
+      );
       // Verificar si la respuesta fue exitosa
-      if (!res.ok) throw new Error('Error al eliminar producto');
-      
-      toast.success('Producto eliminado exitosamente');
+      if (!res.ok) throw new Error("Error al eliminar producto");
+
+      toast.success("Producto eliminado exitosamente");
       setMostrarConfirmacionEliminar(false);
       setProductoAEliminar(null);
       cargarProductos();
     } catch (err) {
-      toast.error('Error al eliminar producto');
+      toast.error("Error al eliminar producto");
       console.error(err);
     }
   };
 
-
   // Los productos ya vienen paginados de la API, no necesitamos filtrar localmente
   const productosActuales = Array.isArray(productos) ? productos : [];
   const totalPaginas = pagination.totalPages || 1;
-  
 
   // Calcular precio con porcentaje
   const calcularPrecio = (producto: any, tipoCliente: string = 'final'): number => {
     if (!producto) return 0;
-    
+
     const precio_base = validarNumero(producto.precio_costo);
-    const porcentaje = tipoCliente === 'final' ? 
-        validarNumero(producto.porcentaje_final) : 
-        validarNumero(producto.porcentaje_mayorista);
-    
+    const porcentaje =
+      tipoCliente === "final"
+        ? validarNumero(producto.porcentaje_final)
+        : validarNumero(producto.porcentaje_mayorista);
+
     const precio = precio_base * porcentaje;
     return isNaN(precio) ? 0 : precio;
   };
@@ -378,7 +379,9 @@ export default function Producto() {
         <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-8 w-full max-w-6xl flex flex-col items-center justify-center gap-6">
           <div className="flex items-center gap-3">
             <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
-            <span className="text-lg font-medium text-gray-700">Verificando autenticación...</span>
+            <span className="text-lg font-medium text-gray-700">
+              Verificando autenticación...
+            </span>
           </div>
         </div>
       </div>
@@ -391,8 +394,12 @@ export default function Producto() {
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-8">
         <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-8 w-full max-w-6xl flex flex-col items-center justify-center gap-6">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Acceso no autorizado</h2>
-            <p className="text-gray-600">Debes iniciar sesión para acceder a esta página.</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Acceso no autorizado
+            </h2>
+            <p className="text-gray-600">
+              Debes iniciar sesión para acceder a esta página.
+            </p>
           </div>
         </div>
       </div>
@@ -404,11 +411,15 @@ export default function Producto() {
       <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-4xl flex flex-col gap-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
           <div className="text-center md:text-left">
-            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Productos</h1>
-            
+            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">
+              Productos
+            </h1>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setMostrarFormulario(true)} className="px-6 py-2">
+            <Button
+              onClick={() => setMostrarFormulario(true)}
+              className="px-6 py-2"
+            >
               Agregar
             </Button>
             <Button
@@ -428,7 +439,8 @@ export default function Producto() {
               variant="destructive"
               disabled={!productoSeleccionado}
               onClick={() => {
-                if (productoSeleccionado) eliminarProducto(productoSeleccionado.id_producto);
+                if (productoSeleccionado)
+                  eliminarProducto(productoSeleccionado.id_producto);
               }}
               className="px-6 py-2"
             >
@@ -442,27 +454,35 @@ export default function Producto() {
           {/* Barra de búsqueda principal */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
             <div className="flex-1">
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">Buscar Producto</Label>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                Buscar Producto
+              </Label>
               <Input
                 id="busqueda"
-                placeholder={tipoBusqueda === 'codigo' ? "Buscar por código..." : "Buscar por descripción..."}
+                placeholder={
+                  tipoBusqueda === "codigo"
+                    ? "Buscar por código..."
+                    : "Buscar por descripción..."
+                }
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 h-12 transition-all duration-200"
               />
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
               {/* Tipo de búsqueda */}
               <div className="flex flex-col gap-2">
-                <Label className="text-sm font-medium text-gray-700">Buscar por</Label>
+                <Label className="text-sm font-medium text-gray-700">
+                  Buscar por
+                </Label>
                 <div className="flex gap-4">
                   <label className="inline-flex items-center gap-2 cursor-pointer group">
                     <input
                       type="radio"
                       name="tipoBusqueda"
-                      checked={tipoBusqueda === 'nombre'}
-                      onChange={() => setTipoBusqueda('nombre')}
+                      checked={tipoBusqueda === "nombre"}
+                      onChange={() => setTipoBusqueda("nombre")}
                       className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
                     />
                     <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
@@ -473,8 +493,8 @@ export default function Producto() {
                     <input
                       type="radio"
                       name="tipoBusqueda"
-                      checked={tipoBusqueda === 'codigo'}
-                      onChange={() => setTipoBusqueda('codigo')}
+                      checked={tipoBusqueda === "codigo"}
+                      onChange={() => setTipoBusqueda("codigo")}
                       className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
                     />
                     <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
@@ -486,14 +506,16 @@ export default function Producto() {
 
               {/* Tipo de cliente */}
               <div className="flex flex-col gap-2">
-                <Label className="text-sm font-medium text-gray-700">Tipo de Cliente</Label>
+                <Label className="text-sm font-medium text-gray-700">
+                  Tipo de Cliente
+                </Label>
                 <div className="flex gap-4">
                   <label className="inline-flex items-center gap-2 cursor-pointer group">
                     <input
                       type="radio"
                       name="tipoCliente"
-                      checked={tipoCliente === 'cliente final'}
-                      onChange={() => setTipoCliente('cliente final')}
+                      checked={tipoCliente === "cliente final"}
+                      onChange={() => setTipoCliente("cliente final")}
                       className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
                     />
                     <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
@@ -504,8 +526,8 @@ export default function Producto() {
                     <input
                       type="radio"
                       name="tipoCliente"
-                      checked={tipoCliente === 'mayorista'}
-                      onChange={() => setTipoCliente('mayorista')}
+                      checked={tipoCliente === "mayorista"}
+                      onChange={() => setTipoCliente("mayorista")}
                       className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
                     />
                     <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
@@ -522,11 +544,17 @@ export default function Producto() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-bold text-white">Descripción</TableHead>
+              <TableHead className="font-bold text-white">
+                Descripción
+              </TableHead>
               <TableHead className="font-bold text-white">Código</TableHead>
               <TableHead className="font-bold text-white">Stock</TableHead>
-              <TableHead className="font-bold text-white text-center">Tipo</TableHead>
-              <TableHead className="font-bold text-white text-center">{tipoCliente === 'mayorista' ? 'Mayorista' : 'Final'}</TableHead>
+              <TableHead className="font-bold text-white text-center">
+                Tipo
+              </TableHead>
+              <TableHead className="font-bold text-white text-center">
+                {tipoCliente === "mayorista" ? "Mayorista" : "Final"}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -536,7 +564,9 @@ export default function Producto() {
                 <TableCell colSpan={5} className="text-center py-12">
                   <div className="flex items-center justify-center gap-3">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
-                    <span className="text-lg font-semibold text-gray-600">Cargando productos...</span>
+                    <span className="text-lg font-semibold text-gray-600">
+                      Cargando productos...
+                    </span>
                   </div>
                 </TableCell>
               </TableRow>
@@ -548,7 +578,9 @@ export default function Producto() {
                     <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                       <span className="text-red-600 text-xl">⚠️</span>
                     </div>
-                    <p className="text-lg font-semibold text-red-700">No hay productos disponibles</p>
+                    <p className="text-lg font-semibold text-red-700">
+                      No hay productos disponibles
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -560,7 +592,9 @@ export default function Producto() {
                     <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
                       <span className="text-yellow-600 text-xl">🔍</span>
                     </div>
-                    <p className="text-lg font-semibold text-yellow-800">No hay productos que coincidan con la búsqueda</p>
+                    <p className="text-lg font-semibold text-yellow-800">
+                      No hay productos que coincidan con la búsqueda
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -569,7 +603,7 @@ export default function Producto() {
               productosActuales.map((p, idx) => {
                 const precioMostrar = calcularPrecio(
                   p,
-                  tipoCliente === 'mayorista' ? 'mayorista' : 'final'
+                  tipoCliente === "mayorista" ? "mayorista" : "final"
                 );
                 return (
                   <TableRow
@@ -585,17 +619,22 @@ export default function Producto() {
                     aria-rowcount={productosActuales.length}
                   >
                     <TableCell>{p.nombre_producto}</TableCell>
-                    <TableCell className="text-center">{p.id_producto}</TableCell>
+                    <TableCell className="text-center">
+                      {p.id_producto}
+                    </TableCell>
                     <TableCell className="text-center">{p.stock}</TableCell>
-                    <TableCell className="text-center">{p.nombre_tipo}</TableCell>
-                    <TableCell className="text-center">${precioMostrar.toFixed(2)}</TableCell>
+                    <TableCell className="text-center">
+                      {p.nombre_tipo}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      ${precioMostrar.toFixed(2)}
+                    </TableCell>
                   </TableRow>
                 );
               })
             )}
           </TableBody>
         </Table>
-
 
         {/* Paginación */}
         {totalPaginas > 1 && (
@@ -610,7 +649,7 @@ export default function Producto() {
             >
               Primera
             </Button>
-            
+
             {/* Botón Anterior */}
             <Button
               variant="outline"
@@ -621,13 +660,13 @@ export default function Producto() {
             >
               ‹
             </Button>
-            
+
             {/* Números de página dinámicos */}
             {(() => {
               const paginas = [];
               const paginasVisibles = 5; // Mostrar hasta 5 páginas a la vez
               const mitad = Math.floor(paginasVisibles / 2);
-              
+
               let inicio = Math.max(1, paginaActual - mitad);
               const fin = Math.min(totalPaginas, inicio + paginasVisibles - 1);
               
@@ -635,16 +674,19 @@ export default function Producto() {
               if (fin - inicio + 1 < paginasVisibles) {
                 inicio = Math.max(1, fin - paginasVisibles + 1);
               }
-              
+
               // Mostrar puntos suspensivos al inicio si es necesario
               if (inicio > 1) {
                 paginas.push(
-                  <span key="start-ellipsis" className="px-3 py-2 text-sm text-gray-500">
+                  <span
+                    key="start-ellipsis"
+                    className="px-3 py-2 text-sm text-gray-500"
+                  >
                     ...
                   </span>
                 );
               }
-              
+
               // Generar botones de páginas
               for (let i = inicio; i <= fin; i++) {
                 paginas.push(
@@ -653,9 +695,9 @@ export default function Producto() {
                     variant={i === paginaActual ? "default" : "outline"}
                     onClick={() => cambiarPagina(i)}
                     className={`px-3 py-2 text-sm font-medium ${
-                      i === paginaActual 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                        : 'hover:bg-gray-50'
+                      i === paginaActual
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "hover:bg-gray-50"
                     }`}
                     size="sm"
                   >
@@ -663,30 +705,35 @@ export default function Producto() {
                   </Button>
                 );
               }
-              
+
               // Mostrar puntos suspensivos al final si es necesario
               if (fin < totalPaginas) {
                 paginas.push(
-                  <span key="end-ellipsis" className="px-3 py-2 text-sm text-gray-500">
+                  <span
+                    key="end-ellipsis"
+                    className="px-3 py-2 text-sm text-gray-500"
+                  >
                     ...
                   </span>
                 );
               }
-              
+
               return paginas;
             })()}
-            
+
             {/* Botón Siguiente */}
             <Button
               variant="outline"
-              onClick={() => cambiarPagina(Math.min(paginaActual + 1, totalPaginas))}
+              onClick={() =>
+                cambiarPagina(Math.min(paginaActual + 1, totalPaginas))
+              }
               disabled={paginaActual === totalPaginas}
               className="px-3 py-2 text-sm font-medium"
               size="sm"
             >
               ›
             </Button>
-            
+
             {/* Botón Última página */}
             <Button
               variant="outline"
@@ -702,7 +749,11 @@ export default function Producto() {
       </div>
 
       {/* Modal de nuevo producto */}
-      <Modal isOpen={mostrarFormulario} onClose={() => setMostrarFormulario(false)} contentClassName="max-w-[960px]">
+      <Modal
+        isOpen={mostrarFormulario}
+        onClose={() => setMostrarFormulario(false)}
+        contentClassName="max-w-[960px]"
+      >
         {buildProductoFormContent({
           mode: "create",
           nuevoProducto,
@@ -738,7 +789,10 @@ export default function Producto() {
       </Modal>
 
       {/* Popup de confirmación de eliminación */}
-      <Dialog open={mostrarConfirmacionEliminar} onOpenChange={setMostrarConfirmacionEliminar}>
+      <Dialog
+        open={mostrarConfirmacionEliminar}
+        onOpenChange={setMostrarConfirmacionEliminar}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-gray-900">
@@ -776,7 +830,10 @@ export default function Producto() {
       </Dialog>
 
       {/* Popup de duplicado */}
-      <Dialog open={mostrarDialogoDuplicado} onOpenChange={setMostrarDialogoDuplicado}>
+      <Dialog
+        open={mostrarDialogoDuplicado}
+        onOpenChange={setMostrarDialogoDuplicado}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-orange-600">
