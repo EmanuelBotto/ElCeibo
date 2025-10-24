@@ -49,7 +49,7 @@ export async function GET() {
       const data = result.rows[0];
       const ingresosActual = parseFloat(data.ingresos_mes) || 0;
       const ingresosAnterior = parseFloat(data.ingresos_mes_anterior) || 0;
-      const totalVentas = parseInt(data.total_ventas) || 0;
+      // const totalVentas = parseInt(data.total_ventas) || 0;
       
       // Función para calcular el cambio porcentual
       const calcularCambio = (actual, anterior) => {

@@ -20,9 +20,11 @@ export async function GET() {
                 f.detalle,
                 f.id_usuario,
                 f.num_factura,
+                f.borrado,
                 CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario
             FROM factura f
             LEFT JOIN usuario u ON f.id_usuario = u.id_usuario
+            WHERE f.borrado = false
             ORDER BY f.anio DESC, f.mes DESC, f.dia DESC, f.hora DESC
         `); 
 
@@ -38,7 +40,7 @@ export async function GET() {
                         ...factura,
                         cantidad_productos: parseInt(countResult.rows[0].cantidad) || 0
                     };
-                } catch (err) {
+                } catch {
                     return {
                         ...factura,
                         cantidad_productos: 0
@@ -48,7 +50,35 @@ export async function GET() {
         );
 
         return NextResponse.json(facturasConProductos);
+    } catch {
+        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    }
+}
+
+export async function PUT(request) {
+    try {
+        const { id_factura } = await request.json();
+        
+        if (!id_factura) {
+            return NextResponse.json({ error: 'ID de factura requerido' }, { status: 400 });
+        }
+
+        // Marcar la factura como eliminada lógicamente (activo = false)
+        const result = await pool.query(
+            'UPDATE factura SET borrado = true WHERE id_factura = $1',
+            [id_factura]
+        );
+
+        if (result.rowCount === 0) {
+            return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 });
+        }
+
+        return NextResponse.json({ 
+            message: 'Factura eliminada exitosamente',
+            id_factura: id_factura 
+        });
     } catch (err) {
+        console.error('Error al eliminar factura:', err);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

@@ -188,9 +188,22 @@ export async function GET(request) {
             return createResponse({ error: permissionCheck.error }, permissionCheck.status);
         }
         
+        // Obtener parámetros de consulta
+        const { searchParams } = new URL(request.url);
+        const estado = searchParams.get('estado');
+        
+        // Construir la consulta SQL basada en el estado
+        let whereClause = '';
+        if (estado === 'false') {
+            whereClause = 'WHERE estado = false';
+        } else {
+            whereClause = 'WHERE estado = true';
+        }
+        
         const result = await pool.query(`
-            SELECT id_usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, usuario
+            SELECT id_usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, usuario, estado
             FROM usuario 
+            ${whereClause}
             ORDER BY apellido, nombre
             LIMIT 100
         `);
@@ -245,10 +258,10 @@ export async function POST(request) {
         const contraseniaCifrada = await hashPassword(password);
 
         const result = await pool.query(`
-            INSERT INTO usuario (nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, contrasenia, usuario)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO usuario (nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, contrasenia, usuario, estado)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING id_usuario
-        `, [nombre, apellido, email, telefono, calle || '', numero || 0, codigo_postal || 0, foto, tipo_usuario, contraseniaCifrada, usuario]);
+        `, [nombre, apellido, email, telefono, calle || '', numero || 0, codigo_postal || 0, foto, tipo_usuario, contraseniaCifrada, usuario, true]);
 
         return createResponse({ 
             success: true, 
@@ -314,7 +327,8 @@ export async function PUT(request) {
             { key: 'numero', column: 'numero' },
             { key: 'codigo_postal', column: 'codigo_postal' },
             { key: 'foto', column: 'foto' },
-            { key: 'tipo_usuario', column: 'tipo_usuario' }
+            { key: 'tipo_usuario', column: 'tipo_usuario' },
+            { key: 'estado', column: 'estado' }
         ];
 
         fields.forEach(field => {
@@ -346,7 +360,7 @@ export async function PUT(request) {
         const result = await pool.query(`
             UPDATE usuario 
             SET ${updates.join(', ')}
-            WHERE id_usuario = $${paramIndex}
+            WHERE id_usuario = $${paramIndex} AND estado = true
             RETURNING id_usuario
         `, values);
 
@@ -387,8 +401,9 @@ export async function DELETE(request) {
         }
 
         const result = await pool.query(`
-            DELETE FROM usuario 
-            WHERE id_usuario = $1
+            UPDATE usuario 
+            SET estado = false 
+            WHERE id_usuario = $1 AND estado = true
         `, [id_usuario]);
 
         if (result.rowCount === 0) {
@@ -397,7 +412,7 @@ export async function DELETE(request) {
 
         return createResponse({ 
             success: true, 
-            message: 'Usuario eliminado exitosamente'
+            message: 'Usuario desactivado exitosamente'
         });
 
     } catch (err) {

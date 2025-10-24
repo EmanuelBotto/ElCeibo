@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+// import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { useAuth } from '../../components/AuthProvider';
 import { AdminOnly } from '../../components/HiddenIfNoPermission';
+import { ModalConfirmacion, useModalConfirmacion } from '../../lib/modales';
 import { 
   UserPlus, 
   Edit, 
@@ -18,8 +19,8 @@ import {
   Phone,
   MapPin,
   ArrowLeft,
-  Camera,
-  Upload,
+  // Camera,
+  // Upload,
   User
 } from 'lucide-react';
 import ImageDisplay from '@/components/ImageDisplay';
@@ -41,28 +42,37 @@ interface User {
   codigo_postal: number;
   tipo_usuario: string;
   foto?: string;
+  estado: boolean;
 }
 
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [deactivatedUsers, setDeactivatedUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'active' | 'deactivated'>('active');
   const [isNuevoUsuarioDialogOpen, setIsNuevoUsuarioDialogOpen] = useState(false);
   const [isEditarUsuarioDialogOpen, setIsEditarUsuarioDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  // const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [selectedUserForPhoto, setSelectedUserForPhoto] = useState<User | null>(null);
   const { user: currentUser } = useAuth();
   const router = useRouter();
+  
+  // Hook para el modal de confirmación
+  const { isModalOpen, modalData, isLoading, showConfirmModal, closeModal, handleConfirm } = useModalConfirmacion();
 
 
   useEffect(() => {
     if (currentUser?.tipo_usuario === 'admin') {
       fetchUsers();
+      if (activeTab === 'deactivated') {
+        fetchDeactivatedUsers();
+      }
     }
-  }, [currentUser]);
+  }, [currentUser, activeTab]);
 
   // Verificar si el usuario actual es administrador
   if (currentUser?.tipo_usuario !== 'admin') {
@@ -97,14 +107,31 @@ export default function UsuariosPage() {
     }
   };
 
-  const handleAgregarUsuario = async (usuarioData) => {
+  const fetchDeactivatedUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/usuarios?estado=false');
+      if (!response.ok) {
+        throw new Error('Error al cargar usuarios desactivados');
+      }
+      const data = await response.json();
+      setDeactivatedUsers(data.users || data);
+    } catch (error) {
+      console.error('Error al cargar usuarios desactivados:', error);
+      toast.error('Error al cargar usuarios desactivados');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAgregarUsuario = async (usuarioData: any) => {
     try {
       const formDataToSend = new FormData();
       
       // Agregar datos del formulario
       Object.entries(usuarioData).forEach(([key, value]) => {
-        if (value !== '' && value !== null) {
-          formDataToSend.append(key, value);
+        if (value !== '' && value !== null && value !== undefined) {
+          formDataToSend.append(key, value as string | Blob);
         }
       });
       
@@ -127,14 +154,14 @@ export default function UsuariosPage() {
     }
   };
 
-  const handleEditarUsuario = async (usuarioData) => {
+  const handleEditarUsuario = async (usuarioData: any) => {
     try {
       const formDataToSend = new FormData();
       
       // Agregar datos del formulario
       Object.entries(usuarioData).forEach(([key, value]) => {
-        if (value !== '' && value !== null) {
-          formDataToSend.append(key, value);
+        if (value !== '' && value !== null && value !== undefined) {
+          formDataToSend.append(key, value as string | Blob);
         }
       });
       
@@ -163,37 +190,83 @@ export default function UsuariosPage() {
     setIsEditarUsuarioDialogOpen(true);
   };
 
-  const handleDelete = async (userId: number) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
-      return;
-    }
+  const handleDelete = (userId: number) => {
+    const user = users.find(u => u.id_usuario === userId);
+    const userName = user ? `${user.nombre} ${user.apellido}` : 'este usuario';
+    
+    showConfirmModal({
+      title: 'Confirmar Desactivación',
+      message: `¿Estás seguro de que quieres desactivar a ${userName}? El usuario será desactivado pero sus datos se mantendrán en el sistema.`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/usuarios/${userId}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const response = await fetch(`/api/usuarios/${userId}`, {
-        method: 'DELETE',
-      });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error al eliminar usuario');
+          }
 
-      if (!response.ok) {
-        throw new Error('Error al eliminar usuario');
+          toast.success('Usuario desactivado exitosamente');
+          fetchUsers();
+          if (activeTab === 'deactivated') {
+            fetchDeactivatedUsers();
+          }
+        } catch (err) {
+          console.error('Error al eliminar usuario:', err);
+          const errorMessage = err instanceof Error ? err.message : 'Error al desactivar usuario';
+          toast.error(errorMessage);
+          throw err; // Re-throw para que el modal maneje el estado de loading
+        }
       }
+    });
+  };
 
-      toast.success('Usuario eliminado exitosamente');
-      fetchUsers();
-    } catch (err) {
-      console.error('Error al eliminar usuario:', err);
-      toast.error('Error al eliminar usuario');
-    }
+  const handleReactivate = (userId: number) => {
+    const user = deactivatedUsers.find(u => u.id_usuario === userId);
+    const userName = user ? `${user.nombre} ${user.apellido}` : 'este usuario';
+    
+    showConfirmModal({
+      title: 'Confirmar Reactivación',
+      message: `¿Estás seguro de que quieres reactivar a ${userName}? El usuario podrá volver a acceder al sistema.`,
+      confirmText: 'Reactivar',
+      cancelText: 'Cancelar',
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/usuarios/${userId}/reactivate`, {
+            method: 'PUT',
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error al reactivar usuario');
+          }
+
+          toast.success('Usuario reactivado exitosamente');
+          fetchDeactivatedUsers();
+          if (activeTab === 'active') {
+            fetchUsers();
+          }
+        } catch (err) {
+          console.error('Error al reactivar usuario:', err);
+          const errorMessage = err instanceof Error ? err.message : 'Error al reactivar usuario';
+          toast.error(errorMessage);
+          throw err;
+        }
+      }
+    });
   };
 
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    }
-  };
+  // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (file) {
+  //     setSelectedFile(file);
+  //     const url = URL.createObjectURL(file);
+  //     setPreviewUrl(url);
+  //   }
+  // };
 
   const handleBackClick = () => {
     router.push('/');
@@ -222,8 +295,9 @@ export default function UsuariosPage() {
       ));
 
       toast.success('Foto actualizada exitosamente');
-    } catch (error: any) {
-      toast.error(error.message || 'Error al actualizar la foto');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar la foto';
+      toast.error(errorMessage);
     }
   };
 
@@ -232,7 +306,8 @@ export default function UsuariosPage() {
     setIsPhotoModalOpen(true);
   };
 
-  const filteredUsers = users.filter(user =>
+  const currentUsers = activeTab === 'active' ? users : deactivatedUsers;
+  const filteredUsers = currentUsers.filter(user =>
     user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -268,6 +343,30 @@ export default function UsuariosPage() {
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Volver
                 </Button>
+                
+                {/* Pestañas */}
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setActiveTab('active')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === 'active'
+                        ? 'bg-white text-purple-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Usuarios Activos
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('deactivated')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === 'deactivated'
+                        ? 'bg-white text-purple-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Usuarios Desactivados
+                  </button>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -364,29 +463,43 @@ export default function UsuariosPage() {
                     {/* Botones de acción */}
                     <AdminOnly>
                       <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-100">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(user)}
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
-                        {user.id_usuario !== currentUser?.id_usuario ? (
+                        {activeTab === 'active' ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(user)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Editar
+                            </Button>
+                            {user.id_usuario !== currentUser?.id_usuario ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(user.id_usuario)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Desactivar
+                              </Button>
+                            ) : (
+                              <div className="flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                <Shield className="h-3 w-3 mr-1" />
+                                No se puede auto-eliminar
+                              </div>
+                            )}
+                          </>
+                        ) : (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(user.id_usuario)}
-                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleReactivate(user.id_usuario)}
+                            className="text-green-600 hover:text-green-700"
                           >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Eliminar
+                            <User className="h-4 w-4 mr-1" />
+                            Reactivar
                           </Button>
-                        ) : (
-                          <div className="flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            <Shield className="h-3 w-3 mr-1" />
-                            No se puede auto-eliminar
-                          </div>
                         )}
                       </div>
                     </AdminOnly>
@@ -437,7 +550,6 @@ export default function UsuariosPage() {
             onSave={handlePhotoChange}
           />
         )}
-
         {/* Modales */}
         <DialogoNuevoUsuario
           isOpen={isNuevoUsuarioDialogOpen}
@@ -453,6 +565,18 @@ export default function UsuariosPage() {
           }}
           onSubmit={handleEditarUsuario}
           usuarioData={editingUser}
+        />
+
+        {/* Modal de confirmación para desactivar usuario */}
+        <ModalConfirmacion
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onConfirm={handleConfirm}
+          title={modalData.title}
+          message={modalData.message}
+          confirmText={modalData.confirmText}
+          cancelText={modalData.cancelText}
+          isLoading={isLoading}
         />
       </div>
     </ProtectedRoute>

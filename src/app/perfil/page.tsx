@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
-import { User, Edit, Camera, Mail, Phone, MapPin, Shield, ArrowLeft, LogOut } from 'lucide-react';
+import { User, Edit, Camera, Mail, Phone, MapPin, Shield, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
@@ -13,7 +13,7 @@ import ImageDisplay from '@/components/ImageDisplay';
 import PhotoChangeModal from '@/components/PhotoChangeModal';
 
 export default function PerfilPage() {
-  const { user, updateUser, logout } = useAuth();
+  const { user, updateUser } = useAuth();
   const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);

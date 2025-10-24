@@ -18,29 +18,29 @@ import DialogoEditarItem from "@/components/DialogoEditarItem";
 
 export default function Item() {
   // Lista de items
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState<any[]>([]);
   // Estado de carga
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState<boolean>(true);
   // Nuevo item a crear
-  const [nuevoItem, setNuevoItem] = useState({
+  const [nuevoItem, setNuevoItem] = useState<any>({
     detalle: '',
     rubro: '',
     duracion: '',
     prospecto: ''
   });
-  const [itemEditando, setItemEditando] = useState(null);
-  const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState(false);
-  const [busqueda, setBusqueda] = useState('');
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [rubroSeleccionado, setRubroSeleccionado] = useState('Todos');
+  const [itemEditando, setItemEditando] = useState<any>(null);
+  const [mostrarFormularioEdicion, setMostrarFormularioEdicion] = useState<boolean>(false);
+  const [busqueda, setBusqueda] = useState<string>('');
+  const [paginaActual, setPaginaActual] = useState<number>(1);
+  const [rubroSeleccionado, setRubroSeleccionado] = useState<string>('Todos');
   const itemsPorPagina = 10;
-  const [isNuevoItemDialogOpen, setIsNuevoItemDialogOpen] = useState(false);
-  const [isEditarItemDialogOpen, setIsEditarItemDialogOpen] = useState(false);
-  const [itemSeleccionado, setItemSeleccionado] = useState(null);
-  const [prospectoSeleccionado, setProspectoSeleccionado] = useState('');
+  const [isNuevoItemDialogOpen, setIsNuevoItemDialogOpen] = useState<boolean>(false);
+  const [isEditarItemDialogOpen, setIsEditarItemDialogOpen] = useState<boolean>(false);
+  const [itemSeleccionado, setItemSeleccionado] = useState<any>(null);
+  const [prospectoSeleccionado, setProspectoSeleccionado] = useState<string>('');
 
   // Función para validar número
-  const validarNumero = (valor) => {
+  const validarNumero = (valor: any): number => {
     const numero = parseFloat(valor);
     return isNaN(numero) ? 0 : numero;
   };
@@ -132,13 +132,13 @@ export default function Item() {
         duracion: '',
         prospecto: ''
       });
-      setMostrarFormulario(false);
+      // setMostrarFormulario(false);
       cargarItems(); // recargar lista
       
       // Mostrar mensaje de éxito
       alert('Item creado exitosamente');
     } catch (err) {
-      alert(err.message);
+      alert(err instanceof Error ? err.message : 'Error desconocido');
       console.error('Error completo:', err);
     }
   };
@@ -178,13 +178,13 @@ export default function Item() {
       cargarItems();
 
     } catch (err) {
-      alert(err.message);
+      alert(err instanceof Error ? err.message : 'Error desconocido');
       console.error('Error completo:', err);
     }
   };
 
   // Función para manejar la creación desde el modal
-  const handleCrearItem = async (itemData) => {
+  const handleCrearItem = async (itemData: any) => {
     try {
       const res = await fetch('/api/items', {
         method: 'POST',
@@ -208,7 +208,7 @@ export default function Item() {
   };
 
   // Función para manejar la edición desde el modal
-  const handleEditarItem = async (itemData) => {
+  const handleEditarItem = async (itemData: any) => {
     try {
       const res = await fetch(`/api/items/${itemData.id_item}`, {
         method: 'PUT',
@@ -232,7 +232,7 @@ export default function Item() {
   };
 
   // Eliminar item
-  const eliminarItem = async (id) => {
+  const eliminarItem = async (id: any) => {
     if (!confirm('¿Estás seguro de eliminar este item?')) return;
 
     try {
@@ -277,7 +277,7 @@ export default function Item() {
   const totalPaginas = Math.ceil(itemsFiltrados.length / itemsPorPagina);
 
   // Manejar selección de item
-  const handleItemSeleccionado = (item) => {
+  const handleItemSeleccionado = (item: any) => {
     setItemSeleccionado(item);
     setProspectoSeleccionado(item.prospecto || '');
   };
@@ -288,7 +288,23 @@ export default function Item() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
           <div className="text-center md:text-left">
             <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Items</h1>
+
           </div>
+          
+          <div className="flex flex-col gap-2 w-48">
+            <Label htmlFor="rubro" className="text-sm font-semibold text-gray-700">Filtrar por Rubro</Label>
+            <select
+              id="rubro"
+              value={rubroSeleccionado}
+              onChange={(e) => setRubroSeleccionado(e.target.value)}
+              className="border-2 border-gray-300 px-3 py-2 rounded-lg font-semibold bg-white text-black focus:border-purple-400 h-10 shadow-sm text-sm"
+            >
+              {rubros.map(rubro => (
+                <option key={rubro} value={rubro}>{rubro}</option>
+              ))}
+            </select>
+          </div>
+          
           <div className="flex gap-2">
             <Button onClick={() => setIsNuevoItemDialogOpen(true)} className="px-6 py-2">
               Agregar
@@ -319,35 +335,9 @@ export default function Item() {
           </div>
         </div>
 
-        <div className="mb-8 flex flex-col md:flex-row md:items-end gap-6">
-          <div className="flex flex-col gap-2 w-full md:w-1/2">
-            <Label htmlFor="busqueda" className="text-base font-semibold text-gray-700">Buscar Items</Label>
-            <Input
-              id="busqueda"
-              placeholder="Buscar por descripción o rubro..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="text-base px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-400 h-12 shadow-sm"
-            />
-          </div>
-          <div className="flex flex-col gap-2 w-full md:w-1/2">
-            <Label htmlFor="rubro" className="text-base font-semibold text-gray-700">Filtrar por Rubro</Label>
-            <select
-              id="rubro"
-              value={rubroSeleccionado}
-              onChange={(e) => setRubroSeleccionado(e.target.value)}
-              className="border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold bg-white text-black focus:border-purple-400 h-12 shadow-sm"
-            >
-              {rubros.map(rubro => (
-                <option key={rubro} value={rubro}>{rubro}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Tabla de items */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">       
               {cargando ? (
                 <div className="p-8 text-center">

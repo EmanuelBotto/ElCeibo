@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { AlertTriangle, CheckCircle, Camera } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Trash2, Camera, User } from 'lucide-react';
 
 type NuevoProducto = {
   nombre: string;
@@ -1004,7 +1004,7 @@ export function buildProductoFormContent(args: {
 // import { ModalVenta, useModalVenta } from '@/lib/modales';
 // 
 
-type ModalVentaType = 'error' | 'success' | '';
+type ModalVentaType = 'error' | 'success';
 
 interface ModalVentaProps {
   isOpen: boolean;
@@ -1064,7 +1064,7 @@ export function ModalVenta({ isOpen, type, message, onClose, onSuccessRedirect }
 // Hook para manejar el modal de venta
 export function useModalVenta() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<ModalVentaType>('');
+  const [modalType, setModalType] = useState<ModalVentaType>('error');
   const [modalMessage, setModalMessage] = useState('');
 
   const showErrorModal = (message: string) => {
@@ -1081,7 +1081,7 @@ export function useModalVenta() {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setModalType('');
+    setModalType('error');
     setModalMessage('');
   };
 
@@ -1376,6 +1376,123 @@ export function useNuevoDistribuidor({ onDistribuidorSuccess }: { onDistribuidor
     modalType,
     modalMessage,
     closeModal
+  };
+}
+
+// ====== Modal de Confirmación de Eliminación ======
+
+interface ModalConfirmacionProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  isLoading?: boolean;
+}
+
+export function ModalConfirmacion({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message, 
+  confirmText = "Eliminar",
+  cancelText = "Cancelar",
+  isLoading = false
+}: ModalConfirmacionProps) {
+  // Determinar el color y icono basado en la acción
+  const isReactivation = confirmText.toLowerCase().includes('reactivar');
+  const isDeactivation = confirmText.toLowerCase().includes('desactivar');
+  
+  const iconColor = isReactivation ? 'text-green-600' : isDeactivation ? 'text-red-600' : 'text-red-600';
+  const bgColor = isReactivation ? 'bg-green-100' : isDeactivation ? 'bg-red-100' : 'bg-red-100';
+  const buttonColor = isReactivation ? 'bg-green-600 hover:bg-green-700' : isDeactivation ? 'bg-red-600 hover:bg-red-700' : 'bg-red-600 hover:bg-red-700';
+  const IconComponent = isReactivation ? User : Trash2;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="text-center p-6">
+        <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${bgColor} mb-4`}>
+          <IconComponent className={`h-6 w-6 ${iconColor}`} />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
+        <p className="text-sm text-gray-500 mb-6">{message}</p>
+        <div className="flex gap-3 justify-center">
+          <Button
+            onClick={onClose}
+            variant="outline"
+            disabled={isLoading}
+            className="px-4 py-2"
+          >
+            {cancelText}
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={`${buttonColor} text-white px-4 py-2`}
+          >
+            {isLoading ? "Procesando..." : confirmText}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// Hook para manejar el modal de confirmación
+export function useModalConfirmacion() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalData, setModalData] = useState({
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar'
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const showConfirmModal = (data: {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }) => {
+    setModalData({
+      title: data.title,
+      message: data.message,
+      onConfirm: data.onConfirm,
+      confirmText: data.confirmText || 'Eliminar',
+      cancelText: data.cancelText || 'Cancelar'
+    });
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setIsLoading(false);
+  };
+
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    try {
+      await modalData.onConfirm();
+      closeModal();
+    } catch (error) {
+      console.error('Error en confirmación:', error);
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    isModalOpen,
+    modalData,
+    isLoading,
+    showConfirmModal,
+    closeModal,
+    handleConfirm
   };
 }
 
@@ -1704,5 +1821,517 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
     abrirModal,
     cerrarModal,
     renderContent
+  };
+}
+
+// ====== Modal de Confirmación de Eliminación de Factura ======
+
+interface ModalConfirmacionFacturaProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+  modalData: {
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+  };
+}
+
+export function ModalConfirmacionFactura({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  isLoading, 
+  modalData 
+}: ModalConfirmacionFacturaProps) {
+  return (
+    <div className="text-center p-6">
+      <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+        <Trash2 className="h-6 w-6 text-red-600" />
+      </div>
+      <h3 className="text-lg font-medium text-gray-900 mb-2">{modalData.title}</h3>
+      <p className="text-sm text-gray-500 mb-6 whitespace-pre-line">{modalData.message}</p>
+      <div className="flex gap-3 justify-center">
+        <Button
+          onClick={onClose}
+          variant="outline"
+          disabled={isLoading}
+          className="px-4 py-2"
+        >
+          {modalData.cancelText}
+        </Button>
+        <Button
+          onClick={onConfirm}
+          disabled={isLoading}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2"
+        >
+          {isLoading ? "Eliminando..." : modalData.confirmText}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ====== Modal de Notificaciones de Factura ======
+
+interface ModalNotificacionFacturaProps {
+  isOpen: boolean;
+  onClose: () => void;
+  type: 'success' | 'error';
+  message: string;
+}
+
+export function ModalNotificacionFactura({ 
+  isOpen, 
+  onClose, 
+  type, 
+  message 
+}: ModalNotificacionFacturaProps) {
+  return (
+    <div className="text-center p-6">
+      {type === 'error' ? (
+        <>
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+            <AlertTriangle className="h-6 w-6 text-red-600" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error</h3>
+          <p className="text-sm text-gray-500 mb-4">{message}</p>
+          <Button
+            onClick={onClose}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+          >
+            Entendido
+          </Button>
+        </>
+      ) : type === 'success' ? (
+        <>
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">¡Éxito!</h3>
+          <p className="text-sm text-gray-500 mb-4">{message}</p>
+          <Button
+            onClick={onClose}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+          >
+            Entendido
+          </Button>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+// ====== Hook para Ver Registro ======
+
+type FacturaData = {
+  id_factura: number;
+  tipo_factura: string;
+  dia: number;
+  mes: number;
+  anio: number;
+  hora: string;
+  forma_de_pago: string;
+  monto_total: number;
+  detalle: string;
+  num_factura: string;
+  nombre_usuario: string;
+};
+
+type Distribuidor = {
+  id_distribuidor: number;
+  nombre: string;
+  nombre_fantasia?: string;
+  cuit: string;
+  telefono: string;
+  email: string;
+};
+
+type FacturaSeleccionada = {
+  id_factura: number;
+  tipo_factura: string;
+};
+
+export function useVerRegistro() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [facturaData, setFacturaData] = useState<any>(null);
+  const [distribuidorData, setDistribuidorData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("otros");
+
+  const handleOpenModal = async (factura: FacturaSeleccionada) => {
+    setIsLoading(true);
+    try {
+      // Obtener detalles de la factura
+      const response = await fetch(`/api/caja/detalle/${factura.id_factura}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFacturaData(data.factura);
+        
+        // Determinar el tipo basado en si tiene distribuidor asociado
+        if (data.factura.id_distribuidor) {
+          setActiveTab("distribuidores");
+          
+          try {
+            const distribuidorResponse = await fetch(`/api/distribuidores/${data.factura.id_distribuidor}`);
+            if (distribuidorResponse.ok) {
+              const distribuidorData = await distribuidorResponse.json();
+              setDistribuidorData(distribuidorData);
+            } else {
+              console.error('Error al cargar distribuidor:', distribuidorResponse.status);
+            }
+          } catch (error) {
+            console.error('Error al cargar distribuidor:', error);
+          }
+        } else {
+          setActiveTab("otros");
+        }
+        
+        setIsModalOpen(true);
+      } else {
+        const errorData = await response.json();
+        console.error('Error al cargar detalles de la factura:', errorData);
+      }
+    } catch (error) {
+      console.error('Error al cargar detalles:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFacturaData(null);
+    setDistribuidorData(null);
+  };
+
+  const renderOtrosContent = () => {
+    return (
+      <div className="space-y-4">
+        {/* Campo Monto */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Monto
+          </label>
+          <input
+            type="text"
+            placeholder="$ Monto"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 cursor-not-allowed"
+            value={facturaData?.monto_total || ''}
+            readOnly
+          />
+        </div>
+
+        {/* Campo Detalle */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Detalle
+          </label>
+          <input
+            type="text"
+            placeholder="Detalle"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 cursor-not-allowed"
+            value={facturaData?.detalle || ''}
+            readOnly
+          />
+        </div>
+
+        {/* Forma de Pago */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Forma de pago
+          </label>
+          <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+            <div className="space-y-2">
+              {facturaData?.forma_de_pago ? (
+                facturaData.forma_de_pago.split(' - ').map((forma: string, index: number) => (
+                  <label key={index} className="flex items-center cursor-not-allowed">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      readOnly
+                      className="mr-2 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">{forma}</span>
+                  </label>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500">No especificado</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDistribuidoresContent = () => {
+    return (
+      <div className="space-y-4">
+        {/* Campo Número de Recibo/Factura */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Número de Recibo/Factura
+          </label>
+          <input
+            type="text"
+            placeholder="N° Recibo/Factura"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 cursor-not-allowed"
+            value={facturaData?.num_factura || ''}
+            readOnly
+          />
+        </div>
+
+        {/* Campo Monto */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Monto
+          </label>
+          <input
+            type="text"
+            placeholder="$ Monto"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 cursor-not-allowed"
+            value={facturaData?.monto_total || ''}
+            readOnly
+          />
+        </div>
+
+        {/* Forma de Pago */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Forma de pago
+          </label>
+          <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+            <div className="space-y-2">
+              {facturaData?.forma_de_pago ? (
+                facturaData.forma_de_pago.split(' - ').map((forma: string, index: number) => (
+                  <label key={index} className="flex items-center cursor-not-allowed">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      readOnly
+                      className="mr-2 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">{forma}</span>
+                  </label>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500">No especificado</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Desplegable de Distribuidores */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Distribuidor
+          </label>
+          <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+            <div className="text-sm text-gray-700">
+              {distribuidorData ? (distribuidorData.nombre_fantasia || distribuidorData.nombre) : 'No especificado'}
+            </div>
+          </div>
+        </div>
+
+        {/* Información adicional del distribuidor si existe */}
+        {distribuidorData && (
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h4 className="font-semibold text-blue-800 mb-3">Información del Distribuidor</h4>
+            <div className="space-y-2">
+              <div className="text-sm">
+                <span className="font-medium text-blue-700">CUIT:</span> {distribuidorData.cuit}
+              </div>
+              <div className="text-sm">
+                <span className="font-medium text-blue-700">Teléfono:</span> {distribuidorData.telefono}
+              </div>
+              <div className="text-sm">
+                <span className="font-medium text-blue-700">Email:</span> {distribuidorData.email}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return {
+    isModalOpen,
+    facturaData,
+    isLoading,
+    activeTab,
+    handleOpenModal,
+    handleCloseModal,
+    title: activeTab === "distribuidores" ? 'EGRESO - DISTRIBUIDOR' : 'EGRESO - VARIOS',
+    renderContent: (
+      <div className="p-4">
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <span className="ml-2 text-gray-600">Cargando detalles...</span>
+          </div>
+        ) : (
+          <>
+            {/* Mostrar pestañas solo si hay datos para ambos tipos */}
+            {/* En modo solo lectura, siempre mostramos solo el contenido correspondiente */}
+            
+            {/* Contenido dinámico según la pestaña activa */}
+            {activeTab === "otros" ? renderOtrosContent() : renderDistribuidoresContent()}
+          </>
+        )}
+      </div>
+    )
+  };
+}
+
+// ====== Hook para Ver Registro de Ingresos ======
+
+export function useVerRegistroIngreso() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [facturaData, setFacturaData] = useState<any>(null);
+  const [productosData, setProductosData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleOpenModal = async (factura: FacturaSeleccionada) => {
+    setIsLoading(true);
+    try {
+      // Obtener detalles de la factura
+      const response = await fetch(`/api/caja/detalle/${factura.id_factura}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFacturaData(data.factura);
+        setProductosData(data.productos || []);
+        setIsModalOpen(true);
+      } else {
+        const errorData = await response.json();
+        console.error('Error al cargar detalles de la factura:', errorData);
+      }
+    } catch (error) {
+      console.error('Error al cargar detalles:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFacturaData(null);
+    setProductosData([]);
+  };
+
+  const renderIngresoContent = () => {
+    const totalProductos = productosData.reduce((sum, producto) => sum + (producto.cantidad || 0), 0);
+    
+    return (
+      <div className="space-y-6">
+        {/* Información General */}
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h4 className="font-semibold text-blue-800 mb-3">📊 Información General</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-blue-700 mb-1">Fecha y Hora</label>
+              <div className="text-sm text-gray-700">
+                {facturaData?.dia}/{facturaData?.mes}/{facturaData?.anio} - {facturaData?.hora}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-blue-700 mb-1">Usuario</label>
+              <div className="text-sm text-gray-700">
+                {facturaData?.nombre_usuario || 'No especificado'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Resumen Financiero */}
+        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+          <h4 className="font-semibold text-green-800 mb-3">💰 Resumen Financiero</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-green-700 mb-1">Total de la Venta</label>
+              <div className="text-lg font-bold text-green-800">
+                ${facturaData?.monto_total || '0.00'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-green-700 mb-1">Formas de Pago</label>
+              <div className="text-sm text-gray-700">
+                {facturaData?.forma_de_pago || 'No especificado'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Productos Vendidos */}
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h4 className="font-semibold text-gray-800 mb-3">🛒 Productos Vendidos</h4>
+          {productosData.length > 0 ? (
+            <div className="space-y-3">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-300">
+                      <th className="text-left py-2 font-medium text-gray-700">Producto</th>
+                      <th className="text-center py-2 font-medium text-gray-700">Cantidad</th>
+                      <th className="text-right py-2 font-medium text-gray-700">Precio Unit.</th>
+                      <th className="text-right py-2 font-medium text-gray-700">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productosData.map((producto, index) => (
+                      <tr key={index} className="border-b border-gray-200">
+                        <td className="py-2 text-gray-700">
+                          {producto.nombre_producto || 'Producto'}
+                          {producto.marca && <span className="text-gray-500"> - {producto.marca}</span>}
+                        </td>
+                        <td className="py-2 text-center text-gray-700">{producto.cantidad}</td>
+                        <td className="py-2 text-right text-gray-700">${producto.precio_unidad}</td>
+                        <td className="py-2 text-right font-medium text-gray-700">${producto.precio_tot}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+                <span className="text-sm font-medium text-gray-700">
+                  📊 Total productos: {totalProductos}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              No hay productos registrados para esta venta
+            </div>
+          )}
+        </div>
+
+      </div>
+    );
+  };
+
+  return {
+    isModalOpen,
+    facturaData,
+    productosData,
+    isLoading,
+    handleOpenModal,
+    handleCloseModal,
+    title: 'INGRESO - RESUMEN DE VENTA',
+    renderContent: (
+      <div className="p-4">
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <span className="ml-2 text-gray-600">Cargando detalles...</span>
+          </div>
+        ) : (
+          renderIngresoContent()
+        )}
+      </div>
+    )
   };
 }

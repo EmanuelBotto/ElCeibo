@@ -8,7 +8,7 @@ const connectionString = 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-ba
 const pool = new Pool({ connectionString });
 
 export async function GET(_, { params }) {
-    const { id } = params;
+    const { id } = await params;
     
     try {
         const client = await pool.connect();
@@ -27,6 +27,7 @@ export async function GET(_, { params }) {
                     f.monto_total,
                     f.detalle,
                     f.num_factura,
+                    f.id_distribuidor,
                     CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario
                 FROM factura f
                 LEFT JOIN usuario u ON f.id_usuario = u.id_usuario

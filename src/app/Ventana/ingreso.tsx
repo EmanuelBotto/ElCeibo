@@ -12,16 +12,20 @@ import {
 import { FileText } from 'lucide-react';
 import { ModalVenta, useModalVenta } from '@/lib/modales';
 
-export default function Ingreso({ onVolver }) {
-  const [productos, setProductos] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [busqueda, setBusqueda] = useState('');
-  const [modoBusqueda, setModoBusqueda] = useState('descripcion'); // 'descripcion' | 'codigo'
-  const [tipoCliente, setTipoCliente] = useState('cliente final');
-  const [productosSeleccionados, setProductosSeleccionados] = useState([]);
-  const [totalVenta, setTotalVenta] = useState(0);
-  const [formasPago, setFormasPago] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+interface IngresoProps {
+  onVolver: (tab: string) => void;
+}
+
+export default function Ingreso({ onVolver }: IngresoProps) {
+  const [productos, setProductos] = useState<any[]>([]);
+  const [cargando, setCargando] = useState<boolean>(true);
+  const [busqueda, setBusqueda] = useState<string>('');
+  const [modoBusqueda, setModoBusqueda] = useState<string>('descripcion'); // 'descripcion' | 'codigo'
+  const [tipoCliente, setTipoCliente] = useState<string>('cliente final');
+  const [productosSeleccionados, setProductosSeleccionados] = useState<any[]>([]);
+  const [totalVenta, setTotalVenta] = useState<number>(0);
+  const [formasPago, setFormasPago] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   
   // Hook para el modal de venta
   const {
@@ -33,7 +37,7 @@ export default function Ingreso({ onVolver }) {
     closeModal
   } = useModalVenta();
 
-  const validarNumero = (valor) => {
+  const validarNumero = (valor: any): number => {
     const numero = parseFloat(valor);
     return isNaN(numero) ? 0 : numero;
   };
@@ -58,7 +62,7 @@ export default function Ingreso({ onVolver }) {
     cargarProductos();
   }, []);
 
-  const calcularPrecio = (producto, tipo = 'final') => {
+  const calcularPrecio = (producto: any, tipo: string = 'final'): number => {
     if (!producto) return 0;
     const base = validarNumero(producto.precio_costo);
     const porcentaje = tipo === 'final' ? validarNumero(producto.porcentaje_final) : validarNumero(producto.porcentaje_mayorista);
@@ -66,7 +70,7 @@ export default function Ingreso({ onVolver }) {
     return isNaN(precio) ? 0 : precio;
   };
 
-  const coincideBusqueda = (p) => {
+  const coincideBusqueda = (p: any): boolean => {
     if (!busqueda) return true;
     const q = busqueda.toLowerCase();
     if (modoBusqueda === 'codigo') {
@@ -81,7 +85,7 @@ export default function Ingreso({ onVolver }) {
   const productosMostrados = productosFiltrados.slice(0, 50);
 
   // Función para agregar producto al resumen
-  const agregarProducto = (producto) => {
+  const agregarProducto = (producto: any) => {
     const precio = calcularPrecio(producto, tipoCliente === 'mayorista' ? 'mayorista' : 'final');
     const productoExistente = productosSeleccionados.find(p => p.id_producto === producto.id_producto);
     
@@ -106,7 +110,7 @@ export default function Ingreso({ onVolver }) {
   };
 
   // Función para actualizar cantidad
-  const actualizarCantidad = (idProducto, nuevaCantidad) => {
+  const actualizarCantidad = (idProducto: any, nuevaCantidad: number) => {
     const nuevosProductos = productosSeleccionados.map(p => 
       p.id_producto === idProducto 
         ? { ...p, cantidad: nuevaCantidad, precioTotal: nuevaCantidad * p.precioUnitario }
@@ -116,7 +120,7 @@ export default function Ingreso({ onVolver }) {
   };
 
   // Función para eliminar producto del resumen
-  const eliminarProducto = (idProducto) => {
+  const eliminarProducto = (idProducto: any) => {
     setProductosSeleccionados(productosSeleccionados.filter(p => p.id_producto !== idProducto));
   };
 
@@ -127,7 +131,7 @@ export default function Ingreso({ onVolver }) {
   }, [productosSeleccionados]);
 
   // Función para manejar cambio de formas de pago
-  const handleFormaPagoChange = (formaPago) => {
+  const handleFormaPagoChange = (formaPago: string) => {
     if (formasPago.includes(formaPago)) {
       setFormasPago(formasPago.filter(f => f !== formaPago));
     } else {
@@ -198,7 +202,7 @@ export default function Ingreso({ onVolver }) {
 
     } catch (error) {
       console.error('Error al finalizar venta:', error);
-      showErrorModal(`Error al finalizar la venta: ${error.message}`);
+      showErrorModal(`Error al finalizar la venta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setIsProcessing(false);
     }
