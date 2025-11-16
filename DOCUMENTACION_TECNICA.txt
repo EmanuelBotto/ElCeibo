@@ -1,0 +1,488 @@
+DOCUMENTACION TECNICA - SISTEMA ELCEIBO
+=========================================
+
+ARQUITECTURA DEL SISTEMA
+------------------------
+
+El sistema ElCeibo es una aplicacion web de gestion integral para clinicas veterinarias desarrollada como una aplicacion full-stack con Next.js. La arquitectura sigue el patron de aplicaciones de pagina unica (SPA) con renderizado del lado del servidor (SSR) y generacion de sitios estaticos (SSG) cuando es posible.
+
+ARQUITECTURA DE CAPAS
+
+Capa de Presentacion
+- Framework: Next.js 15 con App Router
+- Lenguaje: TypeScript con soporte para JavaScript
+- Componentes: React 18.3.1 con hooks y contexto
+- Estilos: Tailwind CSS 4 con PostCSS
+- Iconografia: Lucide React para iconos vectoriales
+- Componentes UI: Radix UI para componentes accesibles (dialogos, selects, labels)
+
+Capa de Aplicacion
+- API Routes: Endpoints RESTful implementados en Next.js App Router
+- Autenticacion: Sistema personalizado con cookies HTTP-only y bcryptjs
+- Middleware: Autenticacion basada en contexto y proteccion de rutas
+- Validacion: Validacion de datos en capa de API y cliente
+
+Capa de Datos
+- Base de datos: PostgreSQL alojada en Neon (servicio cloud)
+- Cliente: pg (node-postgres) con connection pooling
+- Almacenamiento: Estructura relacional con tablas normalizadas
+- Consultas: SQL nativo con parametros para prevenir inyeccion SQL
+
+STACK DE TECNOLOGIAS UTILIZADAS
+--------------------------------
+
+FRONTEND
+
+Next.js 15.4.3
+- Framework principal basado en React
+- App Router para enrutamiento basado en archivos
+- Server Components y Client Components
+- Optimizaciones de rendimiento integradas
+- Soporte para Turbopack en desarrollo
+
+React 18.3.1
+- Biblioteca de UI declarativa
+- Hooks para estado y efectos
+- Context API para estado global
+- React DOM para renderizado
+
+TypeScript 5
+- Superset tipado de JavaScript
+- Validacion de tipos en tiempo de compilacion
+- Mejora la mantenibilidad del codigo
+- Configuracion estricta habilitada
+
+Tailwind CSS 4
+- Framework de utilidades CSS
+- Diseño responsive
+- Configuracion mediante PostCSS
+- LightningCSS para optimizacion
+
+BACKEND
+
+Node.js
+- Entorno de ejecucion JavaScript del lado del servidor
+- Compatible con Node.js 18 o superior
+
+PostgreSQL (Neon)
+- Base de datos relacional
+- Alojada en Neon.tech (servicio cloud)
+- Conexiones SSL requeridas
+- Connection pooling para optimizacion
+
+pg 8.16.0
+- Cliente PostgreSQL para Node.js
+- Manejo de conexiones y transacciones
+- Soporte para consultas parametrizadas
+
+SISTEMA DE AUTENTICACION
+
+bcryptjs 3.0.2
+- Hashing de contraseñas con algoritmo bcrypt
+- Salt rounds configurable
+- Comparacion segura de contraseñas
+
+Cookies HTTP-only
+- Almacenamiento seguro de tokens
+- Proteccion contra XSS
+- SameSite strict para proteccion CSRF
+
+UTILIDADES Y BIBLIOTECAS
+
+xlsx 0.18.5
+- Generacion y lectura de archivos Excel
+- Exportacion de reportes y backups
+- Importacion de datos masivos
+
+sonner 2.0.6
+- Sistema de notificaciones toast
+- Feedback visual para acciones del usuario
+
+Radix UI
+- Componentes de interfaz accesibles
+- Dialogos modales
+- Selects personalizados
+- Labels y slots
+
+DESARROLLO Y HERRAMIENTAS
+
+ESLint 9
+- Linter para JavaScript y TypeScript
+- Configuracion Next.js integrada
+- Validacion de codigo en tiempo real
+
+Turbopack
+- Bundler rapido para desarrollo
+- Reemplazo de Webpack en modo dev
+- Hot Module Replacement optimizado
+
+ESTRUCTURA DE DIRECTORIOS
+--------------------------
+
+src/
+  app/
+    api/                    - API Routes (endpoints REST)
+      auth/                 - Autenticacion y sesiones
+        login/              - Endpoint de inicio de sesion
+        logout/             - Endpoint de cierre de sesion
+        me/                 - Validacion de sesion activa
+        profile/            - Actualizacion de perfil
+      backup/               - Sistema de respaldo
+        import/             - Importacion de backups
+      caja/                 - Gestion de ventas y facturacion
+        [id]/               - Ventas individuales
+        detalle/[id]/       - Detalle de facturas
+        venta/              - Procesamiento de ventas
+      clientes/             - Gestion de clientes/propietarios
+        [id]/               - Operaciones por cliente
+      dashboard/            - Estadisticas y actividades
+        activities/         - Registro de actividades
+        stats/              - Metricas del sistema
+      distribuidores/       - Gestion de distribuidores
+        [id]/               - Operaciones por distribuidor
+      fichas/               - Fichas medicas de mascotas
+      fichas-paciente/      - Fichas detalladas
+        [id]/               - Ficha por mascota
+      historial-mascota/    - Historial medico
+        [id]/               - Historial por mascota
+      items/                - Gestion de items/medicamentos
+        [id]/               - Operaciones por item
+      mascotas/             - Gestion de mascotas
+        [id]/               - Operaciones por mascota
+      price-lists/          - Listas de precios
+        [id]/               - Listas individuales
+      products/             - Gestion de productos
+        [id]/               - Operaciones por producto
+          percentages/      - Calculo de porcentajes
+        simple/             - Productos simplificados
+      reportes/             - Generacion de reportes
+        test/               - Pruebas de reportes
+      usuarios/             - Gestion de usuarios
+        [id]/               - Operaciones por usuario
+          reactivate/       - Reactivacion de usuarios
+      vacunas-aplicadas/    - Control de vacunacion
+        [id]/               - Vacunas por mascota
+        proximas/           - Vacunas proximas
+      visita/               - Gestion de visitas
+        [id]/               - Visitas individuales
+    dashboard/              - Pagina principal del dashboard
+    login/                  - Pagina de inicio de sesion
+    mascota/                - Interfaces de gestion de mascotas
+      [id]/                 - Vista de mascota individual
+    perfil/                 - Perfil de usuario
+    usuarios/               - Gestion de usuarios
+    Ventana/                - Componentes principales de la aplicacion
+      caja.tsx              - Interfaz de caja
+      distribuidor.jsx      - Gestion de distribuidores
+      distribuidores-deudas.tsx - Control de deudas
+      ingreso.tsx           - Proceso de venta
+      item.tsx              - Gestion de items
+      producto.tsx          - Gestion de productos
+
+  components/
+    ui/                     - Componentes base reutilizables
+      button.tsx            - Botones estilizados
+      card.tsx               - Tarjetas de contenido
+      dialog.tsx             - Dialogos modales
+      input.tsx              - Campos de entrada
+      label.tsx              - Etiquetas de formulario
+      modal.tsx              - Modales personalizados
+      select.tsx             - Selectores desplegables
+      table.tsx              - Tablas de datos
+    ficha-paciente/         - Componentes de fichas medicas
+      DialogoEditarMascota.jsx - Formulario de edicion
+      DialogoNuevaMascota.jsx   - Formulario de creacion
+      DialogoVisita.jsx         - Registro de visitas
+      HistorialMedico.jsx       - Historial completo
+      SeccionVacunas.jsx        - Control de vacunacion
+      TarjetaInfoMascota.jsx    - Tarjeta informativa
+    AuthProvider.tsx         - Proveedor de contexto de autenticacion
+    BackupModal.tsx          - Modal de respaldo
+    ConfirmDialog.tsx        - Dialogo de confirmacion
+    DashboardLayout.tsx      - Layout principal
+    DialogoEditarItem.jsx    - Edicion de items
+    DialogoEditarUsuario.jsx   - Edicion de usuarios
+    DialogoNuevoItem.jsx     - Creacion de items
+    DialogoNuevoUsuario.jsx  - Creacion de usuarios
+    HiddenIfNoPermission.jsx - Control de acceso basado en permisos
+    ImageDisplay.tsx         - Visualizacion de imagenes
+    ImageUpload.tsx          - Carga de imagenes
+    Logo.tsx                 - Componente de logo
+    MascotaForm.tsx          - Formulario de mascotas
+    PermissionGate.jsx       - Puerta de permisos
+    PhotoChangeModal.tsx     - Modal de cambio de foto
+    ProtectedRoute.tsx       - Ruta protegida
+    ReportesModal.tsx        - Modal de reportes
+    Sidebar.tsx              - Barra lateral de navegacion
+    UserForm.tsx             - Formulario de usuarios
+
+  hooks/
+    useConfirm.ts           - Hook para confirmaciones
+
+  lib/
+    authMiddleware.js       - Middleware de autenticacion
+    modales.tsx             - Utilidades de modales
+    permisos.js             - Sistema de permisos
+    utils.ts                - Funciones utilitarias
+
+DESCRIPCION DE FUNCIONALIDADES
+-------------------------------
+
+GESTION DE AUTENTICACION Y USUARIOS
+
+Sistema de Autenticacion
+- Login con usuario y contraseña
+- Hashing de contraseñas con bcryptjs
+- Sesiones basadas en cookies HTTP-only
+- Validacion de sesion activa
+- Logout con limpieza de cookies
+- Proteccion de rutas mediante middleware
+
+Gestion de Usuarios
+- Creacion de usuarios con roles (admin, veterinario, empleado)
+- Edicion de datos de usuario
+- Reactivacion de usuarios desactivados
+- Sistema de permisos basado en roles
+- Perfil de usuario editable
+- Cambio de foto de perfil
+
+Sistema de Permisos
+- Tres niveles de acceso: Empleado, Veterinario, Administrador
+- Permisos granulares por modulo
+- Control de acceso basado en componentes
+- Validacion tanto en frontend como backend
+
+GESTION DE MASCOTAS Y PACIENTES
+
+Registro de Mascotas
+- Creacion de fichas de mascotas con datos completos
+- Campos: nombre, especie, raza, sexo, edad, peso, estado reproductivo
+- Asociacion con cliente/propietario
+- Carga de fotos (almacenadas como BYTEA en PostgreSQL)
+- Registro de fecha de nacimiento y fecha de deceso
+- Validacion de tamaño de imagenes (maximo 5MB)
+
+Fichas Medicas
+- Fichas completas de pacientes
+- Historial medico completo
+- Registro de visitas veterinarias
+- Control de vacunacion
+- Seguimiento de vacunas aplicadas y proximas
+- Notas medicas y observaciones
+
+Historial Medico
+- Registro cronologico de visitas
+- Detalles de cada consulta
+- Medicamentos y tratamientos
+- Evolucion del paciente
+
+GESTION DE PRODUCTOS E INVENTARIO
+
+Gestion de Productos
+- Creacion y edicion de productos
+- Control de stock en tiempo real
+- Precios de costo y venta
+- Asignacion de tipos de producto
+- Porcentajes de ganancia (final y mayorista)
+- Marcas y categorias
+- Busqueda y filtrado avanzado
+- Paginacion de resultados
+
+Tipos de Productos
+- Categorizacion de productos
+- Porcentajes de ganancia por tipo
+- Calculo automatico de precios finales
+
+Control de Stock
+- Monitoreo de inventario
+- Alertas de stock bajo
+- Actualizacion de stock en ventas
+- Modificacion de stock manual
+
+GESTION DE VENTAS Y CAJA
+
+Sistema de Facturacion
+- Emision de facturas
+- Tipos de factura (A, B, C)
+- Numeracion automatica
+- Fecha y hora de emision
+- Formas de pago (efectivo, tarjeta, transferencia)
+- Detalle de productos por factura
+- Montos totales calculados automaticamente
+
+Proceso de Venta
+- Seleccion de productos
+- Calculo de precios en tiempo real
+- Aplicacion de descuentos
+- Seleccion de forma de pago
+- Generacion de factura
+- Impresion de comprobantes
+
+Gestion de Caja
+- Visualizacion de todas las ventas
+- Filtrado por fecha
+- Detalle de facturas individuales
+- Eliminacion logica de facturas
+- Estadisticas de ventas
+
+GESTION DE CLIENTES
+
+Base de Datos de Clientes
+- Registro de propietarios de mascotas
+- Datos de contacto completos
+- Direccion y codigo postal
+- Telefono y email
+- Historial de mascotas asociadas
+- Edicion y actualizacion de datos
+
+Relacion Cliente-Mascota
+- Asociacion multiple mascotas por cliente
+- Vista unificada de mascotas por propietario
+- Historial conjunto
+
+GESTION DE DISTRIBUIDORES
+
+Registro de Distribuidores
+- Datos completos del distribuidor
+- CUIT y nombre fantasia
+- Datos bancarios (CBU, alias)
+- Direccion y contacto
+- Control de deudas
+
+Gestion de Deudas
+- Registro de deudas por distribuidor
+- Actualizacion de saldos
+- Seguimiento de pagos
+- Reportes de deudas pendientes
+
+GESTION DE ITEMS Y MEDICAMENTOS
+
+Items de Inventario
+- Registro de items/medicamentos
+- Control de stock
+- Precios y costos
+- Asociacion con productos
+- Gestion de lotes y vencimientos
+
+GESTION DE VACUNACION
+
+Control de Vacunas
+- Registro de vacunas aplicadas
+- Fechas de aplicacion
+- Proximas vacunas programadas
+- Alertas de vacunacion pendiente
+- Historial de vacunacion por mascota
+
+REPORTES Y ESTADISTICAS
+
+Generacion de Reportes
+- Reportes de ventas por periodo
+- Estadisticas de productos mas vendidos
+- Reportes de clientes
+- Reportes de mascotas atendidas
+- Exportacion a Excel (XLSX)
+- Filtros por fecha y categoria
+
+Dashboard
+- Estadisticas en tiempo real
+- Actividades recientes
+- Metricas clave
+- Graficos y visualizaciones
+- Resumen de operaciones del dia
+
+SISTEMA DE RESPALDO
+
+Backup y Restauracion
+- Exportacion completa de datos
+- Generacion de archivos Excel
+- Importacion de backups
+- Validacion de datos importados
+- Restauracion selectiva
+
+CARACTERISTICAS TECNICAS ADICIONALES
+------------------------------------
+
+Seguridad
+- Headers de seguridad HTTP configurados
+- X-Frame-Options: DENY
+- X-Content-Type-Options: nosniff
+- Cookies seguras en produccion
+- Validacion de entrada en todos los endpoints
+- Prevencion de inyeccion SQL mediante parametros
+
+Optimizaciones
+- Connection pooling para base de datos
+- Compresion de respuestas HTTP
+- Optimizaciones de imagenes
+- Lazy loading de componentes
+- Code splitting automatico
+
+Rendimiento
+- Server-side rendering selectivo
+- Static generation cuando es posible
+- Caching de consultas frecuentes
+- Paginacion de resultados grandes
+- Limite de resultados en consultas
+
+Configuracion de Produccion
+- Output standalone para Docker
+- Optimizaciones de build
+- Variables de entorno configuradas
+- Logging de errores
+- Manejo de excepciones
+
+CONFIGURACION
+---------------------------
+
+Variables de Entorno Requeridas
+- DATABASE_URL: Cadena de conexion a PostgreSQL
+- JWT_SECRET: Clave secreta para tokens (opcional)
+- NEXTAUTH_URL: URL base de la aplicacion
+- NODE_ENV: Entorno de ejecucion (development/production)
+
+Servicios Utilizados
+- Base de datos: Neon.tech (PostgreSQL cloud)
+- Hosting: Compatible con Vercel, Netlify, o servidores Node.js
+- SSL: Requerido para conexiones a base de datos
+
+Comandos Disponibles
+- npm run dev: Servidor de desarrollo con Turbopack
+- npm run build: Compilacion para produccion
+- npm start: Servidor de produccion
+- npm run lint: Validacion de codigo
+
+Flujo de Desarrollo
+- Desarrollo local con hot reload
+- TypeScript para validacion de tipos
+- ESLint para calidad de codigo
+- Git para control de versiones
+
+CONSIDERACIONES DE ARQUITECTURA
+--------------------------------
+
+Patrones de Diseño
+- Component-based architecture (React)
+- Context API para estado global
+- Custom hooks para logica reutilizable
+- Server Actions para operaciones del servidor
+- RESTful API design
+
+Manejo de Estado
+- Estado local con useState
+- Estado global con Context API (AuthProvider)
+- Estado del servidor mediante API calls
+- Cookies para persistencia de sesion
+
+Manejo de Datos
+- Consultas SQL directas con pg
+- Connection pooling para eficiencia
+- Transacciones para operaciones complejas
+- Validacion en capa de API
+
+Interfaz de Usuario
+- Diseño responsive con Tailwind CSS
+- Componentes accesibles con Radix UI
+- Feedback visual con Sonner
+- Modales y dialogos para interacciones
+- Formularios validados
+

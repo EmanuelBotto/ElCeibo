@@ -15,28 +15,32 @@ export async function GET() {
 export async function POST(request) {
     try {
         const { tipoReporte, fechaInicio, fechaFin } = await request.json();
-        
+
         if (!tipoReporte) {
-            return new Response(JSON.stringify({ error: 'Tipo de reporte es requerido' }), { 
+            return new Response(JSON.stringify({ error: 'Tipo de reporte es requerido' }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
-        
+
         let query = '';
         let fileName = '';
         let queryParams = [];
-        
-        // Construir condición de fechas de forma segura
+
+        /** ===========================
+         *     FILTRO POR FECHAS
+         *  =========================== */
+
         let fechaCondition = '';
         if (fechaInicio && fechaFin) {
-            // Asegurar que las fechas estén en formato YYYY-MM-DD
-            const fechaInicioFormatted = fechaInicio.includes('-') ? fechaInicio : 
-                `${fechaInicio.substring(0,4)}-${fechaInicio.substring(4,6)}-${fechaInicio.substring(6,8)}`;
-            const fechaFinFormatted = fechaFin.includes('-') ? fechaFin : 
-                `${fechaFin.substring(0,4)}-${fechaFin.substring(4,6)}-${fechaFin.substring(6,8)}`;
-            
-            // Usar una condición más simple y robusta
+            const fechaInicioFormatted = fechaInicio.includes('-')
+                ? fechaInicio
+                : `${fechaInicio.substring(0, 4)}-${fechaInicio.substring(4, 6)}-${fechaInicio.substring(6, 8)}`;
+
+            const fechaFinFormatted = fechaFin.includes('-')
+                ? fechaFin
+                : `${fechaFin.substring(0, 4)}-${fechaFin.substring(4, 6)}-${fechaFin.substring(6, 8)}`;
+
             fechaCondition = `AND (
                 (f.anio > EXTRACT(YEAR FROM $1::date)) OR 
                 (f.anio = EXTRACT(YEAR FROM $1::date) AND f.mes > EXTRACT(MONTH FROM $1::date)) OR
@@ -46,162 +50,170 @@ export async function POST(request) {
                 (f.anio = EXTRACT(YEAR FROM $2::date) AND f.mes < EXTRACT(MONTH FROM $2::date)) OR
                 (f.anio = EXTRACT(YEAR FROM $2::date) AND f.mes = EXTRACT(MONTH FROM $2::date) AND f.dia <= EXTRACT(DAY FROM $2::date))
             )`;
+
             queryParams = [fechaInicioFormatted, fechaFinFormatted];
         }
-        
+
+        /** ===========================
+         *         REPORTES
+         *  =========================== */
+
         switch (tipoReporte) {
+
+            /** ===========================
+             *       REPORTE VENTAS
+             *    (UNA FILA POR PRODUCTO)
+             *  =========================== */
             case 'ventas':
                 query = `
-                    SELECT 
-                        f.id_factura,
-                        f.tipo_factura,
-                        CONCAT(f.dia, '/', f.mes, '/', f.anio) as fecha_factura,
+                    SELECT
+                        CONCAT(f.dia, '/', f.mes, '/', f.anio) AS fecha,
                         f.hora,
                         f.forma_de_pago,
+                        p.nombre AS producto,
+                        df.cantidad,
+                        df.precio_unidad AS pu,
+                        df.precio_tot AS pt,
                         f.monto_total,
-                        COALESCE(
-                            (SELECT STRING_AGG(
-                                p.nombre, 
-                                ', ' 
-                                ORDER BY df.id_detalle
-                            )
-                            FROM detalle_factura df
-                            LEFT JOIN producto p ON df.id_producto = p.id_producto
-                            WHERE df.id_factura = f.id_factura),
-                            f.detalle
-                        ) as detalle,
-                        CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario,
-                        f.num_factura
+                        CONCAT(u.nombre, ' ', u.apellido) AS usuario
                     FROM factura f
                     LEFT JOIN usuario u ON f.id_usuario = u.id_usuario
+                    LEFT JOIN detalle_factura df ON df.id_factura = f.id_factura
+                    LEFT JOIN producto p ON p.id_producto = df.id_producto
                     WHERE f.tipo_factura = 'ingreso'
                     ${fechaCondition}
-                    ORDER BY f.anio DESC, f.mes DESC, f.dia DESC, f.hora DESC
+                    ORDER BY df.id_detalle;
                 `;
                 fileName = `Reporte_Ventas_${new Date().toISOString().split('T')[0]}.xlsx`;
                 break;
-                
+
+            /** ===========================
+             *       REPORTE COMPRAS
+             *    (UNA FILA POR PRODUCTO)
+             *  =========================== */
             case 'compras':
                 query = `
-                    SELECT 
-                        f.id_factura,
-                        f.tipo_factura,
-                        CONCAT(f.dia, '/', f.mes, '/', f.anio) as fecha_factura,
+                    SELECT
+                        CONCAT(f.dia, '/', f.mes, '/', f.anio) AS fecha,
                         f.hora,
                         f.forma_de_pago,
+                        p.nombre AS producto,
+                        df.cantidad,
+                        df.precio_unidad AS pu,
+                        df.precio_tot AS pt,
                         f.monto_total,
-                        COALESCE(
-                            (SELECT STRING_AGG(
-                                p.nombre, 
-                                ', ' 
-                                ORDER BY df.id_detalle
-                            )
-                            FROM detalle_factura df
-                            LEFT JOIN producto p ON df.id_producto = p.id_producto
-                            WHERE df.id_factura = f.id_factura),
-                            f.detalle
-                        ) as detalle,
-                        CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario,
-                        f.num_factura
+                        CONCAT(u.nombre, ' ', u.apellido) AS usuario
                     FROM factura f
                     LEFT JOIN usuario u ON f.id_usuario = u.id_usuario
-                    WHERE f.tipo_factura IN ('varios', 'distribuidor')
+                    LEFT JOIN detalle_factura df ON df.id_factura = f.id_factura
+                    LEFT JOIN producto p ON p.id_producto = df.id_producto
+                    WHERE f.tipo_factura IN ('varios','distribuidor')
                     ${fechaCondition}
-                    ORDER BY f.anio DESC, f.mes DESC, f.dia DESC, f.hora DESC
+                    ORDER BY df.id_detalle;
                 `;
                 fileName = `Reporte_Compras_${new Date().toISOString().split('T')[0]}.xlsx`;
                 break;
-                
+
+            /** ===========================
+             *       PRODUCTOS
+             *  =========================== */
             case 'productos':
-                // Traer toda la información de la tabla producto
-                try {
-                    await pool.query('SELECT 1 FROM producto LIMIT 1');
-                    query = `SELECT * FROM producto ORDER BY 1 LIMIT 100`;
-                } catch (tableErr) {
-                    query = `
-                        SELECT 
-                            1 as id,
-                            'Producto Ejemplo' as nombre,
-                            'Descripción de ejemplo' as descripcion,
-                            100.00 as precio,
-                            50 as stock,
-                            'Categoría Ejemplo' as categoria,
-                            'Proveedor Ejemplo' as proveedor
-                    `;
-                }
+                query = `SELECT nombre, descripcion, precio, stock, categoria, proveedor FROM producto ORDER BY nombre`;
                 fileName = `Reporte_Productos_${new Date().toISOString().split('T')[0]}.xlsx`;
                 break;
-                
+
+            /** ===========================
+             *       CLIENTES
+             *  =========================== */
             case 'clientes':
-                // Traer toda la información de la tabla cliente
-                try {
-                    await pool.query('SELECT 1 FROM cliente LIMIT 1');
-                    query = `SELECT * FROM cliente ORDER BY 1 LIMIT 100`;
-                } catch (tableErr) {
-                    query = `
-                        SELECT 
-                            1 as id,
-                            'Cliente' as nombre,
-                            'Ejemplo' as apellido,
-                            'cliente@ejemplo.com' as email,
-                            '123456789' as telefono,
-                            'Dirección Ejemplo' as direccion,
-                            NOW() as fecha_registro
-                    `;
-                }
+                query = `
+                    SELECT 
+                        nombre, 
+                        apellido, 
+                        email, 
+                        telefono, 
+                        direccion,
+                        fecha_registro
+                    FROM cliente
+                    ORDER BY apellido
+                `;
                 fileName = `Reporte_Clientes_${new Date().toISOString().split('T')[0]}.xlsx`;
                 break;
-                
+
+            /** ===========================
+             *       MASCOTAS
+             *  =========================== */
             case 'mascotas':
-                // Traer toda la información de la tabla mascota
-                try {
-                    await pool.query('SELECT 1 FROM mascota LIMIT 1');
-                    query = `SELECT * FROM mascota ORDER BY 1 LIMIT 100`;
-                } catch (tableErr) {
-                    query = `
-                        SELECT 
-                            1 as id,
-                            'Mascota' as nombre,
-                            'Perro' as especie,
-                            'Ejemplo' as raza,
-                            5 as edad,
-                            20.5 as peso,
-                            1 as cliente_id,
-                            NOW() as fecha_registro
-                    `;
-                }
+                query = `
+                    SELECT 
+                    m.nombre,
+                    m.especie,
+                    m.raza,
+                    m.sexo,
+                    m.edad,
+                    m.peso,
+                    CONCAT(c.nombre, ' ', c.apellido) AS cliente,
+                    CONCAT(m.dia, '/', m.mes, '/', m.anio) AS fecha_registro
+                FROM mascota m
+                LEFT JOIN cliente c ON m.id_cliente = c.id_clinete
+                ORDER BY m.nombre
+                LIMIT 200;
+
+                `;
                 fileName = `Reporte_Mascotas_${new Date().toISOString().split('T')[0]}.xlsx`;
                 break;
-                
+
             default:
-                return new Response(JSON.stringify({ error: 'Tipo de reporte no válido' }), { 
+                return new Response(JSON.stringify({ error: 'Tipo de reporte no válido' }), {
                     status: 400,
                     headers: { 'Content-Type': 'application/json' }
                 });
         }
-        
+
+        /** ===========================
+         *    EJECUTAR CONSULTA
+         *  =========================== */
+
         const result = await pool.query(query, queryParams);
-        
+
         if (result.rows.length === 0) {
-            return new Response(JSON.stringify({ error: 'No hay datos para generar el reporte' }), { 
+            return new Response(JSON.stringify({ error: 'No hay datos para generar el reporte' }), {
                 status: 404,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
-        
-        // Convertir a Excel
-        const headers = Object.keys(result.rows[0]);
-        
-        // Crear el workbook y worksheet
+
+        /** ===========================
+         *    LIMPIAR IDS INTERNOS
+         *  =========================== */
+
+        result.rows.forEach(row => {
+            delete row.id_factura;
+            delete row.id_producto;
+            delete row.id_detalle;
+            delete row.id_cliente;
+            delete row.id_usuario;
+        });
+
+        /** ===========================
+         *    CREAR ARCHIVO EXCEL
+         *  =========================== */
+
         const workbook = XLSX.utils.book_new();
         const worksheet = XLSX.utils.json_to_sheet(result.rows);
-        
-        // Agregar el worksheet al workbook
+
+        worksheet['!cols'] = Object.keys(result.rows[0]).map(col => ({ wch: 20 }));
+
+        Object.keys(result.rows[0]).forEach((key, index) => {
+            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: index });
+            if (!worksheet[cellAddress]) return;
+            worksheet[cellAddress].s = { font: { bold: true } };
+        });
+
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte');
-        
-        // Generar el archivo Excel como buffer
+
         const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-        
+
         return new Response(excelBuffer, {
             status: 200,
             headers: {
@@ -210,45 +222,13 @@ export async function POST(request) {
                 'Content-Length': excelBuffer.length.toString()
             }
         });
-        
+
     } catch (err) {
         console.error('Error detallado al generar reporte:', err);
-        console.error('Stack trace:', err.stack);
-        console.error('Código de error:', err.code);
-        console.error('Mensaje de error:', err.message);
-        
-        // Verificar si es un error de conexión
-        if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-            return new Response(JSON.stringify({ error: 'Error de conexión a la base de datos' }), { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
-        
-        // Verificar si es un error de tabla no encontrada
-        if (err.message && err.message.includes('relation') && err.message.includes('does not exist')) {
-            return new Response(JSON.stringify({ 
-                error: 'La tabla requerida no existe en la base de datos',
-                table: err.message.match(/relation "([^"]+)"/)?.[1] || 'desconocida'
-            }), { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
-        
-        // Verificar si es un error de autenticación
-        if (err.code === '28P01') {
-            return new Response(JSON.stringify({ error: 'Error de autenticación en la base de datos' }), { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
-        
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
             error: 'Error interno del servidor',
-            details: process.env.NODE_ENV === 'development' ? err.message : 'Error interno',
-            code: err.code || 'UNKNOWN'
-        }), { 
+            details: err.message
+        }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
         });
