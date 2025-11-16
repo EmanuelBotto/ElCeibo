@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -26,6 +26,13 @@ export default function Ingreso({ onVolver }: IngresoProps) {
   const [totalVenta, setTotalVenta] = useState<number>(0);
   const [formasPago, setFormasPago] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [paginaActual, setPaginaActual] = useState<number>(1);
+  const [pagination, setPagination] = useState<any>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+  });
+  const productosPorPagina = 50;
   
   // Hook para el modal de venta
   const {
@@ -42,25 +49,71 @@ export default function Ingreso({ onVolver }: IngresoProps) {
     return isNaN(numero) ? 0 : numero;
   };
 
-  const cargarProductos = async () => {
+  const cargarProductos = useCallback(async () => {
     try {
       setCargando(true);
-      const res = await fetch('/api/products');
+      
+      const params = new URLSearchParams({
+        page: paginaActual.toString(),
+        limit: productosPorPagina.toString(),
+      });
+
+      if (busqueda) {
+        params.append('search', busqueda);
+        // Mapear modoBusqueda a searchType de la API
+        const searchType = modoBusqueda === 'codigo' ? 'codigo' : 'nombre';
+        params.append('searchType', searchType);
+      }
+
+      const url = `/api/products?${params}`;
+      const res = await fetch(url);
+      
       if (!res.ok) throw new Error('Error al cargar productos');
-      const data = await res.json();
-      const lista = Array.isArray(data) ? data : Array.isArray(data?.productos) ? data.productos : [];
-      setProductos(lista);
+      
+      const response = await res.json();
+      
+      if (response.productos && Array.isArray(response.productos)) {
+        setProductos(response.productos);
+        if (response.pagination) {
+          setPagination(response.pagination);
+        } else {
+          setPagination({
+            currentPage: paginaActual,
+            totalPages: Math.ceil(response.productos.length / productosPorPagina),
+            totalItems: response.productos.length,
+          });
+        }
+      } else if (Array.isArray(response)) {
+        setProductos(response);
+        setPagination({
+          currentPage: paginaActual,
+          totalPages: Math.ceil(response.length / productosPorPagina),
+          totalItems: response.length,
+        });
+      } else {
+        setProductos([]);
+      }
     } catch (err) {
       console.error(err);
       setProductos([]);
     } finally {
       setCargando(false);
     }
+  }, [paginaActual, busqueda, modoBusqueda, productosPorPagina]);
+
+  const cambiarPagina = (nuevaPagina: number) => {
+    setPaginaActual(nuevaPagina);
   };
 
+  // Resetear a página 1 cuando cambia la búsqueda o el modo de búsqueda
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda, modoBusqueda]);
+
+  // Cargar productos cuando cambian la página, la búsqueda o el modo de búsqueda
   useEffect(() => {
     cargarProductos();
-  }, []);
+  }, [cargarProductos]);
 
   const calcularPrecio = (producto: any, tipo: string = 'final'): number => {
     if (!producto) return 0;
@@ -70,19 +123,8 @@ export default function Ingreso({ onVolver }: IngresoProps) {
     return isNaN(precio) ? 0 : precio;
   };
 
-  const coincideBusqueda = (p: any): boolean => {
-    if (!busqueda) return true;
-    const q = busqueda.toLowerCase();
-    if (modoBusqueda === 'codigo') {
-      return String(p.id_producto ?? '').toLowerCase().includes(q);
-    }
-    return String(p.nombre_producto ?? '').toLowerCase().includes(q);
-  };
-
-  const productosFiltrados = Array.isArray(productos) ? productos.filter(coincideBusqueda) : [];
-  
-  // Limitar productos mostrados para estética
-  const productosMostrados = productosFiltrados.slice(0, 50);
+  // Los productos ya vienen filtrados y paginados del servidor
+  const productosMostrados = productos;
 
   // Función para agregar producto al resumen
   const agregarProducto = (producto: any) => {
@@ -278,38 +320,145 @@ export default function Ingreso({ onVolver }: IngresoProps) {
             
             {/* Tabla de productos a la derecha */}
             <div className="w-full lg:w-1/2">
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 overflow-y-auto max-h-40 shadow-inner">
-                {cargando ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#a06ba5]"></div>
-                    <span className="ml-2 text-xs font-medium text-gray-600">Cargando...</span>
-                  </div>
-                ) : productosMostrados.length === 0 ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="text-center">
-                      <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                      </svg>
-                      <p className="mt-1 text-xs font-medium text-gray-500">No hay productos</p>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 shadow-inner">
+                <div className="overflow-y-auto max-h-40 mb-2">
+                  {cargando ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#a06ba5]"></div>
+                      <span className="ml-2 text-xs font-medium text-gray-600">Cargando...</span>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {productosMostrados.map((p) => {
-                      const precio = calcularPrecio(p, tipoCliente === 'mayorista' ? 'mayorista' : 'final');
-                      return (
-                        <div key={p.id_producto} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200 hover:shadow-sm hover:border-[#a06ba5]/30 transition-all duration-200 group">
-                          <span className="text-m font-medium text-gray-700 group-hover:text-[#a06ba5] transition-colors truncate pr-2">{p.nombre_producto}</span>
-                          <Button 
-                            size="sm" 
-                            onClick={() => agregarProducto(p)}
-                            className="px-2 py-1 text-xs h-6 bg-[#a06ba5] hover:bg-[#a06ba5]/80 text-white rounded transition-all duration-200 flex-shrink-0"
+                  ) : productosMostrados.length === 0 ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="text-center">
+                        <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                        <p className="mt-1 text-xs font-medium text-gray-500">No hay productos</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {productosMostrados.map((p) => {
+                        return (
+                          <div key={p.id_producto} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200 hover:shadow-sm hover:border-[#a06ba5]/30 transition-all duration-200 group">
+                            <span className="text-m font-medium text-gray-700 group-hover:text-[#a06ba5] transition-colors truncate pr-2">{p.nombre_producto}</span>
+                            <Button 
+                              size="sm" 
+                              onClick={() => agregarProducto(p)}
+                              className="px-2 py-1 text-xs h-6 bg-[#a06ba5] hover:bg-[#a06ba5]/80 text-white rounded transition-all duration-200 flex-shrink-0"
+                            >
+                              +
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Controles de paginación */}
+                {pagination.totalPages > 1 && (
+                  <div className="flex justify-center items-center space-x-1 pt-2 border-t border-gray-300">
+                    {/* Botón Primera página */}
+                    <Button
+                      variant="outline"
+                      onClick={() => cambiarPagina(1)}
+                      disabled={paginaActual === 1}
+                      className="px-2 py-1 text-xs font-medium h-7"
+                      size="sm"
+                    >
+                      Primera
+                    </Button>
+
+                    {/* Botón Anterior */}
+                    <Button
+                      variant="outline"
+                      onClick={() => cambiarPagina(Math.max(paginaActual - 1, 1))}
+                      disabled={paginaActual === 1}
+                      className="px-2 py-1 text-xs font-medium h-7"
+                      size="sm"
+                    >
+                      ‹
+                    </Button>
+
+                    {/* Números de página dinámicos */}
+                    {(() => {
+                      const paginas = [];
+                      const paginasVisibles = 5;
+                      const mitad = Math.floor(paginasVisibles / 2);
+                      const totalPaginas = pagination.totalPages;
+
+                      let inicio = Math.max(1, paginaActual - mitad);
+                      const fin = Math.min(totalPaginas, inicio + paginasVisibles - 1);
+                      
+                      if (fin - inicio + 1 < paginasVisibles) {
+                        inicio = Math.max(1, fin - paginasVisibles + 1);
+                      }
+
+                      if (inicio > 1) {
+                        paginas.push(
+                          <span
+                            key="start-ellipsis"
+                            className="px-2 py-1 text-xs text-gray-500"
                           >
-                            +
+                            ...
+                          </span>
+                        );
+                      }
+
+                      for (let i = inicio; i <= fin; i++) {
+                        paginas.push(
+                          <Button
+                            key={i}
+                            variant={i === paginaActual ? "default" : "outline"}
+                            onClick={() => cambiarPagina(i)}
+                            className={`px-2 py-1 text-xs font-medium h-7 ${
+                              i === paginaActual
+                                ? "bg-[#a06ba5] text-white hover:bg-[#a06ba5]/80"
+                                : "hover:bg-gray-50"
+                            }`}
+                            size="sm"
+                          >
+                            {i}
                           </Button>
-                        </div>
-                      );
-                    })}
+                        );
+                      }
+
+                      if (fin < totalPaginas) {
+                        paginas.push(
+                          <span
+                            key="end-ellipsis"
+                            className="px-2 py-1 text-xs text-gray-500"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+
+                      return paginas;
+                    })()}
+
+                    {/* Botón Siguiente */}
+                    <Button
+                      variant="outline"
+                      onClick={() => cambiarPagina(Math.min(paginaActual + 1, pagination.totalPages))}
+                      disabled={paginaActual === pagination.totalPages}
+                      className="px-2 py-1 text-xs font-medium h-7"
+                      size="sm"
+                    >
+                      ›
+                    </Button>
+
+                    {/* Botón Última página */}
+                    <Button
+                      variant="outline"
+                      onClick={() => cambiarPagina(pagination.totalPages)}
+                      disabled={paginaActual === pagination.totalPages}
+                      className="px-2 py-1 text-xs font-medium h-7"
+                      size="sm"
+                    >
+                      Última
+                    </Button>
                   </div>
                 )}
               </div>
