@@ -134,11 +134,21 @@ export default function Producto() {
     setPaginaActual(nuevaPagina);
   };
 
+  // Cargar productos solo cuando cambian: autenticación, página o búsqueda
+  // NO cuando cambia tipoBusqueda (solo cambia el placeholder)
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       cargarProductos();
     }
-  }, [authLoading, isAuthenticated, paginaActual, busqueda, tipoBusqueda]);
+  }, [authLoading, isAuthenticated, paginaActual, busqueda]);
+  
+  // NO agregar tipoBusqueda aquí - solo cambia el placeholder del input
+  
+  // Separar el useEffect para tipoBusqueda (solo para cambiar placeholder)
+  useEffect(() => {
+    // Este useEffect solo cambia el placeholder, NO recarga productos
+    // No hace nada, solo documenta que tipoBusqueda cambia
+  }, [tipoBusqueda]);
 
   const crearProducto = async () => {
     try {

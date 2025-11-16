@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { AlertTriangle, CheckCircle, Trash2, Camera } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Trash2, Camera, User } from 'lucide-react';
 
 type NuevoProducto = {
   nombre: string;
@@ -1402,11 +1402,20 @@ export function ModalConfirmacion({
   cancelText = "Cancelar",
   isLoading = false
 }: ModalConfirmacionProps) {
+  // Determinar el color y icono basado en la acción
+  const isReactivation = confirmText.toLowerCase().includes('reactivar');
+  const isDeactivation = confirmText.toLowerCase().includes('desactivar');
+  
+  const iconColor = isReactivation ? 'text-green-600' : isDeactivation ? 'text-red-600' : 'text-red-600';
+  const bgColor = isReactivation ? 'bg-green-100' : isDeactivation ? 'bg-red-100' : 'bg-red-100';
+  const buttonColor = isReactivation ? 'bg-green-600 hover:bg-green-700' : isDeactivation ? 'bg-red-600 hover:bg-red-700' : 'bg-red-600 hover:bg-red-700';
+  const IconComponent = isReactivation ? User : Trash2;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="text-center p-6">
-        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-          <Trash2 className="h-6 w-6 text-red-600" />
+        <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${bgColor} mb-4`}>
+          <IconComponent className={`h-6 w-6 ${iconColor}`} />
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
         <p className="text-sm text-gray-500 mb-6">{message}</p>
@@ -1422,9 +1431,9 @@ export function ModalConfirmacion({
           <Button
             onClick={onConfirm}
             disabled={isLoading}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2"
+            className={`${buttonColor} text-white px-4 py-2`}
           >
-            {isLoading ? "Eliminando..." : confirmText}
+            {isLoading ? "Procesando..." : confirmText}
           </Button>
         </div>
       </div>

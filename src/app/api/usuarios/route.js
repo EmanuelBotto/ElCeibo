@@ -188,10 +188,22 @@ export async function GET(request) {
             return createResponse({ error: permissionCheck.error }, permissionCheck.status);
         }
         
+        // Obtener parámetros de consulta
+        const { searchParams } = new URL(request.url);
+        const estado = searchParams.get('estado');
+        
+        // Construir la consulta SQL basada en el estado
+        let whereClause = '';
+        if (estado === 'false') {
+            whereClause = 'WHERE estado = false';
+        } else {
+            whereClause = 'WHERE estado = true';
+        }
+        
         const result = await pool.query(`
             SELECT id_usuario, nombre, apellido, email, telefono, calle, numero, codigo_postal, foto, tipo_usuario, usuario, estado
             FROM usuario 
-            WHERE estado = true
+            ${whereClause}
             ORDER BY apellido, nombre
             LIMIT 100
         `);

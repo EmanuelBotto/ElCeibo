@@ -296,4 +296,4 @@ export async function DELETE(request, { params }) {
       message: 'Usuario desactivado exitosamente'
     }, { status: 200 });
   });
-} 
+}
