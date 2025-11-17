@@ -19,11 +19,16 @@ type NuevoProducto = {
 
 type ProductoEditando = {
   id_producto?: number;
+  id_producto?: number;
   nombre_producto: string;
   precio_costo: string | number;
   stock: string | number;
   id_tipo?: string | number;
+  id_tipo?: string | number;
   marca?: string;
+  porcentaje_final?: string | number;
+  porcentaje_mayorista?: string | number;
+  [key: string]: string | number | undefined;
   porcentaje_final?: string | number;
   porcentaje_mayorista?: string | number;
   [key: string]: string | number | undefined;
@@ -547,6 +552,7 @@ export function buildProductoFormContent(args: {
     if (!productoEditando) return "";
     if (field === "nombre") return productoEditando.nombre_producto ?? "";
     return productoEditando[field] ?? "";
+    return productoEditando[field] ?? "";
   };
 
   const handleEditChange = (field: string, value: string): void => {
@@ -564,10 +570,14 @@ export function buildProductoFormContent(args: {
   // ========================================
   // Nota: CampoInput y CampoSelect están definidos pero no se usan actualmente
   // Se mantienen comentados por si se necesitan en el futuro
+  // Nota: CampoInput y CampoSelect están definidos pero no se usan actualmente
+  // Se mantienen comentados por si se necesitan en el futuro
 
   // ========================================
   // OPCIONES DE TIPOS
   // ========================================
+  // Nota: opcionesTipos está definido pero no se usa actualmente
+  // Se mantiene comentado por si se necesita en el futuro
   // Nota: opcionesTipos está definido pero no se usa actualmente
   // Se mantiene comentado por si se necesita en el futuro
 
@@ -801,6 +811,8 @@ export function buildProductoFormContent(args: {
                   step="0.01"
                   value={String((productoEditando?.porcentaje_mayorista) ?? "")}
                   onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value })}
+                  value={String((productoEditando?.porcentaje_mayorista) ?? "")}
+                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value })}
                   disabled={!porcentajePersonalizado}
                   className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
                 />
@@ -880,6 +892,8 @@ export function buildProductoFormContent(args: {
                 <Input
                   disabled
                   value={(() => {
+                    const base = Number((productoEditando?.precio_costo ?? 0));
+                    const mult = Number((productoEditando?.porcentaje_mayorista ?? 0));
                     const base = Number((productoEditando?.precio_costo ?? 0));
                     const mult = Number((productoEditando?.porcentaje_mayorista ?? 0));
                     const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
@@ -1434,7 +1448,13 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
     foto: null
   });
   const [ownerInfo, setOwnerInfo] = useState<{ nombre: string; apellido: string; id_clinete: string | number }>({ nombre: '', apellido: '', id_clinete: 0 });
+  const [ownerInfo, setOwnerInfo] = useState<{ nombre: string; apellido: string; id_clinete: string | number }>({ nombre: '', apellido: '', id_clinete: 0 });
 
+  const abrirModal = (owner: { nombre: string; apellido: string; id_clinete: string | number }) => {
+    setOwnerInfo({
+      ...owner,
+      id_clinete: owner.id_clinete.toString()
+    });
   const abrirModal = (owner: { nombre: string; apellido: string; id_clinete: string | number }) => {
     setOwnerInfo({
       ...owner,
@@ -1865,6 +1885,16 @@ type FacturaSeleccionada = {
   tipo_factura: string;
 };
 
+type ProductoDetalle = {
+  nombre_producto?: string;
+  marca?: string;
+  cantidad: number;
+  precio_unitario: number;
+  subtotal: number;
+  precio_unidad?: number;
+  precio_tot?: number;
+};
+
 export function useVerRegistro() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [facturaData, setFacturaData] = useState<FacturaData | null>(null);
@@ -2103,6 +2133,8 @@ export function useVerRegistro() {
 export function useVerRegistroIngreso() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [facturaData, setFacturaData] = useState<FacturaData | null>(null);
+  const [productosData, setProductosData] = useState<ProductoDetalle[]>([]);
+  const [facturaData, setFacturaData] = useState<FacturaData | null>(null);
   const [productosData, setProductosData] = useState<Array<{ nombre_producto?: string; marca?: string; cantidad: number; precio_unitario: number; subtotal: number }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -2115,7 +2147,14 @@ export function useVerRegistroIngreso() {
       if (response.ok) {
         const data = await response.json();
         setFacturaData(data.factura);
-        setProductosData(data.productos || []);
+
+        const productosNormalizados = (data.productos || []).map((producto: ProductoDetalle) => ({
+          ...producto,
+          precio_unitario: producto.precio_unitario ?? producto.precio_unidad ?? 0,
+          subtotal: producto.subtotal ?? producto.precio_tot ?? 0,
+        }));
+
+        setProductosData(productosNormalizados);
         setIsModalOpen(true);
       } else {
         const errorData = await response.json();
