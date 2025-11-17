@@ -23,7 +23,8 @@ export async function PUT(request) {
         calle,
         numero,
         codigo_postal,
-        telefono
+        telefono,
+        foto
       } = body;
 
       if (!id_usuario) {
@@ -32,6 +33,33 @@ export async function PUT(request) {
         }, { status: 400 });
       }
 
+      // Si solo se está actualizando la foto
+      if (foto !== undefined && nombre === undefined && apellido === undefined && 
+          email === undefined && calle === undefined && numero === undefined && 
+          codigo_postal === undefined && telefono === undefined) {
+        
+        const result = await client.query(
+          `UPDATE usuario 
+           SET foto = $1
+           WHERE id_usuario = $2
+           RETURNING id_usuario, nombre, apellido, email, tipo_usuario, 
+                     calle, numero, codigo_postal, telefono, usuario, foto`,
+          [foto, parseInt(id_usuario, 10)]
+        );
+
+        if (result.rows.length === 0) {
+          return NextResponse.json({ 
+            error: 'Usuario no encontrado' 
+          }, { status: 404 });
+        }
+
+        return NextResponse.json({
+          message: 'Foto actualizada exitosamente',
+          user: result.rows[0]
+        }, { status: 200 });
+      }
+
+      // Si se están actualizando los demás campos, validar que todos estén presentes
       if (!nombre?.trim() || !apellido?.trim() || !email?.trim() || 
           !calle?.trim() || numero === null || codigo_postal === null || telefono === null) {
         return NextResponse.json({ 
@@ -39,24 +67,34 @@ export async function PUT(request) {
         }, { status: 400 });
       }
 
-      const result = await client.query(
-        `UPDATE usuario 
-         SET nombre = $1, apellido = $2, email = $3, calle = $4, 
-             numero = $5, codigo_postal = $6, telefono = $7
-         WHERE id_usuario = $8
-         RETURNING id_usuario, nombre, apellido, email, tipo_usuario, 
-                   calle, numero, codigo_postal, telefono, usuario, foto`,
-        [
-          nombre.trim(),
-          apellido.trim(),
-          email.trim(),
-          calle.trim(),
-          parseInt(numero, 10),
-          parseInt(codigo_postal, 10),
-          parseInt(telefono, 10),
-          parseInt(id_usuario, 10)
-        ]
-      );
+      // Construir la consulta dinámicamente para incluir foto si está presente
+      let query = `UPDATE usuario 
+                   SET nombre = $1, apellido = $2, email = $3, calle = $4, 
+                       numero = $5, codigo_postal = $6, telefono = $7`;
+      let params = [
+        nombre.trim(),
+        apellido.trim(),
+        email.trim(),
+        calle.trim(),
+        parseInt(numero, 10),
+        parseInt(codigo_postal, 10),
+        parseInt(telefono, 10)
+      ];
+
+      if (foto !== undefined) {
+        query += `, foto = $8`;
+        params.push(foto);
+        query += ` WHERE id_usuario = $9`;
+        params.push(parseInt(id_usuario, 10));
+      } else {
+        query += ` WHERE id_usuario = $8`;
+        params.push(parseInt(id_usuario, 10));
+      }
+
+      query += ` RETURNING id_usuario, nombre, apellido, email, tipo_usuario, 
+                        calle, numero, codigo_postal, telefono, usuario, foto`;
+
+      const result = await client.query(query, params);
 
       if (result.rows.length === 0) {
         return NextResponse.json({ 
