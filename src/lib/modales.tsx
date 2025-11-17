@@ -880,7 +880,7 @@ export function buildProductoFormContent(args: {
                   type="number"
                   step="0.01"
                   value={String(((productoEditando as any)?.porcentaje_final) ?? "")}
-                  onChange={(e) => handleEditChange("precio_costo", e.target.value)}
+                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_final: e.target.value } as any)}
                   disabled={!porcentajePersonalizado}
                   className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
                 />

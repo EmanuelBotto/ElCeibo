@@ -315,12 +315,26 @@ export default function Producto() {
           const error = await resPercentages.json();
           throw new Error(error.error || "Error al actualizar porcentajes");
         }
+      } else {
+        // Si se desmarcó "% Manual", eliminar porcentajes personalizados
+        const resDelete = await fetch(
+          `/api/products/${productoEditando.id_producto}/percentages`,
+          {
+            method: "DELETE",
+          }
+        );
+        // No lanzar error si no existen porcentajes para eliminar
+        if (!resDelete.ok && resDelete.status !== 404) {
+          const error = await resDelete.json();
+          console.warn('Advertencia al eliminar porcentajes:', error);
+        }
       }
 
       // Limpiar estados y recargar datos
       setMostrarFormularioEdicion(false);
       setProductoEditando(null);
       setPorcentajePersonalizado(false);
+      cargarProductos(); // Recargar productos para ver los cambios
 
     } catch (err: any) {
       if (err.isDuplicate) {
@@ -435,10 +449,44 @@ export default function Producto() {
             <Button
               variant={productoSeleccionado ? "default" : "outline"}
               disabled={!productoSeleccionado}
-              onClick={() => {
+              onClick={async () => {
                 if (productoSeleccionado) {
-                  setProductoEditando({ ...productoSeleccionado });
-                  setMostrarFormularioEdicion(true);
+                  // Cargar porcentajes personalizados si existen
+                  try {
+                    const resPercentages = await fetch(
+                      `/api/products/${productoSeleccionado.id_producto}/percentages`
+                    );
+                    
+                    let porcentajesPersonalizados = {
+                      porcentaje_final: null,
+                      porcentaje_mayorista: null,
+                      tienePersonalizados: false
+                    };
+                    
+                    if (resPercentages.ok) {
+                      const data = await resPercentages.json();
+                      if (data.tienePorcentajesPersonalizados) {
+                        porcentajesPersonalizados = {
+                          porcentaje_final: data.porcentaje_minorista,
+                          porcentaje_mayorista: data.porcentaje_mayorista,
+                          tienePersonalizados: true
+                        };
+                        setPorcentajePersonalizado(true);
+                      }
+                    }
+                    
+                    setProductoEditando({ 
+                      ...productoSeleccionado,
+                      porcentaje_final: porcentajesPersonalizados.porcentaje_final || productoSeleccionado.porcentaje_final,
+                      porcentaje_mayorista: porcentajesPersonalizados.porcentaje_mayorista || productoSeleccionado.porcentaje_mayorista
+                    });
+                    setMostrarFormularioEdicion(true);
+                  } catch (error) {
+                    console.error('Error al cargar porcentajes:', error);
+                    // Si falla, cargar sin porcentajes personalizados
+                    setProductoEditando({ ...productoSeleccionado });
+                    setMostrarFormularioEdicion(true);
+                  }
                 }
               }}
               className="px-6 py-2"

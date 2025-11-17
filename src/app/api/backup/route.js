@@ -11,20 +11,18 @@ const connectionString = 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-ba
 const pool = new Pool({ connectionString });
 
 // Mapeo de tablas a sus consultas SQL
+// Exportamos solo las columnas necesarias para importación
 const TABLAS_QUERIES = {
   productos: `
     SELECT 
-      p.id_producto,
-      p.nombre as nombre_producto,
+      p.nombre,
       p.marca,
       p.precio_costo,
       p.stock,
-      t.nombre as nombre_tipo,
-      t.porcentaje_mayorista,
-      t.porcentaje_final,
-      p.modificado
+      p.id_tipo,
+      p.modificado,
+      p.activo
     FROM producto p
-    LEFT JOIN tipo t ON p.id_tipo = t.id_tipo
     ORDER BY p.id_producto
   `,
   caja: `
@@ -45,7 +43,6 @@ const TABLAS_QUERIES = {
   `,
   pacientes: `
     SELECT 
-      c.id_clinete,
       c.nombre,
       c.apellido,
       c.telefono,
@@ -56,7 +53,6 @@ const TABLAS_QUERIES = {
   `,
   usuarios: `
     SELECT 
-      u.id_usuario,
       u.nombre,
       u.apellido,
       u.email,
@@ -68,7 +64,6 @@ const TABLAS_QUERIES = {
   `,
   mascotas: `
     SELECT 
-      m.id_mascota,
       m.nombre,
       m.especie,
       m.raza,
@@ -77,10 +72,8 @@ const TABLAS_QUERIES = {
       m.peso,
       m.estado_reproductivo,
       m.fecha_nacimiento,
-      c.nombre as nombre_cliente,
-      c.apellido as apellido_cliente
+      m.id_cliente
     FROM mascota m
-    LEFT JOIN cliente c ON m.id_cliente = c.id_clinete
     ORDER BY m.id_mascota
   `,
   facturas: `
