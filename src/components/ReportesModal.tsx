@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
-  FileText, 
   Download, 
-  X,
   AlertCircle
 } from 'lucide-react';
 import Modal from "@/components/ui/modal";

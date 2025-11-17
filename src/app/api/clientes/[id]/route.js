@@ -15,16 +15,74 @@ export async function GET(request, { params }) {
   try {
     const client = await pool.connect();
     try {
-      const result = await client.query('SELECT * FROM cliente WHERE id_clinete = $1', [id]);
-      if (result.rows.length === 0) {
+      console.log('Buscando cliente con ID:', id);
+      
+      // Primero obtener el cliente
+      const clienteResult = await client.query(
+        `SELECT 
+          id_clinete,
+          nombre,
+          apellido,
+          calle,
+          numero,
+          codigo_postal,
+          COALESCE(telefono, '') as telefono,
+          COALESCE(mail, '') as email
+        FROM cliente 
+        WHERE id_clinete = $1`,
+        [id]
+      );
+      
+      if (clienteResult.rows.length === 0) {
         return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
       }
-      return NextResponse.json(result.rows[0]);
+      
+      const cliente = clienteResult.rows[0];
+      console.log('Cliente encontrado:', cliente.id_clinete);
+      
+      // Luego obtener las mascotas - usando SELECT * para evitar problemas con columnas faltantes
+      let mascotas = [];
+      try {
+        const mascotasResult = await client.query(
+          `SELECT * FROM mascota WHERE id_cliente = $1 ORDER BY nombre`,
+          [id]
+        );
+        // Mapear solo las columnas que necesitamos
+        mascotas = mascotasResult.rows.map(m => ({
+          id_mascota: m.id_mascota,
+          nombre: m.nombre,
+          especie: m.especie,
+          raza: m.raza,
+          sexo: m.sexo,
+          edad: m.edad,
+          peso: m.peso,
+          estado_reproductivo: m.estado_reproductivo,
+          fecha_nacimiento: m.fecha_nacimiento,
+          deceso: m.deceso
+        }));
+        console.log('Mascotas encontradas:', mascotas.length);
+      } catch (mascotasError) {
+        console.error('Error al obtener mascotas:', mascotasError);
+        // Si hay error al obtener mascotas, continuar sin ellas
+        mascotas = [];
+      }
+      
+      // Combinar cliente con mascotas
+      const clienteConMascotas = {
+        ...cliente,
+        mascotas: mascotas
+      };
+      
+      return NextResponse.json(clienteConMascotas);
     } finally {
       client.release();
     }
   } catch (err) {
-    return NextResponse.json({ error: 'Error en la base de datos: ' + err.message }, { status: 500 });
+    console.error('Error completo en GET /api/clientes/[id]:', err);
+    return NextResponse.json({ 
+      error: 'Error en la base de datos: ' + err.message,
+      details: err.stack 
+    }, { status: 500 });
   }
 }
 

@@ -58,7 +58,8 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
   // Estados para importación
   const [archivoSeleccionado, setArchivoSeleccionado] = useState<File | null>(null);
   const [importando, setImportando] = useState(false);
-  const [previewData, setPreviewData] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [previewData, setPreviewData] = useState<Array<Record<string, unknown>>>([]);
   const [tablaImportacion, setTablaImportacion] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -158,7 +159,7 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
   // Funciones para importación
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.includes('sheet') || file?.name.endsWith('.xlsx') || file?.name.endsWith('.xls')) {
+    if ((file && file.type.includes('sheet')) || file?.name.endsWith('.xlsx') || file?.name.endsWith('.xls')) {
       setArchivoSeleccionado(file);
       setMensaje({ tipo: 'info', texto: 'Archivo seleccionado. Ahora elige la tabla de destino.' });
     } else {
@@ -167,8 +168,8 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
   };
 
   const procesarArchivo = async () => {
-    if (!archivoSeleccionado || !tablaImportacion) {
-      setMensaje({ tipo: 'error', texto: 'Selecciona un archivo y una tabla de destino' });
+    if (!archivoSeleccionado) {
+      setMensaje({ tipo: 'error', texto: 'Selecciona un archivo para importar' });
       return;
     }
 
@@ -178,8 +179,11 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
 
       const formData = new FormData();
       formData.append('archivo', archivoSeleccionado);
-      formData.append('tabla', tablaImportacion);
-
+      // Solo agregar tabla si se especificó una (si está vacío, se detecta automáticamente)
+      if (tablaImportacion) {
+        formData.append('tabla', tablaImportacion);
+      }
+      
       const response = await fetch('/api/backup/import', {
         method: 'POST',
         body: formData,
@@ -191,9 +195,27 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
       }
 
       const result = await response.json();
+      
+      // Construir mensaje de éxito más detallado
+      let mensajeExito = `Archivo procesado exitosamente. ${result.registrosInsertados} registros importados.`;
+      
+      if (result.resultadosPorTabla && Object.keys(result.resultadosPorTabla).length > 1) {
+        const detalles = Object.entries(result.resultadosPorTabla)
+          .map(([tabla, datos]) => {
+            const datosTyped = datos as { registrosInsertados: number };
+            return `${tabla}: ${datosTyped.registrosInsertados} registros`;
+          })
+          .join(', ');
+        mensajeExito += ` (${detalles})`;
+      }
+      
+      if (result.totalErrores && result.totalErrores.length > 0) {
+        mensajeExito += ` Advertencia: ${result.totalErrores.length} error(es) encontrado(s).`;
+      }
+      
       setMensaje({ 
         tipo: 'success', 
-        texto: `Archivo procesado exitosamente. ${result.registrosInsertados} registros importados.` 
+        texto: mensajeExito
       });
 
       // Limpiar después del éxito
@@ -391,20 +413,23 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
               {/* Selección de tabla de destino */}
               <div>
                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Tabla de Destino
+                  Tabla de Destino (Opcional)
                 </Label>
                 <select
                   value={tablaImportacion}
                   onChange={(e) => setTablaImportacion(e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
-                  <option value="">Selecciona una tabla...</option>
+                  <option value="">Detección automática (recomendado para backups completos)</option>
                   {TABLAS_DISPONIBLES.map((tabla) => (
                     <option key={tabla.id} value={tabla.id}>
                       {tabla.nombre} - {tabla.descripcion}
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Si dejas en blanco, el sistema detectará automáticamente las tablas según el nombre de las hojas del Excel
+                </p>
               </div>
 
               {/* Información sobre el formato */}
@@ -413,8 +438,11 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• El archivo debe ser un Excel (.xlsx o .xls)</li>
                   <li>• La primera fila debe contener los nombres de las columnas</li>
+                  <li>• <strong>Para backups completos:</strong> Las hojas deben tener nombres como &quot;productos&quot;, &quot;usuarios&quot;, &quot;pacientes&quot;, &quot;mascotas&quot;</li>
+                  <li>• <strong>Para una tabla específica:</strong> Selecciona la tabla de destino arriba</li>
                   <li>• Los nombres de columnas deben coincidir con la estructura de la tabla</li>
                   <li>• Los datos se importarán respetando las validaciones del sistema</li>
+                  <li>• <strong>Tip:</strong> Puedes usar directamente un archivo exportado desde esta misma ventana de backup</li>
                 </ul>
               </div>
 
@@ -422,7 +450,7 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
               <div className="flex justify-center">
                 <Button
                   onClick={procesarArchivo}
-                  disabled={!archivoSeleccionado || !tablaImportacion || importando}
+                  disabled={!archivoSeleccionado || importando}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3"
                 >
                   {importando ? (

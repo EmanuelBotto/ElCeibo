@@ -52,7 +52,8 @@ export async function GET(request) {
       const totalItems = parseInt(countResult.rows[0].total);
       const totalPages = Math.ceil(totalItems / limit);
       
-      // Ahora obtener los productos de la página actual
+      // Ahora obtener los productos de la página actual con porcentajes personalizados si existen
+      // Usar LEFT JOIN LATERAL para obtener el último detalle de cada producto de forma segura
       const query = `
         SELECT 
           p.id_producto,
@@ -64,11 +65,19 @@ export async function GET(request) {
           p.modificado,
           p.activo,
           t.nombre AS nombre_tipo,
-          t.porcentaje_final,
-          t.porcentaje_mayorista
+          COALESCE(dl.porcentaje_minorista, t.porcentaje_final) AS porcentaje_final,
+          COALESCE(dl.porcentaje_mayorista, t.porcentaje_mayorista) AS porcentaje_mayorista
         FROM 
           producto p
         INNER JOIN tipo t ON p.id_tipo = t.id_tipo
+        LEFT JOIN LATERAL (
+          SELECT porcentaje_minorista, porcentaje_mayorista
+          FROM detalle_lista
+          WHERE detalle_lista.id_producto = p.id_producto
+            AND detalle_lista.id_lista = (SELECT id_lista FROM lista_precio WHERE nombre = 'Lista por defecto' LIMIT 1)
+          ORDER BY detalle_lista.id_detalle DESC
+          LIMIT 1
+        ) dl ON true
         ${whereClause}
         ORDER BY p.id_producto
         LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}

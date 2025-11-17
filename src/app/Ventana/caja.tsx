@@ -1,8 +1,7 @@
 'use client';
 
-import React from 'react'
-import { useEgreso, useModalConfirmacion, useModalVenta, useVerRegistro, useVerRegistroIngreso, ModalConfirmacionFactura, ModalNotificacionFactura } from '@/lib/modales';
 import { useState, useEffect } from 'react';
+import { useEgreso, useModalConfirmacion, useModalVenta, useVerRegistro, useVerRegistroIngreso, ModalConfirmacionFactura, ModalNotificacionFactura } from '@/lib/modales';
 import Modal from '@/components/ui/modal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,6 +168,8 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
                     throw new Error(errorData.error || 'Error al eliminar la factura');
                 }
 
+                await response.json();
+                
                 // Recargar la lista de facturas
                 await obtenerFacturas();
                 
@@ -446,7 +447,6 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
             {/* Modal de confirmación para eliminar factura */}
             <Modal isOpen={isConfirmOpen} onClose={closeModal}>
                 <ModalConfirmacionFactura
-                    isOpen={isConfirmOpen}
                     onClose={closeModal}
                     onConfirm={handleConfirm}
                     isLoading={isDeleting}
@@ -457,7 +457,6 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
             {/* Modal de notificaciones */}
             <Modal isOpen={isNotificationOpen} onClose={closeNotificationModal}>
                 <ModalNotificacionFactura
-                    isOpen={isNotificationOpen}
                     onClose={closeNotificationModal}
                     type={modalType}
                     message={modalMessage}

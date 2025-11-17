@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "El Ceibo",
   description: "Sistema de gestión para El Ceibo",
+  icons: {
+    icon: "/El Ceibo.png",
+  },
 };
 
 export default function RootLayout({
