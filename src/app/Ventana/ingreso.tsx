@@ -474,20 +474,20 @@ export default function Ingreso({ onVolver }: IngresoProps) {
         </div>
 
         {/* Resumen de compra */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-3xl p-6 flex-1 min-h-0 shadow-inner">
-            <div className="flex justify-between items-center mb-4">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-3xl p-6 flex-1 min-h-0 shadow-inner flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
               <h3 className="text-lg font-bold text-gray-800">Resumen de Compra</h3>
               <div className="bg-[#a06ba5]/10 text-[#a06ba5] px-3 py-1 rounded-full text-sm font-semibold">
                 {productosSeleccionados.length} productos
               </div>
             </div>
             
-            <div className="flex flex-col lg:flex-row gap-6 h-full">
+            <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 overflow-hidden">
               {/* Tabla del resumen */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                 {productosSeleccionados.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8">
+                  <div className="flex flex-col items-center justify-center py-8 flex-1">
                     <div className="text-center">
                       <FileText className="mx-auto h-16 w-16 text-gray-400" />
                       <p className="mt-4 text-lg font-medium text-gray-500">No hay productos seleccionados</p>
@@ -495,44 +495,46 @@ export default function Ingreso({ onVolver }: IngresoProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden max-h-83 overflow-y-auto shadow-inner">
-                    <Table>
-                      <TableBody>
-                        {productosSeleccionados.map((p) => (
-                          <TableRow key={p.id_producto} className="hover:bg-[#a06ba5]/5 transition-colors border-b border-gray-200 group last:border-b-0">
-                            <TableCell className="font-medium text-gray-700">{p.nombre_producto}</TableCell>
-                            <TableCell className="text-center font-semibold text-green-600 w-24">${p.precioUnitario.toFixed(2)}</TableCell>
-                            <TableCell className="text-center py-2 w-24">
-                              <Input
-                                type="number"
-                                min="1"
-                                value={p.cantidad}
-                                onChange={(e) => actualizarCantidad(p.id_producto, parseInt(e.target.value) || 0)}
-                                className="w-16 h-8 text-center text-sm border-[#a06ba5]/20 focus:border-[#a06ba5] focus:ring-[#a06ba5]/20 rounded-lg"
-                              />
-                            </TableCell>
-                            <TableCell className="text-center font-bold text-[#a06ba5] w-32 min-w-32 max-w-32 overflow-hidden text-ellipsis whitespace-nowrap">${p.precioTotal.toFixed(2)}</TableCell>
-                            <TableCell className="text-center w-12">
-                              <button
-                                onClick={() => eliminarProducto(p.id_producto)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-red-100 rounded-full"
-                                title="Eliminar producto"
-                              >
-                                <svg className="w-5 h-5 text-red-500 hover:text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 min-h-0 flex flex-col">
+                    <div className="overflow-y-auto flex-1">
+                      <Table>
+                        <TableBody>
+                          {productosSeleccionados.map((p) => (
+                            <TableRow key={p.id_producto} className="hover:bg-[#a06ba5]/5 transition-colors border-b border-gray-200 group last:border-b-0">
+                              <TableCell className="font-medium text-gray-700">{p.nombre_producto}</TableCell>
+                              <TableCell className="text-center font-semibold text-green-600 w-24">${p.precioUnitario.toFixed(2)}</TableCell>
+                              <TableCell className="text-center py-2 w-24">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={p.cantidad}
+                                  onChange={(e) => actualizarCantidad(p.id_producto, parseInt(e.target.value) || 0)}
+                                  className="w-16 h-8 text-center text-sm border-[#a06ba5]/20 focus:border-[#a06ba5] focus:ring-[#a06ba5]/20 rounded-lg"
+                                />
+                              </TableCell>
+                              <TableCell className="text-center font-bold text-[#a06ba5] w-32 min-w-32 max-w-32 overflow-hidden text-ellipsis whitespace-nowrap">${p.precioTotal.toFixed(2)}</TableCell>
+                              <TableCell className="text-center w-12">
+                                <button
+                                  onClick={() => eliminarProducto(p.id_producto)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-red-100 rounded-full"
+                                  title="Eliminar producto"
+                                >
+                                  <svg className="w-5 h-5 text-red-500 hover:text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Formas de pago y botón finalizar */}
-              <div className="w-full lg:w-80 flex flex-col gap-4">
+              <div className="w-full lg:w-80 flex flex-col gap-4 flex-shrink-0">
                 {/* Formas de pago */}
                 <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
                   <label className="block text-sm font-medium text-gray-700 mb-3">

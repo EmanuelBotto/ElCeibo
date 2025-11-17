@@ -34,6 +34,12 @@ interface Factura {
     distribuidor?: string;
 }
 
+interface Usuario {
+    id_usuario: number;
+    nombre: string;
+    apellido: string;
+}
+
 export default function Caja({ onTabChange }: { onTabChange: (tab: string) => void }) {
     const [facturas, setFacturas] = useState<Factura[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,7 +49,7 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
     const [filtroTipo, setFiltroTipo] = useState('todos'); // 'todos', 'ingreso', 'egreso'
     const [filtroUsuario, setFiltroUsuario] = useState('todos');
     const [filtroFecha, setFiltroFecha] = useState(''); // Filtro por fecha específica
-    const [usuarios, setUsuarios] = useState<any[]>([]);
+    const [usuarios, setUsuarios] = useState<Usuario[]>([]);
     
     const obtenerFacturas = async () => {
         try {
@@ -163,8 +169,6 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
                     throw new Error(errorData.error || 'Error al eliminar la factura');
                 }
 
-                const result = await response.json();
-                
                 // Recargar la lista de facturas
                 await obtenerFacturas();
                 
@@ -232,199 +236,201 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
 
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-6xl flex flex-col gap-6">
-
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-4">
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            className="px-4 py-2"
-                            onClick={toggleFiltros}
-                            title={mostrarFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
-                        >
-                            <svg 
-                                className="w-5 h-5" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24" 
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
-                                    strokeWidth={2} 
-                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" 
-                                />
-                            </svg>
-                        </Button>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button onClick={handleOpenModal} className="px-6 py-2">
-                            Nuevo Egreso
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="px-6 py-2"
-                            onClick={() => onTabChange('ingreso')}
-                        >
-                            Nuevo Ingreso
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="px-6 py-2"
-                            disabled={!facturaSeleccionada}
-                            onClick={handleVerRegistroClick}
-                        >
-                            Ver Registro
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            disabled={!facturaSeleccionada}
-                            onClick={eliminarFactura}
-                            className="px-6 py-2"
-                        >
-                            Eliminar
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Panel de filtros */}
-                {mostrarFiltros && (
-                    <div className="mb-4 p-4 bg-purple-50 border-2 border-purple-200 rounded-xl shadow-sm">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {/* Filtro por tipo */}
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="filtro-tipo" className="text-sm font-semibold text-purple-800">Tipo de transacción</Label>
-                                <select
-                                    id="filtro-tipo"
-                                    value={filtroTipo}
-                                    onChange={(e) => setFiltroTipo(e.target.value)}
-                                    className="px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-700 font-medium h-10"
-                                >
-                                    <option value="todos">Todos</option>
-                                    <option value="ingreso">Solo Ingresos</option>
-                                    <option value="egreso">Solo Egresos</option>
-                                </select>
-                            </div>
-
-                            {/* Filtro por usuario */}
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="filtro-usuario" className="text-sm font-semibold text-purple-800">Usuario</Label>
-                                <select
-                                    id="filtro-usuario"
-                                    value={filtroUsuario}
-                                    onChange={(e) => setFiltroUsuario(e.target.value)}
-                                    className="px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-700 font-medium h-10"
-                                >
-                                    <option value="todos">Todos los usuarios</option>
-                                    {usuarios.map((usuario) => (
-                                        <option key={usuario.id_usuario} value={usuario.id_usuario}>
-                                            {usuario.nombre} {usuario.apellido}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Filtro por fecha */}
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="filtro-fecha" className="text-sm font-semibold text-purple-800">Fecha</Label>
-                                <Input
-                                    id="filtro-fecha"
-                                    type="date"
-                                    value={filtroFecha}
-                                    onChange={(e) => setFiltroFecha(e.target.value)}
-                                    className="px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-700 font-medium h-10"
-                                />
-                            </div>
-
-                            {/* Botón para limpiar filtros */}
-                            <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-semibold text-transparent">Acciones</Label>
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-6 px-4">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden flex-1">
+                <div className="flex flex-col h-[calc(100vh-6rem)]">
+                    <div className="bg-white/95 px-6 md:px-8 py-5 border-b border-gray-200 shadow-sm flex flex-col gap-4 sticky top-0 z-20">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                            <div className="flex gap-2">
                                 <Button
                                     variant="outline"
-                                    onClick={limpiarFiltros}
-                                    className="px-4 py-3 border-2 border-purple-300 text-purple-700 hover:bg-purple-100 hover:border-purple-400 font-medium"
+                                    className="px-4 py-2"
+                                    onClick={toggleFiltros}
+                                    title={mostrarFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
                                 >
-                                    Limpiar Filtros
+                                    <svg 
+                                        className="w-5 h-5" 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24" 
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path 
+                                            strokeLinecap="round" 
+                                            strokeLinejoin="round" 
+                                            strokeWidth={2} 
+                                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" 
+                                        />
+                                    </svg>
+                                </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <Button onClick={handleOpenModal} className="px-6 py-2">
+                                    Nuevo Egreso
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="px-6 py-2"
+                                    onClick={() => onTabChange('ingreso')}
+                                >
+                                    Nuevo Ingreso
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="px-6 py-2"
+                                    disabled={!facturaSeleccionada}
+                                    onClick={handleVerRegistroClick}
+                                >
+                                    Ver Registro
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    disabled={!facturaSeleccionada}
+                                    onClick={eliminarFactura}
+                                    className="px-6 py-2"
+                                >
+                                    Eliminar
                                 </Button>
                             </div>
                         </div>
-                    </div>
-                )}
 
-                {cargando ? (
-                    <p className="text-center text-lg font-semibold py-8">Cargando facturas...</p>
-                ) : !Array.isArray(facturas) || facturas.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                        <p className="text-center text-lg font-semibold bg-red-100 text-red-700 px-6 py-4 rounded-lg border border-red-300">No hay facturas disponibles.</p>
+                        {mostrarFiltros && (
+                            <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl shadow-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="filtro-tipo" className="text-sm font-semibold text-purple-800">Tipo de transacción</Label>
+                                        <select
+                                            id="filtro-tipo"
+                                            value={filtroTipo}
+                                            onChange={(e) => setFiltroTipo(e.target.value)}
+                                            className="px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-700 font-medium h-10"
+                                        >
+                                            <option value="todos">Todos</option>
+                                            <option value="ingreso">Solo Ingresos</option>
+                                            <option value="egreso">Solo Egresos</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="filtro-usuario" className="text-sm font-semibold text-purple-800">Usuario</Label>
+                                        <select
+                                            id="filtro-usuario"
+                                            value={filtroUsuario}
+                                            onChange={(e) => setFiltroUsuario(e.target.value)}
+                                            className="px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-700 font-medium h-10"
+                                        >
+                                            <option value="todos">Todos los usuarios</option>
+                                            {usuarios.map((usuario) => (
+                                                <option key={usuario.id_usuario} value={usuario.id_usuario}>
+                                                    {usuario.nombre} {usuario.apellido}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="filtro-fecha" className="text-sm font-semibold text-purple-800">Fecha</Label>
+                                        <Input
+                                            id="filtro-fecha"
+                                            type="date"
+                                            value={filtroFecha}
+                                            onChange={(e) => setFiltroFecha(e.target.value)}
+                                            className="px-4 py-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-700 font-medium h-10"
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <Label className="text-sm font-semibold text-transparent">Acciones</Label>
+                                        <Button
+                                            variant="outline"
+                                            onClick={limpiarFiltros}
+                                            className="px-4 py-3 border-2 border-purple-300 text-purple-700 hover:bg-purple-100 hover:border-purple-400 font-medium"
+                                        >
+                                            Limpiar Filtros
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                ) : facturasFiltradas.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                        <p className="text-center text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay facturas que coincidan con los filtros aplicados.</p>
+
+                    <div className="flex-1 overflow-y-auto bg-white px-6 md:px-8 py-6">
+                        {cargando ? (
+                            <p className="text-center text-lg font-semibold py-8">Cargando facturas...</p>
+                        ) : !Array.isArray(facturas) || facturas.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <p className="text-center text-lg font-semibold bg-red-100 text-red-700 px-6 py-4 rounded-lg border border-red-300">No hay facturas disponibles.</p>
+                            </div>
+                        ) : facturasFiltradas.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <p className="text-center text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay facturas que coincidan con los filtros aplicados.</p>
+                            </div>
+                        ) : (
+                            <div className="rounded-xl border border-gray-100 overflow-hidden">
+                                <Table className="min-w-full">
+                                    <TableHeader className="bg-gradient-to-r from-purple-600 to-indigo-600 sticky top-0 z-10 shadow text-white">
+                                        <TableRow>
+                                            <TableHead className="font-bold text-white text-center">Fecha</TableHead>
+                                            <TableHead className="font-bold text-white text-center">Hora</TableHead>
+                                            <TableHead className="font-bold text-white text-center">Tipo</TableHead>
+                                            <TableHead className="font-bold text-white text-center">Forma de Pago</TableHead>
+                                            <TableHead className="font-bold text-white text-center">Total</TableHead>
+                                            <TableHead className="font-bold text-white text-center">Usuario</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {facturasFiltradas.map((factura, idx) => (
+                                            <TableRow
+                                                key={factura.id_factura}
+                                                className={
+                                                    facturaSeleccionada?.id_factura === factura.id_factura
+                                                        ? "bg-blue-200 !border-2 !border-blue-500 font-semibold"
+                                                        : "hover:bg-gray-100 transition-colors"
+                                                }
+                                                onClick={() => setFacturaSeleccionada(factura)}
+                                                style={{ cursor: "pointer" }}
+                                                aria-rowindex={idx}
+                                                aria-rowcount={facturasFiltradas.length}
+                                            >
+                                                <TableCell className="text-center">
+                                                    {`${factura.dia}/${factura.mes}/${factura.anio}`}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {factura.hora}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                                        factura.tipo_factura === 'ingreso'
+                                                            ? 'bg-green-100 text-green-800' 
+                                                            : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                        {factura.tipo_factura === 'ingreso' ? 'Ingreso' : 'Egreso'}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {factura.forma_de_pago}
+                                                </TableCell>
+                                                <TableCell className="text-center font-semibold">
+                                                    <span className={factura.tipo_factura === 'ingreso' ? 'text-green-600' : 'text-red-600'}>
+                                                        {factura.tipo_factura === 'ingreso' ? '+' : '-'}${factura.monto_total}
+                                                    </span>
+                                                    {factura.cantidad_productos > 0 && (
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            {factura.cantidad_productos} producto{factura.cantidad_productos !== 1 ? 's' : ''}
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {factura.nombre_usuario || 'N/A'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
                     </div>
-                ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="font-bold text-white text-center">Fecha</TableHead>
-                                <TableHead className="font-bold text-white text-center">Hora</TableHead>
-                                <TableHead className="font-bold text-white text-center">Tipo</TableHead>
-                                <TableHead className="font-bold text-white text-center">Forma de Pago</TableHead>
-                                <TableHead className="font-bold text-white text-center">Total</TableHead>
-                                <TableHead className="font-bold text-white text-center">Usuario</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {facturasFiltradas.map((factura, idx) => (
-                                <TableRow
-                                    key={factura.id_factura}
-                                    className={
-                                        facturaSeleccionada?.id_factura === factura.id_factura
-                                            ? "bg-blue-200 !border-2 !border-blue-500 font-semibold"
-                                            : "hover:bg-gray-100 transition-colors"
-                                    }
-                                    onClick={() => setFacturaSeleccionada(factura)}
-                                    style={{ cursor: "pointer" }}
-                                    aria-rowindex={idx}
-                                    aria-rowcount={facturasFiltradas.length}
-                                >
-                                    <TableCell className="text-center">
-                                        {`${factura.dia}/${factura.mes}/${factura.anio}`}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        {factura.hora}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                            factura.tipo_factura === 'ingreso'
-                                                ? 'bg-green-100 text-green-800' 
-                                                : 'bg-red-100 text-red-800'
-                                        }`}>
-                                            {factura.tipo_factura === 'ingreso' ? 'Ingreso' : 'Egreso'}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        {factura.forma_de_pago}
-                                    </TableCell>
-                                    <TableCell className="text-center font-semibold">
-                                        <span className={factura.tipo_factura === 'ingreso' ? 'text-green-600' : 'text-red-600'}>
-                                            {factura.tipo_factura === 'ingreso' ? '+' : '-'}${factura.monto_total}
-                                        </span>
-                                        {factura.cantidad_productos > 0 && (
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                {factura.cantidad_productos} producto{factura.cantidad_productos !== 1 ? 's' : ''}
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        {factura.nombre_usuario || 'N/A'}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                )}
+                </div>
             </div>
 
             {/* Modal para el popup de egreso */}
