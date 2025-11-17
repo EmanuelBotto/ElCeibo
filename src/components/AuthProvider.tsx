@@ -30,19 +30,20 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Usuario simulado para app pública (sin autenticación)
-  const mockUser: User = {
-    id_usuario: 1,
-    usuario: 'admin',
-    nombre: 'Administrador',
-    apellido: 'Sistema',
-    email: 'admin@elceibo.com',
-    tipo_usuario: 'admin',
-    calle: 'Calle Principal',
-    numero: 123,
-    codigo_postal: 12345,
-    telefono: 1234567890,
-    foto: undefined
-  };
+  // Nota: mockUser está definido pero no se usa actualmente
+  // const mockUser: User = {
+  //   id_usuario: 1,
+  //   usuario: 'admin',
+  //   nombre: 'Administrador',
+  //   apellido: 'Sistema',
+  //   email: 'admin@elceibo.com',
+  //   tipo_usuario: 'admin',
+  //   calle: 'Calle Principal',
+  //   numero: 123,
+  //   codigo_postal: 12345,
+  //   telefono: 1234567890,
+  //   foto: undefined
+  // };
 
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);

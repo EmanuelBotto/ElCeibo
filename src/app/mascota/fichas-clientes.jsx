@@ -196,10 +196,61 @@ export default function FichasClientes() {
 
       toast.success('Mascota agregada exitosamente');
       setIsNuevaMascotaDialogOpen(false);
-      // Recargar los datos del cliente seleccionado
-      if (selectedClient) {
-        const updatedClient = await fetch(`/api/clientes/${selectedClient.id_clinete}`).then(res => res.json());
-        setSelectedClient(updatedClient);
+      
+      // Guardar el ID del cliente seleccionado antes de recargar
+      const clienteIdSeleccionado = selectedClient?.id_clinete;
+      
+      // Recargar completamente la lista de fichas para asegurar que esté actualizada
+      await fetchFichas(searchTerm);
+      
+      // Después de recargar las fichas, actualizar el cliente seleccionado con sus mascotas
+      if (clienteIdSeleccionado) {
+        try {
+          const clientResponse = await fetch(`/api/clientes/${clienteIdSeleccionado}`);
+          if (clientResponse.ok) {
+            const updatedClient = await clientResponse.json();
+            console.log('Cliente actualizado con mascotas:', updatedClient);
+            // Crear un nuevo objeto con un nuevo array de mascotas para forzar la actualización de React
+            const clienteActualizado = {
+              ...updatedClient,
+              mascotas: updatedClient.mascotas ? [...updatedClient.mascotas] : []
+            };
+            setSelectedClient(clienteActualizado);
+            
+            // También actualizar la ficha en la lista recién cargada
+            setFichas(prevFichas => 
+              prevFichas.map(ficha => 
+                ficha.id_clinete === updatedClient.id_clinete 
+                  ? clienteActualizado
+                  : ficha
+              )
+            );
+          } else {
+            console.error('Error al recargar cliente:', clientResponse.status);
+            // Si falla, buscar el cliente en las fichas ya recargadas
+            const response = await fetch(`/api/fichas?search=${encodeURIComponent(searchTerm)}`);
+            if (response.ok) {
+              const fichasActualizadas = await response.json();
+              const foundClient = fichasActualizadas.find(f => f.id_clinete === clienteIdSeleccionado);
+              if (foundClient) {
+                setSelectedClient(foundClient);
+                setFichas(fichasActualizadas);
+              }
+            }
+          }
+        } catch (reloadError) {
+          console.error('Error al recargar datos del cliente:', reloadError);
+          // Si falla, buscar el cliente en las fichas ya recargadas
+          const response = await fetch(`/api/fichas?search=${encodeURIComponent(searchTerm)}`);
+          if (response.ok) {
+            const fichasActualizadas = await response.json();
+            const foundClient = fichasActualizadas.find(f => f.id_clinete === clienteIdSeleccionado);
+            if (foundClient) {
+              setSelectedClient(foundClient);
+              setFichas(fichasActualizadas);
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Error al agregar mascota:', error);

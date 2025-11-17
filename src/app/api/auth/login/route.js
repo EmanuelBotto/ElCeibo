@@ -51,6 +51,7 @@ export async function POST(request) {
       }
 
       // Retornar datos del usuario (sin contraseña)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { contrasenia: _, ...userData } = user;
       
       // Crear respuesta con cookies de autenticación

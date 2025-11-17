@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Camera, X } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import ImageDisplay from './ImageDisplay';
 import { toast } from 'sonner';
 
@@ -21,11 +21,9 @@ interface PhotoChangeModalProps {
 export default function PhotoChangeModal({
   isOpen,
   onClose,
-  currentPhoto,
   onPhotoChange,
   title,
   description,
-  entityName,
   onSave
 }: PhotoChangeModalProps) {
   const [nuevaFoto, setNuevaFoto] = useState('');
@@ -98,8 +96,9 @@ export default function PhotoChangeModal({
       setNuevaFoto('');
       onClose();
       toast.success('Foto actualizada exitosamente');
-    } catch (error: any) {
-      toast.error(error.message || 'Error al actualizar la foto');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar la foto';
+      toast.error(errorMessage);
     } finally {
       setIsActualizando(false);
     }
