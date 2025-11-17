@@ -58,7 +58,8 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
   // Estados para importación
   const [archivoSeleccionado, setArchivoSeleccionado] = useState<File | null>(null);
   const [importando, setImportando] = useState(false);
-  const [previewData, setPreviewData] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [previewData, setPreviewData] = useState<Array<Record<string, unknown>>>([]);
   const [tablaImportacion, setTablaImportacion] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -200,7 +201,10 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
       
       if (result.resultadosPorTabla && Object.keys(result.resultadosPorTabla).length > 1) {
         const detalles = Object.entries(result.resultadosPorTabla)
-          .map(([tabla, datos]: [string, any]) => `${tabla}: ${datos.registrosInsertados} registros`)
+          .map(([tabla, datos]) => {
+            const datosTyped = datos as { registrosInsertados: number };
+            return `${tabla}: ${datosTyped.registrosInsertados} registros`;
+          })
           .join(', ');
         mensajeExito += ` (${detalles})`;
       }
@@ -434,7 +438,7 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• El archivo debe ser un Excel (.xlsx o .xls)</li>
                   <li>• La primera fila debe contener los nombres de las columnas</li>
-                  <li>• <strong>Para backups completos:</strong> Las hojas deben tener nombres como "productos", "usuarios", "pacientes", "mascotas"</li>
+                  <li>• <strong>Para backups completos:</strong> Las hojas deben tener nombres como &quot;productos&quot;, &quot;usuarios&quot;, &quot;pacientes&quot;, &quot;mascotas&quot;</li>
                   <li>• <strong>Para una tabla específica:</strong> Selecciona la tabla de destino arriba</li>
                   <li>• Los nombres de columnas deben coincidir con la estructura de la tabla</li>
                   <li>• Los datos se importarán respetando las validaciones del sistema</li>

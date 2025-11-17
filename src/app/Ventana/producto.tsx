@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,6 @@ import {
   TableHead,
   TableRow,
   TableCell,
-  TableCaption,
 } from "@/components/ui/table";
 import Modal from "@/components/ui/modal";
 import { buildProductoFormContent } from "@/lib/modales";
@@ -25,7 +24,7 @@ export default function Producto() {
 
   // Lista de productos
   const [productos, setProductos] = useState<any[]>([]);
-  const [tipos, setTipos] = useState<any[]>([]);
+  const [tipos] = useState<any[]>([]);
   // Estado de carga
   const [cargando, setCargando] = useState<boolean>(true);
   // Nuevo producto a crear
@@ -61,7 +60,7 @@ export default function Producto() {
     return isNaN(numero) ? 0 : numero;
   };
 
-  const cargarProductos = async () => {
+  const cargarProductos = useCallback(async () => {
     try {
       setCargando(true);
 
@@ -128,7 +127,7 @@ export default function Producto() {
     } finally {
       setCargando(false);
     }
-  };
+  }, [paginaActual, busqueda, tipoBusqueda, productosPorPagina, isAuthenticated]);
 
   const cambiarPagina = (nuevaPagina: number) => {
     setPaginaActual(nuevaPagina);
@@ -140,7 +139,7 @@ export default function Producto() {
     if (!authLoading && isAuthenticated) {
       cargarProductos();
     }
-  }, [authLoading, isAuthenticated, paginaActual, busqueda]);
+  }, [authLoading, isAuthenticated, cargarProductos]);
   
   // NO agregar tipoBusqueda aquí - solo cambia el placeholder del input
   
@@ -201,7 +200,7 @@ export default function Producto() {
             duplicateInfo = errorData.duplicate;
             errorMessage = `Ya existe un producto con el nombre "${errorData.duplicate.nombre}" y el mismo tipo. Por favor, cambia el nombre o el tipo para crear un producto diferente.`;
           }
-        } catch (jsonError) {
+        } catch {
           // Si no podemos parsear el JSON, usamos el status text
           errorMessage = `Error: ${res.status} - ${res.statusText}`;
         }
@@ -213,10 +212,11 @@ export default function Producto() {
       }
 
       // Intentar parsear la respuesta exitosa
-      let responseData;
       try {
-        responseData = await res.json();
-      } catch (jsonError) {}
+        await res.json();
+      } catch {
+        // Ignorar errores de parsing
+      }
 
       setNuevoProducto({
         nombre: "",

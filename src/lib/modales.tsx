@@ -18,11 +18,15 @@ type NuevoProducto = {
 };
 
 type ProductoEditando = {
+  id_producto?: number;
   nombre_producto: string;
   precio_costo: string | number;
   stock: string | number;
-  id_tipo?: string;
+  id_tipo?: string | number;
   marca?: string;
+  porcentaje_final?: string | number;
+  porcentaje_mayorista?: string | number;
+  [key: string]: string | number | undefined;
 };
 
 export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } = {}) {
@@ -542,7 +546,7 @@ export function buildProductoFormContent(args: {
   const getEditValue = (field: string): string | number => {
     if (!productoEditando) return "";
     if (field === "nombre") return productoEditando.nombre_producto ?? "";
-    return (productoEditando as any)[field] ?? "";
+    return productoEditando[field] ?? "";
   };
 
   const handleEditChange = (field: string, value: string): void => {
@@ -554,114 +558,18 @@ export function buildProductoFormContent(args: {
     setProductoEditando({ ...productoEditando, [field]: value } as ProductoEditando);
   };
 
-  const calcularPrecioFinal = (precioBase: number, porcentaje: number): string => {
-    const resultado = precioBase * porcentaje;
-    return isNaN(resultado) ? "0.00" : resultado.toFixed(2);
-  };
-
-  const handleTipoChange = (selectedTipo: string) => {
-    if (!isEdit && setNuevoProducto) {
-      handleCreateChange("id_tipo", selectedTipo);
-      const tipoSeleccionado = tipos.find((t) => String(t.id_tipo) === selectedTipo);
-      if (tipoSeleccionado) {
-        setNuevoProducto((prev) => ({
-          ...prev,
-          porcentaje_final: tipoSeleccionado.porcentaje_final,
-          porcentaje_mayorista: tipoSeleccionado.porcentaje_mayorista,
-        }));
-      }
-    }
-  };
 
   // ========================================
   // COMPONENTES DE CAMPOS
   // ========================================
-
-  const CampoInput = ({ 
-    id, 
-    label, 
-    value, 
-    onChange, 
-    type = "text", 
-    disabled = false, 
-    required = false,
-    className = "",
-    step
-  }: {
-    id: string;
-    label: string;
-    value: string | number;
-    onChange: (value: string) => void;
-    type?: string;
-    disabled?: boolean;
-    required?: boolean;
-    className?: string;
-    step?: string;
-  }) => (
-    <div>
-      <Label htmlFor={id} className="text-sm">
-        {label} {required && <span className="text-red-500">*</span>}
-      </Label>
-      <Input
-        id={id}
-        type={type}
-        step={step}
-        value={String(value)}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className={`rounded-full border-2 border-purple-400 focus:ring-purple-500 ${disabled ? "bg-gray-50 text-gray-500" : ""} ${className}`}
-      />
-    </div>
-  );
-
-  const CampoSelect = ({ 
-    id, 
-    label, 
-    value, 
-    onChange, 
-    options, 
-    disabled = false,
-    required = false
-  }: {
-    id: string;
-    label: string;
-    value: string | number;
-    onChange: (value: string) => void;
-    options: Array<{ value: string | number; label: string }>;
-    disabled?: boolean;
-    required?: boolean;
-  }) => (
-    <div>
-      <Label htmlFor={id} className="text-sm">
-        {label} {required && <span className="text-red-500">*</span>}
-      </Label>
-      <select
-        id={id}
-        value={String(value)}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className="w-full border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black disabled:bg-gray-50 disabled:text-gray-500"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+  // Nota: CampoInput y CampoSelect están definidos pero no se usan actualmente
+  // Se mantienen comentados por si se necesitan en el futuro
 
   // ========================================
   // OPCIONES DE TIPOS
   // ========================================
-  const opcionesTipos = tipos.length > 0 
-    ? tipos.map((t) => ({ value: t.id_tipo, label: t.nombre }))
-    : [
-        { value: "1", label: "Balanceado" },
-        { value: "2", label: "Medicamento" },
-        { value: "3", label: "Accesorio" },
-        { value: "4", label: "Acuario" }
-      ];
+  // Nota: opcionesTipos está definido pero no se usa actualmente
+  // Se mantiene comentado por si se necesita en el futuro
 
   // ========================================
   // RENDERIZADO DEL FORMULARIO
@@ -680,7 +588,7 @@ export function buildProductoFormContent(args: {
             <Label className="text-sm" htmlFor="idProducto">ID Producto</Label>
             <Input
               id="idProducto"
-              value={String((isEdit ? ((productoEditando as any)?.id_producto) : (nextIdPreview ?? "")) ?? "")}
+              value={String((isEdit ? (productoEditando?.id_producto) : (nextIdPreview ?? "")) ?? "")}
               disabled
               className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
             />
@@ -703,7 +611,7 @@ export function buildProductoFormContent(args: {
               <Label className="text-sm mb-1" htmlFor="marcaEdit">Marca</Label>
               <Input
                 id="marcaEdit"
-                value={String(((productoEditando as any)?.marca) ?? "")}
+                value={String((productoEditando?.marca) ?? "")}
                 onChange={(e) => handleEditChange("marca", e.target.value)}
                 className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
               />
@@ -726,7 +634,7 @@ export function buildProductoFormContent(args: {
               <Label className="text-sm mb-1" htmlFor="rubro">Rubro</Label>
               <select
                 id="rubro"
-                value={String(((productoEditando as any)?.id_tipo) ?? "1")}
+                value={String((productoEditando?.id_tipo) ?? "1")}
                 onChange={(e) => handleEditChange("id_tipo", e.target.value)}
                 className="w-full h-12 border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black focus:ring-purple-500 focus:border-transparent text-base"
                 style={{ height: '3rem', lineHeight: '1.5rem' }}
@@ -879,8 +787,8 @@ export function buildProductoFormContent(args: {
                   id="incCF"
                   type="number"
                   step="0.01"
-                  value={String(((productoEditando as any)?.porcentaje_final) ?? "")}
-                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_final: e.target.value } as any)}
+                  value={String((productoEditando?.porcentaje_final) ?? "")}
+                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_final: e.target.value })}
                   disabled={!porcentajePersonalizado}
                   className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
                 />
@@ -891,8 +799,8 @@ export function buildProductoFormContent(args: {
                   id="incR"
                   type="number"
                   step="0.01"
-                  value={String(((productoEditando as any)?.porcentaje_mayorista) ?? "")}
-                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value } as any)}
+                  value={String((productoEditando?.porcentaje_mayorista) ?? "")}
+                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value })}
                   disabled={!porcentajePersonalizado}
                   className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
                 />
@@ -959,8 +867,8 @@ export function buildProductoFormContent(args: {
                 <Input
                   disabled
                   value={(() => {
-                    const base = Number(((productoEditando as any)?.precio_costo ?? 0));
-                    const mult = Number(((productoEditando as any)?.porcentaje_final ?? 0));
+                    const base = Number((productoEditando?.precio_costo ?? 0));
+                    const mult = Number((productoEditando?.porcentaje_final ?? 0));
                     const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
                     return `$ ${v}`;
                   })()}
@@ -972,8 +880,8 @@ export function buildProductoFormContent(args: {
                 <Input
                   disabled
                   value={(() => {
-                    const base = Number(((productoEditando as any)?.precio_costo ?? 0));
-                    const mult = Number(((productoEditando as any)?.porcentaje_mayorista ?? 0));
+                    const base = Number((productoEditando?.precio_costo ?? 0));
+                    const mult = Number((productoEditando?.porcentaje_mayorista ?? 0));
                     const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
                     return `$ ${v}`;
                   })()}
@@ -1525,10 +1433,13 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
     deceso: false,
     foto: null
   });
-  const [ownerInfo, setOwnerInfo] = useState({ nombre: '', apellido: '', id_clinete: '' });
+  const [ownerInfo, setOwnerInfo] = useState<{ nombre: string; apellido: string; id_clinete: string | number }>({ nombre: '', apellido: '', id_clinete: 0 });
 
-  const abrirModal = (owner: any) => {
-    setOwnerInfo(owner);
+  const abrirModal = (owner: { nombre: string; apellido: string; id_clinete: string | number }) => {
+    setOwnerInfo({
+      ...owner,
+      id_clinete: owner.id_clinete.toString()
+    });
     setNuevaMascotaForm({
       nombre: '',
       especie: '',
@@ -1547,7 +1458,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
     setIsModalOpen(false);
   };
 
-  const manejarEnvioNuevaMascota = async (e: any) => {
+  const manejarEnvioNuevaMascota = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setIsLoading(true);
@@ -1614,7 +1525,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
         let errorData;
         try {
           errorData = await response.json();
-        } catch (e) {
+        } catch {
           errorData = { error: `Error ${response.status}: ${response.statusText}` };
         }
         console.error('Error del servidor:', errorData);
@@ -1634,7 +1545,8 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
       
     } catch (error) {
       console.error('Error al crear mascota:', error);
-      alert((error as any).message || 'Error al crear la mascota');
+      const errorMessage = error instanceof Error ? error.message : 'Error al crear la mascota';
+      alert(errorMessage);
       throw error;
     } finally {
       setIsLoading(false);
@@ -1670,6 +1582,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
                     className="hidden"
                   />
                   {nuevaMascotaForm.foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={URL.createObjectURL(nuevaMascotaForm.foto)}
                       alt="Vista previa"
@@ -1840,12 +1753,11 @@ interface ModalConfirmacionFacturaProps {
 }
 
 export function ModalConfirmacionFactura({ 
-  isOpen, 
   onClose, 
   onConfirm, 
   isLoading, 
   modalData 
-}: ModalConfirmacionFacturaProps) {
+}: Omit<ModalConfirmacionFacturaProps, 'isOpen'>) {
   return (
     <div className="text-center p-6">
       <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
@@ -1884,11 +1796,10 @@ interface ModalNotificacionFacturaProps {
 }
 
 export function ModalNotificacionFactura({ 
-  isOpen, 
   onClose, 
   type, 
   message 
-}: ModalNotificacionFacturaProps) {
+}: Omit<ModalNotificacionFacturaProps, 'isOpen'>) {
   return (
     <div className="text-center p-6">
       {type === 'error' ? (
@@ -1956,8 +1867,8 @@ type FacturaSeleccionada = {
 
 export function useVerRegistro() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [facturaData, setFacturaData] = useState<any>(null);
-  const [distribuidorData, setDistribuidorData] = useState<any>(null);
+  const [facturaData, setFacturaData] = useState<FacturaData | null>(null);
+  const [distribuidorData, setDistribuidorData] = useState<Distribuidor | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("otros");
 
@@ -2191,8 +2102,8 @@ export function useVerRegistro() {
 
 export function useVerRegistroIngreso() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [facturaData, setFacturaData] = useState<any>(null);
-  const [productosData, setProductosData] = useState<any[]>([]);
+  const [facturaData, setFacturaData] = useState<FacturaData | null>(null);
+  const [productosData, setProductosData] = useState<Array<{ nombre_producto?: string; marca?: string; cantidad: number; precio_unitario: number; subtotal: number }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleOpenModal = async (factura: FacturaSeleccionada) => {
@@ -2289,8 +2200,8 @@ export function useVerRegistroIngreso() {
                           {producto.marca && <span className="text-gray-500"> - {producto.marca}</span>}
                         </td>
                         <td className="py-2 text-center text-gray-700">{producto.cantidad}</td>
-                        <td className="py-2 text-right text-gray-700">${producto.precio_unidad}</td>
-                        <td className="py-2 text-right font-medium text-gray-700">${producto.precio_tot}</td>
+                        <td className="py-2 text-right text-gray-700">${producto.precio_unitario}</td>
+                        <td className="py-2 text-right font-medium text-gray-700">${producto.subtotal}</td>
                       </tr>
                     ))}
                   </tbody>
