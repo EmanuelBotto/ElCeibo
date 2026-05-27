@@ -15,6 +15,7 @@ type NuevoProducto = {
   id_tipo: string;
   porcentaje_final?: string | number;
   porcentaje_mayorista?: string | number;
+  precio_variable?: boolean;
 };
 
 type ProductoEditando = {
@@ -26,7 +27,8 @@ type ProductoEditando = {
   marca?: string;
   porcentaje_final?: string | number;
   porcentaje_mayorista?: string | number;
-  [key: string]: string | number | undefined;
+  precio_variable?: boolean;
+  [key: string]: string | number | boolean | undefined;
 };
 
 export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } = {}) {
@@ -509,6 +511,8 @@ export function buildProductoFormContent(args: {
   setProductoEditando?: React.Dispatch<React.SetStateAction<ProductoEditando | null>>;
   porcentajePersonalizado?: boolean;
   setPorcentajePersonalizado?: React.Dispatch<React.SetStateAction<boolean>>;
+  precioVariable?: boolean;
+  setPrecioVariable?: React.Dispatch<React.SetStateAction<boolean>>;
   tipos?: Array<{ id_tipo: string | number; nombre: string; porcentaje_final: number; porcentaje_mayorista: number }>;
   nextIdPreview?: string | number;
   onCancel: () => void;
@@ -522,6 +526,8 @@ export function buildProductoFormContent(args: {
     setProductoEditando,
     porcentajePersonalizado = false,
     setPorcentajePersonalizado,
+    precioVariable = false,
+    setPrecioVariable,
     onCancel,
     onSubmit,
     tipos = [],
@@ -829,7 +835,16 @@ export function buildProductoFormContent(args: {
               />
               <Label htmlFor="manualCreate" className="text-sm">% Manual</Label>
             </div>
-            <div></div>
+            <div className="flex items-center gap-2">
+              <input
+                id="precioVariableCreate"
+                type="checkbox"
+                checked={precioVariable}
+                onChange={(e) => setPrecioVariable && setPrecioVariable(e.target.checked)}
+                className="mr-2"
+              />
+              <Label htmlFor="precioVariableCreate" className="text-sm">Precio variable</Label>
+            </div>
           </div>
         )}
 
@@ -880,7 +895,16 @@ export function buildProductoFormContent(args: {
                 />
                 <Label htmlFor="manual" className="text-sm">% Manual</Label>
               </div>
-              <div></div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="precioVariableEdit"
+                  type="checkbox"
+                  checked={precioVariable}
+                  onChange={(e) => setPrecioVariable && setPrecioVariable(e.target.checked)}
+                  className="mr-2"
+                />
+                <Label htmlFor="precioVariableEdit" className="text-sm">Precio variable</Label>
+              </div>
             </div>
 
             {/* Quinta fila: Precios finales */}

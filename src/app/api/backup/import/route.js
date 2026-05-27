@@ -14,8 +14,8 @@ const pool = new Pool({ connectionString });
 const TABLAS_INSERT_QUERIES = {
   productos: {
     query: `
-      INSERT INTO producto (nombre, marca, precio_costo, stock, id_tipo, modificado, activo)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO producto (nombre, marca, precio_costo, stock, id_tipo, modificado, precio_variable, activo)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `,
     updateQuery: `
       UPDATE producto SET
@@ -24,10 +24,11 @@ const TABLAS_INSERT_QUERIES = {
         stock = $4,
         id_tipo = $5,
         modificado = $6,
-        activo = $7
+        precio_variable = $7,
+        activo = $8
       WHERE LOWER(nombre) = LOWER($1) AND id_tipo = $5
     `,
-    columns: ['nombre', 'marca', 'precio_costo', 'stock', 'id_tipo', 'modificado', 'activo'],
+    columns: ['nombre', 'marca', 'precio_costo', 'stock', 'id_tipo', 'modificado', 'precio_variable', 'activo'],
     required: ['nombre', 'precio_costo', 'stock', 'modificado', 'activo']
   },
   usuarios: {
@@ -277,6 +278,10 @@ async function procesarTabla(client, tabla, data) {
         }
         if (column === 'modificado') {
           if (value === undefined || value === null) return false; // Por defecto no modificado
+          return value === 'true' || value === true || value === 1 || value === '1';
+        }
+        if (column === 'precio_variable') {
+          if (value === undefined || value === null) return false; // Por defecto precio fijo
           return value === 'true' || value === true || value === 1 || value === '1';
         }
         if (column === 'fecha_nacimiento') {

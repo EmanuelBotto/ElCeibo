@@ -21,6 +21,7 @@ const TABLAS_QUERIES = {
       p.stock,
       p.id_tipo,
       p.modificado,
+      p.precio_variable,
       p.activo
     FROM producto p
     ORDER BY p.id_producto

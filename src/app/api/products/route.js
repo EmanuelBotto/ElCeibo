@@ -63,6 +63,7 @@ export async function GET(request) {
           p.id_tipo,
           p.precio_costo,
           p.modificado,
+          p.precio_variable,
           p.activo,
           t.nombre AS nombre_tipo,
           COALESCE(dl.porcentaje_minorista, t.porcentaje_final) AS porcentaje_final,
@@ -109,7 +110,7 @@ export async function POST(request) {
   try {
     const client = await pool.connect();
     try {
-      const { nombre, marca, precio_costo, stock, id_tipo } = await request.json();
+      const { nombre, marca, precio_costo, stock, id_tipo, precio_variable } = await request.json();
 
       // Validaciones
       if (!nombre?.trim()) {
@@ -156,10 +157,10 @@ export async function POST(request) {
 
       // Insertar el producto
       const result = await client.query(
-        `INSERT INTO producto (nombre, marca, precio_costo, stock, id_tipo, modificado, activo)
-         VALUES ($1, $2, $3, $4, $5, false, true)
+        `INSERT INTO producto (nombre, marca, precio_costo, stock, id_tipo, modificado, precio_variable, activo)
+         VALUES ($1, $2, $3, $4, $5, false, $6, true)
          RETURNING id_producto`,
-        [nombre.trim(), marca?.trim() || '', precio_costo, stock, id_tipo]
+        [nombre.trim(), marca?.trim() || '', precio_costo, stock, id_tipo, Boolean(precio_variable)]
       );
 
       const nuevoProducto = result.rows[0];
@@ -174,6 +175,7 @@ export async function POST(request) {
           precio_costo: precio_costo,
           stock: stock,
           id_tipo: id_tipo,
+          precio_variable: Boolean(precio_variable),
           activo: true
         }
       }, { status: 201 });

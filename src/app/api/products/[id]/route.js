@@ -52,8 +52,9 @@ export async function PUT(request, { params }) {
           id_tipo = COALESCE($4, id_tipo),
           modificado = $5,
           marca = COALESCE($6, marca),
-          activo = COALESCE($7, activo)
-        WHERE id_producto = $8
+          activo = COALESCE($7, activo),
+          precio_variable = COALESCE($8, precio_variable)
+        WHERE id_producto = $9
         RETURNING *
       `;
       
@@ -65,6 +66,7 @@ export async function PUT(request, { params }) {
         producto.modificado,
         producto.marca,
         producto.activo,
+        producto.precio_variable,
         id
       ];
 

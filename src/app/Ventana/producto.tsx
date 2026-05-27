@@ -60,6 +60,7 @@ export default function Producto() {
   const [mostrarDialogoDuplicado, setMostrarDialogoDuplicado] = useState<boolean>(false);
   const [infoDuplicado, setInfoDuplicado] = useState<any>(null);
   const [porcentajePersonalizado, setPorcentajePersonalizado] = useState<boolean>(false);
+  const [precioVariable, setPrecioVariable] = useState<boolean>(false);
 
   const validarNumero = (valor: any): number => {
     const numero = parseFloat(valor);
@@ -179,6 +180,7 @@ export default function Producto() {
         precio_costo: precio_costo,
         stock: stock,
         id_tipo: nuevoProducto.id_tipo || "1",
+        precio_variable: precioVariable,
       };
 
       const res = await fetch("/api/products", {
@@ -231,6 +233,7 @@ export default function Producto() {
         stock: "",
         id_tipo: "1",
       });
+      setPrecioVariable(false);
       setMostrarFormulario(false);
       cargarProductos(); // recargar lista
 
@@ -279,6 +282,7 @@ export default function Producto() {
         stock: stock,
         id_tipo: productoEditando.id_tipo,
         modificado: porcentajePersonalizado,
+        precio_variable: precioVariable,
       };
 
       // Actualizar el producto
@@ -340,6 +344,7 @@ export default function Producto() {
       setMostrarFormularioEdicion(false);
       setProductoEditando(null);
       setPorcentajePersonalizado(false);
+      setPrecioVariable(false);
       cargarProductos(); // Recargar productos para ver los cambios
 
     } catch (err: any) {
@@ -467,7 +472,10 @@ export default function Producto() {
       actions={
         <>
             <Button
-              onClick={() => setMostrarFormulario(true)}
+              onClick={() => {
+                setPrecioVariable(false);
+                setMostrarFormulario(true);
+              }}
               className="px-6 py-2"
             >
               Agregar
@@ -498,8 +506,11 @@ export default function Producto() {
                           tienePersonalizados: true
                         };
                         setPorcentajePersonalizado(true);
+                      } else {
+                        setPorcentajePersonalizado(false);
                       }
                     }
+                    setPrecioVariable(Boolean(productoSeleccionado.precio_variable));
                     
                     setProductoEditando({ 
                       ...productoSeleccionado,
@@ -510,6 +521,7 @@ export default function Producto() {
                   } catch (error) {
                     console.error('Error al cargar porcentajes:', error);
                     // Si falla, cargar sin porcentajes personalizados
+                    setPrecioVariable(Boolean(productoSeleccionado.precio_variable));
                     setProductoEditando({ ...productoSeleccionado });
                     setMostrarFormularioEdicion(true);
                   }
@@ -741,7 +753,10 @@ export default function Producto() {
       {/* Modal de nuevo producto */}
       <Modal
         isOpen={mostrarFormulario}
-        onClose={() => setMostrarFormulario(false)}
+        onClose={() => {
+          setMostrarFormulario(false);
+          setPrecioVariable(false);
+        }}
         contentClassName={MODAL_WIDE_CLASS}
       >
         {buildProductoFormContent({
@@ -749,7 +764,12 @@ export default function Producto() {
           nuevoProducto,
           setNuevoProducto,
           tipos,
-          onCancel: () => setMostrarFormulario(false),
+          precioVariable,
+          setPrecioVariable,
+          onCancel: () => {
+            setMostrarFormulario(false);
+            setPrecioVariable(false);
+          },
           onSubmit: crearProducto,
         })}
       </Modal>
@@ -761,6 +781,7 @@ export default function Producto() {
         onClose={() => {
           setMostrarFormularioEdicion(false);
           setProductoEditando(null);
+          setPrecioVariable(false);
         }}
       >
         {buildProductoFormContent({
@@ -770,9 +791,12 @@ export default function Producto() {
           tipos,
           porcentajePersonalizado,
           setPorcentajePersonalizado,
+          precioVariable,
+          setPrecioVariable,
           onCancel: () => {
             setMostrarFormularioEdicion(false);
             setProductoEditando(null);
+            setPrecioVariable(false);
           },
           onSubmit: actualizarProducto,
         })}

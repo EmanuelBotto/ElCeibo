@@ -14,6 +14,7 @@ import { ModalVenta, useModalVenta } from '@/lib/modales';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import ListScrollBox from '@/components/ListScrollBox';
 import OpcionesBusquedaProducto from '@/components/producto/OpcionesBusquedaProducto';
+import Modal from '@/components/ui/modal';
 
 interface IngresoProps {
   onVolver: (tab: string) => void;
@@ -29,6 +30,8 @@ export default function Ingreso({ onVolver }: IngresoProps) {
   const [totalVenta, setTotalVenta] = useState<number>(0);
   const [formasPago, setFormasPago] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [productoPendienteMonto, setProductoPendienteMonto] = useState<any>(null);
+  const [montoInput, setMontoInput] = useState<string>('');
   const [paginaActual, setPaginaActual] = useState<number>(1);
   const [opcionesBusquedaAbiertas, setOpcionesBusquedaAbiertas] = useState<boolean>(false);
   const [pagination, setPagination] = useState<any>({
@@ -130,44 +133,79 @@ export default function Ingreso({ onVolver }: IngresoProps) {
   // Los productos ya vienen filtrados y paginados del servidor
   const productosMostrados = productos;
 
+  const getCartItemId = (item: any): string | number => item.cartItemId ?? item.id_producto;
+
   // Función para agregar producto al resumen
   const agregarProducto = (producto: any) => {
+    if (producto.precio_variable) {
+      setProductoPendienteMonto(producto);
+      setMontoInput('');
+      return;
+    }
+
     const precio = calcularPrecio(producto, tipoCliente === 'mayorista' ? 'mayorista' : 'final');
-    const productoExistente = productosSeleccionados.find(p => p.id_producto === producto.id_producto);
-    
-    if (productoExistente) {
-      // Si ya existe, incrementar cantidad
-      const nuevosProductos = productosSeleccionados.map(p => 
-        p.id_producto === producto.id_producto 
-          ? { ...p, cantidad: p.cantidad + 1, precioTotal: (p.cantidad + 1) * precio }
-          : p
-      );
-      setProductosSeleccionados(nuevosProductos);
-    } else {
-      // Si no existe, agregarlo
+    setProductosSeleccionados((prev) => {
+      const productoExistente = prev.find((p) => p.id_producto === producto.id_producto && !p.precio_variable);
+
+      if (productoExistente) {
+        return prev.map((p) =>
+          p.id_producto === producto.id_producto && !p.precio_variable
+            ? { ...p, cantidad: p.cantidad + 1, precioTotal: (p.cantidad + 1) * precio }
+            : p
+        );
+      }
+
       const nuevoProducto = {
         ...producto,
         cantidad: 1,
         precioUnitario: precio,
-        precioTotal: precio
+        precioTotal: precio,
       };
-      setProductosSeleccionados([...productosSeleccionados, nuevoProducto]);
+      return [...prev, nuevoProducto];
+    });
+  };
+
+  const confirmarMontoVariable = () => {
+    const monto = validarNumero(montoInput);
+
+    if (monto <= 0 || !productoPendienteMonto) {
+      showErrorModal('Debes ingresar un monto mayor a 0');
+      return;
     }
+
+    const itemId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random()}`;
+
+    const nuevoProducto = {
+      ...productoPendienteMonto,
+      cartItemId: itemId,
+      cantidad: 1,
+      precioUnitario: monto,
+      precioTotal: monto,
+      precio_variable: true,
+    };
+
+    setProductosSeleccionados((prev) => [...prev, nuevoProducto]);
+    setProductoPendienteMonto(null);
+    setMontoInput('');
   };
 
   // Función para actualizar cantidad
-  const actualizarCantidad = (idProducto: any, nuevaCantidad: number) => {
-    const nuevosProductos = productosSeleccionados.map(p => 
-      p.id_producto === idProducto 
-        ? { ...p, cantidad: nuevaCantidad, precioTotal: nuevaCantidad * p.precioUnitario }
-        : p
+  const actualizarCantidad = (itemId: string | number, nuevaCantidad: number) => {
+    if (nuevaCantidad < 1) return;
+
+    setProductosSeleccionados((prev) =>
+      prev.map((p) => {
+        if (getCartItemId(p) !== itemId || p.precio_variable) return p;
+        return { ...p, cantidad: nuevaCantidad, precioTotal: nuevaCantidad * p.precioUnitario };
+      })
     );
-    setProductosSeleccionados(nuevosProductos);
   };
 
   // Función para eliminar producto del resumen
-  const eliminarProducto = (idProducto: any) => {
-    setProductosSeleccionados(productosSeleccionados.filter(p => p.id_producto !== idProducto));
+  const eliminarProducto = (itemId: string | number) => {
+    setProductosSeleccionados((prev) => prev.filter((p) => getCartItemId(p) !== itemId));
   };
 
   // Calcular total de venta
@@ -474,7 +512,7 @@ export default function Ingreso({ onVolver }: IngresoProps) {
                       <Table className="min-w-full w-full">
                         <TableBody>
                           {productosSeleccionados.map((p) => (
-                            <TableRow key={p.id_producto} className="hover:bg-[#a06ba5]/5 transition-colors border-b border-gray-200 group last:border-b-0">
+                            <TableRow key={getCartItemId(p)} className="hover:bg-[#a06ba5]/5 transition-colors border-b border-gray-200 group last:border-b-0">
                               <TableCell className="font-medium text-gray-700">{p.nombre_producto}</TableCell>
                               <TableCell className="text-center font-semibold text-green-600 w-24">${p.precioUnitario.toFixed(2)}</TableCell>
                               <TableCell className="text-center py-2 w-24">
@@ -482,14 +520,15 @@ export default function Ingreso({ onVolver }: IngresoProps) {
                                   type="number"
                                   min="1"
                                   value={p.cantidad}
-                                  onChange={(e) => actualizarCantidad(p.id_producto, parseInt(e.target.value) || 0)}
+                                  onChange={(e) => actualizarCantidad(getCartItemId(p), parseInt(e.target.value) || 0)}
+                                  disabled={Boolean(p.precio_variable)}
                                   className="w-16 h-8 text-center text-sm border-[#a06ba5]/20 focus:border-[#a06ba5] focus:ring-[#a06ba5]/20 rounded-lg"
                                 />
                               </TableCell>
                               <TableCell className="text-center font-bold text-[#a06ba5] w-32 min-w-32 max-w-32 overflow-hidden text-ellipsis whitespace-nowrap">${p.precioTotal.toFixed(2)}</TableCell>
                               <TableCell className="text-center w-12">
                                 <button
-                                  onClick={() => eliminarProducto(p.id_producto)}
+                                  onClick={() => eliminarProducto(getCartItemId(p))}
                                   className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-red-100 rounded-full"
                                   title="Eliminar producto"
                                 >
@@ -570,6 +609,44 @@ export default function Ingreso({ onVolver }: IngresoProps) {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={Boolean(productoPendienteMonto)}
+        onClose={() => {
+          setProductoPendienteMonto(null);
+          setMontoInput('');
+        }}
+      >
+        <div className="p-4 space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Monto de venta</h3>
+          <p className="text-sm text-gray-600">
+            {productoPendienteMonto?.nombre_producto}
+          </p>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="$ Monto"
+            value={montoInput}
+            onChange={(e) => setMontoInput(e.target.value)}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setProductoPendienteMonto(null);
+                setMontoInput('');
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={confirmarMontoVariable} disabled={!(parseFloat(montoInput) > 0)}>
+              Agregar
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Modal reutilizable para errores y éxito */}
       <ModalVenta
