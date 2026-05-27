@@ -14,6 +14,11 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
+import ResponsiveTable from "@/components/ResponsiveTable";
+import ListScrollBox from "@/components/ListScrollBox";
+import { ventanaMaxHeightClass } from "@/components/VentanaShell";
+
+const MODAL_WIDE_CLASS = "xl:max-w-4xl 2xl:max-w-[960px]";
 
 interface Factura {
     id: number;
@@ -237,9 +242,9 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
 
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-6 px-4">
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden flex-1">
-                <div className="flex flex-col h-[calc(100vh-6rem)]">
+        <div className="w-full px-3 sm:px-4 py-4 sm:py-6 bg-gray-50 flex flex-col">
+            <div className={`mx-auto bg-white border border-gray-200 rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col ${ventanaMaxHeightClass["6xl"]}`}>
+                <div className="flex flex-col min-h-0 flex-1">
                     <div className="bg-white/95 px-6 md:px-8 py-5 border-b border-gray-200 shadow-sm flex flex-col gap-4 sticky top-0 z-20">
                         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                             <div className="flex gap-2">
@@ -297,7 +302,7 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
 
                         {mostrarFiltros && (
                             <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl shadow-sm">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                                     <div className="flex flex-col gap-2">
                                         <Label htmlFor="filtro-tipo" className="text-sm font-semibold text-purple-800">Tipo de transacción</Label>
                                         <select
@@ -355,7 +360,7 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
                         )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto bg-white px-6 md:px-8 py-6">
+                    <div className="flex-1 min-h-0 flex flex-col bg-white px-6 md:px-8 py-4 sm:py-6">
                         {cargando ? (
                             <p className="text-center text-lg font-semibold py-8">Cargando facturas...</p>
                         ) : !Array.isArray(facturas) || facturas.length === 0 ? (
@@ -367,8 +372,9 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
                                 <p className="text-center text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay facturas que coincidan con los filtros aplicados.</p>
                             </div>
                         ) : (
-                            <div className="rounded-xl border border-gray-100 overflow-hidden">
-                                <Table className="min-w-full">
+                            <ListScrollBox className="border-gray-100 flex-1">
+                            <ResponsiveTable className="border-0 rounded-none">
+                                <Table className="min-w-full w-full">
                                     <TableHeader className="bg-gradient-to-r from-purple-600 to-indigo-600 sticky top-0 z-10 shadow text-white">
                                         <TableRow>
                                             <TableHead className="font-bold text-white text-center">Fecha</TableHead>
@@ -428,7 +434,8 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
                                         ))}
                                     </TableBody>
                                 </Table>
-                            </div>
+                            </ResponsiveTable>
+                            </ListScrollBox>
                         )}
                     </div>
                 </div>
@@ -474,7 +481,7 @@ export default function Caja({ onTabChange }: { onTabChange: (tab: string) => vo
             </Modal>
 
             {/* Modal para ver registro de ingresos */}
-            <Modal isOpen={isVerRegistroIngresoOpen} onClose={handleCloseVerRegistroIngreso} contentClassName="max-w-4xl">
+            <Modal isOpen={isVerRegistroIngresoOpen} onClose={handleCloseVerRegistroIngreso} contentClassName={MODAL_WIDE_CLASS}>
                 <div className="text-gray-900">
                     <h2 className="text-lg font-semibold mb-4 text-gray-900">{verRegistroIngresoTitle}</h2>
                     <div className="text-gray-900">

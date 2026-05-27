@@ -764,8 +764,9 @@ export function buildProductoFormContent(args: {
                   type="number"
                   step="0.01"
                   value={String(getCreateValue("porcentaje_final"))}
-                  disabled
-                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                  onChange={(e) => handleCreateChange("porcentaje_final", e.target.value)}
+                  disabled={!porcentajePersonalizado}
+                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
                 />
               </div>
               <div>
@@ -775,8 +776,9 @@ export function buildProductoFormContent(args: {
                   type="number"
                   step="0.01"
                   value={String(getCreateValue("porcentaje_mayorista"))}
-                  disabled
-                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                  onChange={(e) => handleCreateChange("porcentaje_mayorista", e.target.value)}
+                  disabled={!porcentajePersonalizado}
+                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
                 />
               </div>
             </>
@@ -814,9 +816,26 @@ export function buildProductoFormContent(args: {
         </div>
 
 
+        {/* Checkbox de porcentaje manual - Solo en creación */}
+        {!isEdit && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div className="flex items-center gap-2">
+              <input
+                id="manualCreate"
+                type="checkbox"
+                checked={porcentajePersonalizado}
+                onChange={(e) => setPorcentajePersonalizado && setPorcentajePersonalizado(e.target.checked)}
+                className="mr-2"
+              />
+              <Label htmlFor="manualCreate" className="text-sm">% Manual</Label>
+            </div>
+            <div></div>
+          </div>
+        )}
+
         {/* Precios Finales - Solo en creación */}
         {!isEdit && (
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <Label className="text-sm">Precio final CF</Label>
               <Input
@@ -850,7 +869,7 @@ export function buildProductoFormContent(args: {
         {isEdit && (
           <>
             {/* Cuarta fila: Checkbox */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="flex items-center gap-2">
                 <input
                   id="manual"
@@ -865,7 +884,7 @@ export function buildProductoFormContent(args: {
             </div>
 
             {/* Quinta fila: Precios finales */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
                 <Label className="text-sm">Precio final CF</Label>
                 <Input
@@ -1130,7 +1149,7 @@ export function useNuevoDistribuidor({ onDistribuidorSuccess }: { onDistribuidor
     <form onSubmit={handleSubmit} className="space-y-6">
       <h2 className="text-center text-xl font-semibold mb-6">Nuevo Distribuidor</h2>
       
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         {/* CUIT */}
         <div>
           <Label htmlFor="cuit" className="text-base font-medium">
@@ -1615,7 +1634,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
           <div className="lg:col-span-2">
             <div className="space-y-4">
               {/* Primera fila */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="nombre_mascota" className="text-gray-700 font-semibold">Nombre *</Label>
                   <Input
@@ -1647,7 +1666,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
               </div>
 
               {/* Segunda fila */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="raza_mascota" className="text-gray-700 font-semibold">Raza</Label>
                   <Input
@@ -1675,7 +1694,7 @@ export function useNuevaMascota({ onMascotaSuccess }: { onMascotaSuccess?: () =>
               </div>
 
               {/* Tercera fila */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edad_mascota" className="text-gray-700 font-semibold">Edad (años)</Label>
                   <Input

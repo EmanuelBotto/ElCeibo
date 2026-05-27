@@ -15,6 +15,11 @@ import Modal from '@/components/ui/modal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import VentanaShell from "@/components/VentanaShell";
+import ResponsiveTable from "@/components/ResponsiveTable";
+import ListScrollBox from "@/components/ListScrollBox";
+
+const MODAL_WIDE_CLASS = "xl:max-w-4xl 2xl:max-w-[960px]";
 
 interface DistribuidoresDeudasProps {
   onTabChange: (tab: string) => void;
@@ -131,7 +136,7 @@ export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeud
         }} className="space-y-6">
             <h2 className="text-center text-xl font-semibold mb-6">Modificar Distribuidor</h2>
             
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 {/* CUIT */}
                 <div>
                     <Label htmlFor="cuit_mod" className="text-base font-medium">
@@ -283,10 +288,11 @@ export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeud
     const distribuidoresFiltrados = distribuidores;
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-6xl flex flex-col gap-6">
-                <div className="flex flex-col md:flex-row md:justify-center md:items-center mb-8 gap-4">
-                    <div className="flex gap-2">
+        <VentanaShell
+            maxWidth="6xl"
+            maxHeight="7xl"
+            actions={
+                <>
                         <Button 
                             className="px-6 py-2"
                             onClick={handleOpenModal}
@@ -317,27 +323,28 @@ export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeud
                             <AlertTriangle className="w-4 h-4 mr-2" />
                             Ver Deudas
                         </Button>
-                    </div>
-                </div>
-
-
+                </>
+            }
+        >
                 {cargando ? (
-                    <p className="text-center text-lg font-semibold py-8">Cargando distribuidores...</p>
+                    <p className="text-center text-lg font-semibold py-8 flex-shrink-0">Cargando distribuidores...</p>
                 ) : !Array.isArray(distribuidores) || distribuidores.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12">
+                    <div className="flex flex-col items-center justify-center py-12 flex-shrink-0">
                         <p className="text-center text-lg font-semibold bg-red-100 text-red-700 px-6 py-4 rounded-lg border border-red-300">
                             No hay distribuidores registrados.
                         </p>
                     </div>
                 ) : distribuidoresFiltrados.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12">
+                    <div className="flex flex-col items-center justify-center py-12 flex-shrink-0">
                         <p className="text-center text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">
                             No hay distribuidores registrados.
                         </p>
                     </div>
                 ) : (
-                    <Table>
-                        <TableHeader>
+                    <ListScrollBox className="border-gray-100">
+                    <ResponsiveTable className="border-0 rounded-none">
+                    <Table className="min-w-full w-full">
+                        <TableHeader className="sticky top-0 z-10">
                             <TableRow>
                                 <TableHead className="font-bold text-white text-center w-1/5">Nombre de Fantasía</TableHead>
                                 <TableHead className="font-bold text-white text-center w-1/5">Contacto</TableHead>
@@ -425,11 +432,12 @@ export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeud
                             ))}
                         </TableBody>
                     </Table>
+                    </ResponsiveTable>
+                    </ListScrollBox>
                 )}
-            </div>
 
             {/* Modal para nuevo distribuidor */}
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} contentClassName="max-w-[960px]">
+            <Modal isOpen={isModalOpen} onClose={handleCloseModal} contentClassName={MODAL_WIDE_CLASS}>
                 <div className="text-gray-900">
                     {renderContent()}
                 </div>
@@ -444,11 +452,11 @@ export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeud
             />
 
             {/* Modal de modificación */}
-            <Modal isOpen={isModalModificarOpen} onClose={handleCloseModalModificar} contentClassName="max-w-[960px]">
+            <Modal isOpen={isModalModificarOpen} onClose={handleCloseModalModificar} contentClassName={MODAL_WIDE_CLASS}>
                 <div className="text-gray-900">
                     {renderFormularioModificacion()}
                 </div>
             </Modal>
-        </div>
+        </VentanaShell>
     );
 }

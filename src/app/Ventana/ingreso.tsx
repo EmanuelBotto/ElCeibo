@@ -11,6 +11,9 @@ import {
 } from '@/components/ui/table';
 import { FileText } from 'lucide-react';
 import { ModalVenta, useModalVenta } from '@/lib/modales';
+import ResponsiveTable from '@/components/ResponsiveTable';
+import ListScrollBox from '@/components/ListScrollBox';
+import OpcionesBusquedaProducto from '@/components/producto/OpcionesBusquedaProducto';
 
 interface IngresoProps {
   onVolver: (tab: string) => void;
@@ -27,6 +30,7 @@ export default function Ingreso({ onVolver }: IngresoProps) {
   const [formasPago, setFormasPago] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [paginaActual, setPaginaActual] = useState<number>(1);
+  const [opcionesBusquedaAbiertas, setOpcionesBusquedaAbiertas] = useState<boolean>(false);
   const [pagination, setPagination] = useState<any>({
     currentPage: 1,
     totalPages: 1,
@@ -251,77 +255,54 @@ export default function Ingreso({ onVolver }: IngresoProps) {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col items-center justify-start py-6 overflow-hidden mx-6">
-      <div className="bg-white border border-gray-200 rounded-3xl p-8 w-full max-w-7xl flex flex-col gap-6 h-full">
+    <div className="w-full px-3 sm:px-4 py-4 sm:py-6 bg-gray-50">
+      <div className="mx-auto w-full max-w-7xl bg-white border border-gray-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 flex flex-col gap-4 sm:gap-6 min-h-0 max-h-[calc(100dvh-5rem)]">
 
         {/* Sección de búsqueda y controles */}
-        <div className="flex flex-col gap-6">
+        <div className="flex-shrink-0 flex flex-col gap-6">
           {/* Fila superior: Input de búsqueda y tabla de productos */}
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
-            <div className="w-full lg:w-1/2 flex flex-col gap-4">
-              {/* Input de búsqueda */}
-              <div className="relative">
-                <Input
-                  id="busqueda"
-                  placeholder={modoBusqueda === 'codigo' ? 'Buscar por código...' : 'Buscar por descripción...'}
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="text-base px-5 py-4 border-2 border-gray-200 rounded-xl focus:border-[#a06ba5] focus:ring-2 focus:ring-[#a06ba5]/20 h-14 pr-12 bg-gray-50 transition-all duration-200"
-                />
-                <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                  <svg className="w-6 h-6 text-[#a06ba5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+          <div className="flex flex-col xl:flex-row gap-6 items-start">
+            <div className="w-full xl:w-1/2 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 min-w-0">
+                  <Input
+                    id="busqueda"
+                    placeholder={modoBusqueda === 'codigo' ? 'Buscar por código...' : 'Buscar por descripción...'}
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    className="h-9 text-sm px-3 border-2 border-gray-300 rounded-lg focus:border-[#a06ba5] focus:ring-2 focus:ring-[#a06ba5]/20 pr-10"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-[#a06ba5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
                 </div>
+                <OpcionesBusquedaProducto
+                  tipoBusqueda={modoBusqueda === 'codigo' ? 'codigo' : 'nombre'}
+                  tipoCliente={tipoCliente}
+                  onTipoBusquedaChange={(value) => setModoBusqueda(value === 'codigo' ? 'codigo' : 'descripcion')}
+                  onTipoClienteChange={setTipoCliente}
+                  abierto={opcionesBusquedaAbiertas}
+                  onToggle={() => setOpcionesBusquedaAbiertas((prev) => !prev)}
+                  onCerrar={() => setOpcionesBusquedaAbiertas(false)}
+                />
               </div>
-              
-              {/* Controles de búsqueda y tipo de cliente */}
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-6">
-                      <label className="inline-flex items-center gap-3 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="modo"
-                          checked={modoBusqueda === 'codigo'}
-                          onChange={() => setModoBusqueda('codigo')}
-                          className="w-5 h-5 text-[#a06ba5] focus:ring-[#a06ba5]"
-                        />
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-[#a06ba5] transition-colors">Buscar Código</span>
-                      </label>
-                      <label className="inline-flex items-center gap-3 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="modo"
-                          checked={modoBusqueda === 'descripcion'}
-                          onChange={() => setModoBusqueda('descripcion')}
-                          className="w-5 h-5 text-[#a06ba5] focus:ring-[#a06ba5]"
-                        />
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-[#a06ba5] transition-colors">Buscar Descripción</span>
-                      </label>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-col gap-3">
-                    <select
-                      id="tipoCliente"
-                      value={tipoCliente}
-                      onChange={(e) => setTipoCliente(e.target.value)}
-                      className="border-2 border-gray-200 px-4 py-3 rounded-lg font-medium bg-white text-gray-700 focus:border-[#a06ba5] focus:ring-2 focus:ring-[#a06ba5]/20 h-12 min-w-[160px] transition-all duration-200"
-                    >
-                      <option value="cliente final">Cliente Final</option>
-                      <option value="mayorista">Mayorista</option>
-                    </select>
-                  </div>
+              <div className="flex justify-start">
+                <div className="bg-gradient-to-r from-[#a06ba5] to-[#8a5a8f] text-white rounded-xl px-4 py-3 shadow-lg">
+                  <span className="text-base sm:text-lg font-bold">$ TOTAL VENTA: ${totalVenta.toFixed(2)}</span>
                 </div>
               </div>
             </div>
             
             {/* Tabla de productos a la derecha */}
-            <div className="w-full lg:w-1/2">
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 shadow-inner">
-                <div className="overflow-y-auto max-h-40 mb-2">
+            <div className="w-full xl:w-1/2 flex flex-col min-h-0 xl:flex-1">
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 shadow-inner flex flex-col min-h-0 flex-1">
+                <ListScrollBox
+                  className="border-0 bg-transparent shadow-none flex-none h-[8rem] min-h-[8rem] max-h-[8rem]"
+                  scrollClassName="h-[8rem] min-h-[8rem] max-h-[8rem]"
+                >
                   {cargando ? (
                     <div className="flex items-center justify-center py-4">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#a06ba5]"></div>
@@ -354,11 +335,11 @@ export default function Ingreso({ onVolver }: IngresoProps) {
                       })}
                     </div>
                   )}
-                </div>
+                </ListScrollBox>
                 
                 {/* Controles de paginación */}
                 {pagination.totalPages > 1 && (
-                  <div className="flex justify-center items-center space-x-1 pt-2 border-t border-gray-300">
+                  <div className="flex-shrink-0 flex justify-center items-center flex-wrap gap-1 pt-2 border-t border-gray-300">
                     {/* Botón Primera página */}
                     <Button
                       variant="outline"
@@ -466,16 +447,9 @@ export default function Ingreso({ onVolver }: IngresoProps) {
           </div>
         </div>
 
-        {/* Total de venta */}
-        <div className="flex justify-left">
-          <div className="bg-gradient-to-r from-[#a06ba5] to-[#8a5a8f] text-white rounded-xl px-6 py-4 shadow-lg">
-            <span className="text-xl font-bold">$ TOTAL VENTA: ${totalVenta.toFixed(2)}</span>
-          </div>
-        </div>
-
         {/* Resumen de compra */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-3xl p-6 flex-1 min-h-0 shadow-inner flex flex-col overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 gap-4">
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-inner flex flex-col flex-1 min-h-0">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
               <h3 className="text-lg font-bold text-gray-800">Resumen de Compra</h3>
               <div className="bg-[#a06ba5]/10 text-[#a06ba5] px-3 py-1 rounded-full text-sm font-semibold">
@@ -483,9 +457,9 @@ export default function Ingreso({ onVolver }: IngresoProps) {
               </div>
             </div>
             
-            <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 overflow-hidden">
+            <div className="flex flex-col xl:flex-row gap-6 flex-1 min-h-0">
               {/* Tabla del resumen */}
-              <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+              <div className="flex-1 min-w-0 flex flex-col min-h-0">
                 {productosSeleccionados.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 flex-1">
                     <div className="text-center">
@@ -495,9 +469,9 @@ export default function Ingreso({ onVolver }: IngresoProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 min-h-0 flex flex-col">
-                    <div className="overflow-y-auto flex-1">
-                      <Table>
+                  <ListScrollBox className="border-gray-200 min-h-[8rem]">
+                  <ResponsiveTable minWidth={520} className="border-0 rounded-none">
+                      <Table className="min-w-full w-full">
                         <TableBody>
                           {productosSeleccionados.map((p) => (
                             <TableRow key={p.id_producto} className="hover:bg-[#a06ba5]/5 transition-colors border-b border-gray-200 group last:border-b-0">
@@ -528,13 +502,13 @@ export default function Ingreso({ onVolver }: IngresoProps) {
                           ))}
                         </TableBody>
                       </Table>
-                    </div>
-                  </div>
+                  </ResponsiveTable>
+                  </ListScrollBox>
                 )}
               </div>
 
               {/* Formas de pago y botón finalizar */}
-              <div className="w-full lg:w-80 flex flex-col gap-4 flex-shrink-0">
+              <div className="w-full xl:w-80 flex flex-col gap-4 flex-shrink-0">
                 {/* Formas de pago */}
                 <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
                   <label className="block text-sm font-medium text-gray-700 mb-3">

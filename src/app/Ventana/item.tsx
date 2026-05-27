@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableHeader,
@@ -15,6 +14,9 @@ import {
 } from "@/components/ui/table";
 import DialogoNuevoItem from "@/components/DialogoNuevoItem";
 import DialogoEditarItem from "@/components/DialogoEditarItem";
+import VentanaShell from "@/components/VentanaShell";
+import ResponsiveTable from "@/components/ResponsiveTable";
+import ListScrollBox from "@/components/ListScrollBox";
 
 export default function Item() {
   // Lista de items
@@ -283,29 +285,26 @@ export default function Item() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start py-8">
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-10 w-full max-w-6xl flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-          <div className="text-center md:text-left">
-            <h1 className="text-4xl font-bold text-purple-800 tracking-tight mb-2">Gestión de Items</h1>
-
-          </div>
-          
-          <div className="flex flex-col gap-2 w-48">
-            <Label htmlFor="rubro" className="text-sm font-semibold text-gray-700">Filtrar por Rubro</Label>
-            <select
-              id="rubro"
-              value={rubroSeleccionado}
-              onChange={(e) => setRubroSeleccionado(e.target.value)}
-              className="border-2 border-gray-300 px-3 py-2 rounded-lg font-semibold bg-white text-black focus:border-purple-400 h-10 shadow-sm text-sm"
-            >
-              {rubros.map(rubro => (
-                <option key={rubro} value={rubro}>{rubro}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="flex gap-2">
+    <VentanaShell
+      maxWidth="6xl"
+      maxHeight="7xl"
+      toolbar={
+        <select
+          id="rubro"
+          aria-label="Filtrar por rubro"
+          value={rubroSeleccionado}
+          onChange={(e) => setRubroSeleccionado(e.target.value)}
+          className="h-9 w-full sm:w-52 text-sm border-2 border-gray-300 px-3 rounded-lg font-medium bg-white text-black focus:border-purple-400 shadow-sm"
+        >
+          {rubros.map((rubro) => (
+            <option key={rubro} value={rubro}>
+              {rubro}
+            </option>
+          ))}
+        </select>
+      }
+      actions={
+        <>
             <Button onClick={() => setIsNuevoItemDialogOpen(true)} className="px-6 py-2">
               Agregar
             </Button>
@@ -332,13 +331,40 @@ export default function Item() {
             >
               Eliminar
             </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        </>
+      }
+    >
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 flex-1 min-h-0">
           {/* Tabla de items */}
-          <div className="lg:col-span-3">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">       
+          <div className="xl:col-span-3 flex flex-col min-h-0">
+            <ListScrollBox
+              className="shadow-sm"
+              footer={
+                itemsFiltrados.length > itemsPorPagina ? (
+                  <div className="flex justify-center items-center gap-4 py-1">
+                    <Button
+                      variant="outline"
+                      onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                      disabled={paginaActual === 1}
+                      className="px-4"
+                    >
+                      ← Anterior
+                    </Button>
+                    <span className="text-gray-700 font-semibold px-4 py-2 bg-white rounded-lg border text-sm">
+                      Página {paginaActual} de {totalPaginas}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                      disabled={paginaActual === totalPaginas}
+                      className="px-4"
+                    >
+                      Siguiente →
+                    </Button>
+                  </div>
+                ) : undefined
+              }
+            >
               {cargando ? (
                 <div className="p-8 text-center">
                   <p className="text-lg font-semibold text-gray-600">Cargando items...</p>
@@ -352,8 +378,9 @@ export default function Item() {
                   <p className="text-lg font-semibold bg-yellow-100 text-yellow-800 px-6 py-4 rounded-lg border border-yellow-300">No hay items que coincidan con la búsqueda.</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
+                <ResponsiveTable className="border-0 rounded-none">
+                <Table className="min-w-full w-full">
+                  <TableHeader className="sticky top-0 z-10">
                     <TableRow className="bg-gray-50">
                       <TableHead className="font-bold text-white">Descripción</TableHead>
                       <TableHead className="font-bold text-white">Rubro</TableHead>
@@ -383,39 +410,15 @@ export default function Item() {
                     ))}
                   </TableBody>
                 </Table>
+                </ResponsiveTable>
               )}
-            </div>
-
-            {/* Paginación */}
-            {itemsFiltrados.length > itemsPorPagina && (
-              <div className="mt-6 flex justify-center items-center gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-                  disabled={paginaActual === 1}
-                  className="px-4"
-                >
-                  ← Anterior
-                </Button>
-                <span className="text-gray-700 font-semibold px-4 py-2 bg-white rounded-lg border">
-                  Página {paginaActual} de {totalPaginas}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-                  disabled={paginaActual === totalPaginas}
-                  className="px-4"
-                >
-                  Siguiente →
-                </Button>
-              </div>
-            )}
+            </ListScrollBox>
           </div>
 
           {/* Panel de prospecto */}
-          <div className="lg:col-span-1">
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 shadow-sm">
-              <h3 className="text-xl font-bold text-purple-800 mb-4 flex items-center">
+          <div className="xl:col-span-1 flex flex-col min-h-0">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 sm:p-6 shadow-sm flex flex-col min-h-0 flex-1">
+              <h3 className="text-lg font-bold text-purple-800 mb-3 flex items-center flex-shrink-0">
                 <span className="mr-2">📋</span>
                 Prospecto del Item
               </h3>
@@ -423,14 +426,12 @@ export default function Item() {
                 value={prospectoSeleccionado}
                 onChange={(e) => setProspectoSeleccionado(e.target.value)}
                 placeholder="Selecciona un item para ver su prospecto..."
-                className="w-full h-48 p-4 border-2 border-purple-200 rounded-lg resize-none focus:border-purple-400 focus:outline-none bg-white text-gray-800 font-medium leading-relaxed"
+                className="w-full flex-1 min-h-[8rem] p-4 border-2 border-purple-200 rounded-lg resize-none focus:border-purple-400 focus:outline-none bg-white text-gray-800 font-medium leading-relaxed overflow-y-auto"
                 disabled
               />
-              
             </div>
           </div>
         </div>
-      </div>
 
       {/* Modales */}
       <DialogoNuevoItem
@@ -448,6 +449,6 @@ export default function Item() {
         onSubmit={handleEditarItem}
         itemData={itemEditando}
       />
-    </div>
+    </VentanaShell>
   );
 }

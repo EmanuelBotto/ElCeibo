@@ -19,7 +19,7 @@ export default function Modal({ isOpen, onClose, children, contentClassName }: M
       />
       <div className="relative z-50 flex min-h-full items-center justify-center p-4">
         <div
-          className={`bg-white rounded-lg shadow-lg p-6 w-full ${contentClassName ?? 'max-w-md'} relative text-gray-900`}
+          className={`bg-white rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto ${contentClassName ?? 'sm:max-w-md'} relative text-gray-900`}
           onClick={(e) => e.stopPropagation()}
         >
           <button

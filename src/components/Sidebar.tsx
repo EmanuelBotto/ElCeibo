@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
   Home, 
@@ -29,8 +29,28 @@ interface SidebarProps {
   onTabChange: (tab: string) => void;
 }
 
+const COMPACT_VIEWPORT_QUERY = '(max-width: 1280px)';
+
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [userOverride, setUserOverride] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(COMPACT_VIEWPORT_QUERY);
+    const syncFromViewport = () => {
+      if (!userOverride) {
+        setIsCollapsed(mq.matches);
+      }
+    };
+    syncFromViewport();
+    mq.addEventListener('change', syncFromViewport);
+    return () => mq.removeEventListener('change', syncFromViewport);
+  }, [userOverride]);
+
+  const toggleCollapsed = useCallback(() => {
+    setUserOverride(true);
+    setIsCollapsed((prev) => !prev);
+  }, []);
   const [isReportesModalOpen, setIsReportesModalOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const { user, logout } = useAuth();
@@ -123,7 +143,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
          <Button
            variant="ghost"
            size="sm"
-           onClick={() => setIsCollapsed(!isCollapsed)}
+           onClick={toggleCollapsed}
            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-black hover:bg-purple-400 p-2 transition-transform duration-300 z-10 bg-white rounded-md shadow-sm border border-gray-200"
          >
            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -131,8 +151,8 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
        </div>
 
       {/* Menú principal */}
-       <div className="flex-1 py-4 overflow-hidden">
-         <nav className="space-y-2 px-3 h-full overflow-y-auto">
+       <div className="flex-1 py-4 overflow-visible">
+         <nav className="space-y-2 px-3">
            {menuItems.map((item) => {
              const Icon = item.icon;
              
@@ -202,16 +222,12 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
          </nav>
        </div>
         {/* Footer con información del usuario */}
-       <div className="flex-1 p-4 flex flex-col min-h-0">
-         <div className="flex-1"></div>
-         
+       <div className="shrink-0 p-4">
          {/* Información del usuario y botones juntos al final */}
          <div className="space-y-3">
-           <div className={`transition-all duration-300 ${
-             isCollapsed ? 'opacity-0' : 'opacity-100'
-           }`}>
+           <div className={isCollapsed ? 'hidden' : 'transition-all duration-300 opacity-100'}>
              <div className="flex items-center space-x-3">
-               <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center overflow-hidden">
+               <div className="w-9 h-9 shrink-0 bg-white rounded-full flex items-center justify-center overflow-hidden">
                  {user?.foto && user.foto.trim() !== '' ? (
                    // eslint-disable-next-line @next/next/no-img-element
                    <img
@@ -225,11 +241,11 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                      }}
                    />
                  ) : null}
-                 <User size={16} className={`text-[#a06ba5] ${user?.foto && user.foto.trim() !== '' ? 'hidden' : ''}`} />
+                 <User size={18} className={`text-[#a06ba5] ${user?.foto && user.foto.trim() !== '' ? 'hidden' : ''}`} />
                </div>
-               <div className="flex-1">
-                 <p className="text-sm font-medium text-black">{user?.nombre} {user?.apellido}</p>
-                 <p className="text-xs text-black opacity-75 capitalize">{user?.tipo_usuario}</p>
+               <div className="min-w-0 flex-1">
+                 <p className="truncate text-sm font-medium text-black">{user?.nombre} {user?.apellido}</p>
+                 <p className="truncate text-xs text-black opacity-75 capitalize">{user?.tipo_usuario}</p>
                </div>
              </div>
            </div>
