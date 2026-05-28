@@ -540,7 +540,7 @@ export function buildProductoFormContent(args: {
   // FUNCIONES AUXILIARES
   // ========================================
 
-  const getCreateValue = (field: keyof NuevoProducto): string | number => {
+  const getCreateValue = (field: keyof NuevoProducto): string | number | boolean => {
     return nuevoProducto?.[field] ?? "";
   };
 
@@ -549,7 +549,7 @@ export function buildProductoFormContent(args: {
     setNuevoProducto({ ...nuevoProducto, [field]: value });
   };
 
-  const getEditValue = (field: string): string | number => {
+  const getEditValue = (field: string): string | number | boolean => {
     if (!productoEditando) return "";
     if (field === "nombre") return productoEditando.nombre_producto ?? "";
     return productoEditando[field] ?? "";
