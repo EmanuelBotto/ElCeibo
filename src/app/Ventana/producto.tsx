@@ -29,7 +29,7 @@ export default function Producto() {
 
   // Lista de productos
   const [productos, setProductos] = useState<any[]>([]);
-  const [tipos] = useState<any[]>([]);
+  const [tipos, setTipos] = useState<any[]>([]);
   // Estado de carga
   const [cargando, setCargando] = useState<boolean>(true);
   // Nuevo producto a crear
@@ -66,6 +66,32 @@ export default function Producto() {
     const numero = parseFloat(valor);
     return isNaN(numero) ? 0 : numero;
   };
+
+  const cargarTipos = useCallback(async () => {
+    try {
+      const res = await fetch("/api/product-types", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setTipos(data);
+      } else {
+        setTipos([]);
+      }
+    } catch (error) {
+      console.error("Error al cargar tipos de producto:", error);
+      setTipos([]);
+    }
+  }, []);
 
   const cargarProductos = useCallback(async () => {
     try {
@@ -145,8 +171,9 @@ export default function Producto() {
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       cargarProductos();
+      cargarTipos();
     }
-  }, [authLoading, isAuthenticated, cargarProductos]);
+  }, [authLoading, isAuthenticated, cargarProductos, cargarTipos]);
   
   // NO agregar tipoBusqueda aquí - solo cambia el placeholder del input
   
@@ -155,6 +182,21 @@ export default function Producto() {
     // Este useEffect solo cambia el placeholder, NO recarga productos
     // No hace nada, solo documenta que tipoBusqueda cambia
   }, [tipoBusqueda]);
+
+  useEffect(() => {
+    if (!mostrarFormulario || porcentajePersonalizado || tipos.length === 0) return;
+
+    const selectedTipoId = String(nuevoProducto.id_tipo || tipos[0]?.id_tipo || "1");
+    const tipoSeleccionado = tipos.find((t) => String(t.id_tipo) === selectedTipoId) || tipos[0];
+    if (!tipoSeleccionado) return;
+
+    setNuevoProducto((prev: any) => ({
+      ...prev,
+      id_tipo: String(tipoSeleccionado.id_tipo),
+      porcentaje_final: tipoSeleccionado.porcentaje_final,
+      porcentaje_mayorista: tipoSeleccionado.porcentaje_mayorista,
+    }));
+  }, [mostrarFormulario, porcentajePersonalizado, tipos, nuevoProducto.id_tipo]);
 
   const crearProducto = async () => {
     try {
@@ -165,6 +207,10 @@ export default function Producto() {
 
       const precio_costo = validarNumero(nuevoProducto.precio_costo);
       const stock = validarNumero(nuevoProducto.stock);
+      const porcentajeFinal = validarNumero(nuevoProducto.porcentaje_final);
+      const porcentajeMayorista = validarNumero(nuevoProducto.porcentaje_mayorista);
+      const incrementoFinal = (porcentajeFinal - 1) * 100;
+      const incrementoMayorista = (porcentajeMayorista - 1) * 100;
 
       if (precio_costo <= 0) {
         throw new Error("El precio debe ser mayor a 0");
@@ -172,6 +218,14 @@ export default function Producto() {
 
       if (stock < 0) {
         throw new Error("El stock no puede ser negativo");
+      }
+
+      if (!String(nuevoProducto.porcentaje_final ?? "").trim() || incrementoFinal <= 0) {
+        throw new Error("El % incremento CF debe ser mayor a 0");
+      }
+
+      if (!String(nuevoProducto.porcentaje_mayorista ?? "").trim() || incrementoMayorista <= 0) {
+        throw new Error("El % incremento R debe ser mayor a 0");
       }
 
       const productoParaEnviar = {
@@ -232,6 +286,8 @@ export default function Producto() {
         precio_costo: "",
         stock: "",
         id_tipo: "1",
+        porcentaje_final: "",
+        porcentaje_mayorista: "",
       });
       setPrecioVariable(false);
       setMostrarFormulario(false);
@@ -266,6 +322,8 @@ export default function Producto() {
         productoEditando.porcentaje_mayorista
       );
       const porcentajeFinal = validarNumero(productoEditando.porcentaje_final);
+      const incrementoFinal = (porcentajeFinal - 1) * 100;
+      const incrementoMayorista = (porcentajeMayorista - 1) * 100;
 
       if (precio_costo <= 0) {
         throw new Error("El precio debe ser mayor a 0");
@@ -273,6 +331,14 @@ export default function Producto() {
 
       if (stock < 0) {
         throw new Error("El stock no puede ser negativo");
+      }
+
+      if (!String(productoEditando.porcentaje_final ?? "").trim() || incrementoFinal <= 0) {
+        throw new Error("El % incremento CF debe ser mayor a 0");
+      }
+
+      if (!String(productoEditando.porcentaje_mayorista ?? "").trim() || incrementoMayorista <= 0) {
+        throw new Error("El % incremento R debe ser mayor a 0");
       }
 
       const datosActualizacion = {
@@ -474,6 +540,16 @@ export default function Producto() {
             <Button
               onClick={() => {
                 setPrecioVariable(false);
+                setPorcentajePersonalizado(false);
+                if (tipos.length > 0) {
+                  const tipoInicial = tipos[0];
+                  setNuevoProducto((prev: any) => ({
+                    ...prev,
+                    id_tipo: String(tipoInicial.id_tipo),
+                    porcentaje_final: tipoInicial.porcentaje_final,
+                    porcentaje_mayorista: tipoInicial.porcentaje_mayorista,
+                  }));
+                }
                 setMostrarFormulario(true);
               }}
               className="px-6 py-2"
@@ -764,11 +840,14 @@ export default function Producto() {
           nuevoProducto,
           setNuevoProducto,
           tipos,
+          porcentajePersonalizado,
+          setPorcentajePersonalizado,
           precioVariable,
           setPrecioVariable,
           onCancel: () => {
             setMostrarFormulario(false);
             setPrecioVariable(false);
+            setPorcentajePersonalizado(false);
           },
           onSubmit: crearProducto,
         })}
@@ -777,7 +856,7 @@ export default function Producto() {
       {/* Modal de edición de producto */}
       <Modal
         isOpen={Boolean(mostrarFormularioEdicion && productoEditando)}
-        contentClassName="max-w-[960px]"
+        contentClassName={MODAL_WIDE_CLASS}
         onClose={() => {
           setMostrarFormularioEdicion(false);
           setProductoEditando(null);

@@ -536,9 +536,46 @@ export function buildProductoFormContent(args: {
 
   const isEdit = mode === "edit";
 
-  // ========================================
-  // FUNCIONES AUXILIARES
-  // ========================================
+  const labelClass = "text-sm font-medium mb-1";
+  const inputClass = "h-11 rounded-full border-2 border-purple-400 focus:ring-purple-500";
+  const selectClass = "w-full h-11 rounded-full border-2 border-purple-400 px-3 py-2 bg-white text-black focus:ring-purple-500 focus:border-transparent";
+  const disabledInputClass = "h-11 rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700";
+  const manualDisabledInputClass = "h-11 rounded-full border-2 border-gray-300 bg-gray-100 text-gray-500";
+
+  const parseNumber = (value: string | number | boolean | undefined): number => {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : 0;
+  };
+
+  const roundNumber = (value: number): number => {
+    return Number.isFinite(value) ? Number(value.toFixed(4)) : 0;
+  };
+
+  const multiplierToPercent = (multiplierValue: string | number | boolean | undefined): number | null => {
+    if (multiplierValue === "" || multiplierValue === undefined) return null;
+    const parsedMultiplier = Number(multiplierValue);
+    if (!Number.isFinite(parsedMultiplier)) return null;
+    return (parsedMultiplier - 1) * 100;
+  };
+
+  const percentToMultiplier = (percent: number): number => {
+    return 1 + percent / 100;
+  };
+
+  const formatDisplayNumber = (value: number, digits = 2): string => {
+    if (!Number.isFinite(value)) return "";
+    return Number(value.toFixed(digits)).toString();
+  };
+
+  const formatPercentFromMultiplier = (multiplierValue: string | number | boolean | undefined): string => {
+    const percent = multiplierToPercent(multiplierValue);
+    if (percent === null) return "";
+    return formatDisplayNumber(percent);
+  };
+
+  const getTipoById = (idTipo: string): { id_tipo: string | number; nombre: string; porcentaje_final: number; porcentaje_mayorista: number } | undefined => {
+    return tipos.find((tipo) => String(tipo.id_tipo) === String(idTipo));
+  };
 
   const getCreateValue = (field: keyof NuevoProducto): string | number | boolean => {
     return nuevoProducto?.[field] ?? "";
@@ -547,6 +584,45 @@ export function buildProductoFormContent(args: {
   const handleCreateChange = (field: keyof NuevoProducto, value: string): void => {
     if (!nuevoProducto || !setNuevoProducto) return;
     setNuevoProducto({ ...nuevoProducto, [field]: value });
+  };
+
+  const setCreateMultipliersFromTipo = (selectedTipoId: string): void => {
+    if (!setNuevoProducto) return;
+    const tipoSeleccionado = getTipoById(selectedTipoId);
+    if (!tipoSeleccionado) return;
+    setNuevoProducto((prev) => ({
+      ...prev,
+      id_tipo: selectedTipoId,
+      porcentaje_final: tipoSeleccionado.porcentaje_final,
+      porcentaje_mayorista: tipoSeleccionado.porcentaje_mayorista,
+    } as NuevoProducto));
+  };
+
+  const handleCreatePercentInputChange = (
+    field: "porcentaje_final" | "porcentaje_mayorista",
+    value: string
+  ): void => {
+    if (value === "") {
+      handleCreateChange(field, "");
+      return;
+    }
+    const percentValue = Number(value);
+    if (!Number.isFinite(percentValue) || percentValue < 0) return;
+    handleCreateChange(field, String(roundNumber(percentToMultiplier(percentValue))));
+  };
+
+  const handleCreateFinalPriceChange = (
+    field: "porcentaje_final" | "porcentaje_mayorista",
+    value: string
+  ): void => {
+    const costo = parseNumber(getCreateValue("precio_costo"));
+    if (value === "" || !Number.isFinite(Number(value)) || costo <= 0) {
+      handleCreateChange(field, "");
+      return;
+    }
+    const finalPrice = Number(value);
+    const multiplier = finalPrice / costo;
+    handleCreateChange(field, String(roundNumber(multiplier)));
   };
 
   const getEditValue = (field: string): string | number | boolean => {
@@ -564,76 +640,114 @@ export function buildProductoFormContent(args: {
     setProductoEditando({ ...productoEditando, [field]: value } as ProductoEditando);
   };
 
+  const setEditMultipliersFromTipo = (selectedTipoId: string): void => {
+    if (!productoEditando || !setProductoEditando) return;
+    const tipoSeleccionado = getTipoById(selectedTipoId);
+    if (!tipoSeleccionado) return;
+    setProductoEditando({
+      ...productoEditando,
+      id_tipo: selectedTipoId,
+      porcentaje_final: tipoSeleccionado.porcentaje_final,
+      porcentaje_mayorista: tipoSeleccionado.porcentaje_mayorista,
+    });
+  };
 
-  // ========================================
-  // COMPONENTES DE CAMPOS
-  // ========================================
-  // Nota: CampoInput y CampoSelect están definidos pero no se usan actualmente
-  // Se mantienen comentados por si se necesitan en el futuro
-  // Nota: CampoInput y CampoSelect están definidos pero no se usan actualmente
-  // Se mantienen comentados por si se necesitan en el futuro
+  const handleEditPercentInputChange = (
+    field: "porcentaje_final" | "porcentaje_mayorista",
+    value: string
+  ): void => {
+    if (!productoEditando || !setProductoEditando) return;
+    if (value === "") {
+      setProductoEditando({ ...productoEditando, [field]: "" });
+      return;
+    }
+    const percentValue = Number(value);
+    if (!Number.isFinite(percentValue) || percentValue < 0) return;
+    setProductoEditando({
+      ...productoEditando,
+      [field]: roundNumber(percentToMultiplier(percentValue)),
+    });
+  };
 
-  // ========================================
-  // OPCIONES DE TIPOS
-  // ========================================
-  // Nota: opcionesTipos está definido pero no se usa actualmente
-  // Se mantiene comentado por si se necesita en el futuro
-  // Nota: opcionesTipos está definido pero no se usa actualmente
-  // Se mantiene comentado por si se necesita en el futuro
+  const handleEditFinalPriceChange = (
+    field: "porcentaje_final" | "porcentaje_mayorista",
+    value: string
+  ): void => {
+    if (!productoEditando || !setProductoEditando) return;
+    const costo = parseNumber(getEditValue("precio_costo"));
+    if (value === "" || !Number.isFinite(Number(value)) || costo <= 0) {
+      setProductoEditando({ ...productoEditando, [field]: "" });
+      return;
+    }
+    const finalPrice = Number(value);
+    const multiplier = finalPrice / costo;
+    setProductoEditando({
+      ...productoEditando,
+      [field]: roundNumber(multiplier),
+    });
+  };
 
-  // ========================================
-  // RENDERIZADO DEL FORMULARIO
-  // ========================================
+  const createCosto = parseNumber(getCreateValue("precio_costo"));
+  const createMultiplierCF = parseNumber(getCreateValue("porcentaje_final"));
+  const createMultiplierR = parseNumber(getCreateValue("porcentaje_mayorista"));
+  const createFinalCF = createCosto * createMultiplierCF;
+  const createFinalR = createCosto * createMultiplierR;
+
+  const editCosto = parseNumber(getEditValue("precio_costo"));
+  const editMultiplierCF = parseNumber(getEditValue("porcentaje_final"));
+  const editMultiplierR = parseNumber(getEditValue("porcentaje_mayorista"));
+  const editFinalCF = editCosto * editMultiplierCF;
+  const editFinalR = editCosto * editMultiplierR;
+
   return (
-    <div className={isEdit ? "w-full" : "w-full"}>
+    <div className="w-full">
       <h2 className="text-center text-xl font-bold text-purple-800 mb-4">
         {isEdit ? "Actualizar Producto" : "Nuevo Producto"}
       </h2>
       
       <div className="space-y-6">
-        {/* Primera fila: ID, Descripción, Marca, Tipo */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {/* ID Producto */}
-          <div>
-            <Label className="text-sm" htmlFor="idProducto">ID Producto</Label>
+          <div className="flex flex-col">
+            <Label className={labelClass} htmlFor="idProducto">ID Producto</Label>
             <Input
               id="idProducto"
               value={String((isEdit ? (productoEditando?.id_producto) : (nextIdPreview ?? "")) ?? "")}
               disabled
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              className={disabledInputClass}
             />
           </div>
 
           {/* Descripción/Nombre */}
-          <div>
-            <Label className="text-sm" htmlFor={isEdit ? "nombreEdit" : "nombre"}>Descripción</Label>
+          <div className="flex flex-col">
+            <Label className={labelClass} htmlFor={isEdit ? "nombreEdit" : "nombre"}>Descripción</Label>
             <Input
               id={isEdit ? "nombreEdit" : "nombre"}
               value={String(isEdit ? getEditValue("nombre") : getCreateValue("nombre"))}
               onChange={(e) => (isEdit ? handleEditChange("nombre", e.target.value) : handleCreateChange("nombre", e.target.value))}
-              className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+              className={inputClass}
             />
           </div>
 
           {/* Marca */}
           {isEdit ? (
             <div className="flex flex-col">
-              <Label className="text-sm mb-1" htmlFor="marcaEdit">Marca</Label>
+              <Label className={labelClass} htmlFor="marcaEdit">Marca</Label>
               <Input
                 id="marcaEdit"
                 value={String((productoEditando?.marca) ?? "")}
                 onChange={(e) => handleEditChange("marca", e.target.value)}
-                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+                className={inputClass}
               />
             </div>
           ) : (
             <div className="flex flex-col">
-              <Label className="mb-1" htmlFor="marca">Marca</Label>
+              <Label className={labelClass} htmlFor="marca">Marca</Label>
               <Input
                 id="marca"
                 value={String(getCreateValue("marca"))}
                 onChange={(e) => handleCreateChange("marca", e.target.value)}
-                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+                className={inputClass}
               />
             </div>
           )}
@@ -641,13 +755,18 @@ export function buildProductoFormContent(args: {
           {/* Tipo/Rubro */}
           {isEdit ? (
             <div className="flex flex-col">
-              <Label className="text-sm mb-1" htmlFor="rubro">Rubro</Label>
+              <Label className={labelClass} htmlFor="rubro">Rubro</Label>
               <select
                 id="rubro"
                 value={String((productoEditando?.id_tipo) ?? "1")}
-                onChange={(e) => handleEditChange("id_tipo", e.target.value)}
-                className="w-full h-12 border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black focus:ring-purple-500 focus:border-transparent text-base"
-                style={{ height: '3rem', lineHeight: '1.5rem' }}
+                onChange={(e) => {
+                  const selectedTipo = e.target.value;
+                  handleEditChange("id_tipo", selectedTipo);
+                  if (!porcentajePersonalizado) {
+                    setEditMultipliersFromTipo(selectedTipo);
+                  }
+                }}
+                className={selectClass}
               >
                 {Array.isArray(tipos) && tipos.length > 0 ? (
                   tipos.map((t) => (
@@ -665,30 +784,18 @@ export function buildProductoFormContent(args: {
             </div>
           ) : (
             <div className="flex flex-col">
-              <Label className="mb-1" htmlFor="tipo">Tipo</Label>
+              <Label className={labelClass} htmlFor="tipo">Rubro</Label>
               <select
                 id="tipo"
                 value={String(getCreateValue("id_tipo"))}
                 onChange={(e) => {
                   const selected = e.target.value;
                   handleCreateChange("id_tipo", selected);
-                  const t = tipos.find((x) => String(x.id_tipo) === String(selected));
-                  if (t && setNuevoProducto) {
-                    setNuevoProducto((prev) => {
-                      const prevObj = prev as NuevoProducto & {
-                        porcentaje_final?: string | number;
-                        porcentaje_mayorista?: string | number;
-                      };
-                      return {
-                        ...prevObj,
-                        porcentaje_final: t.porcentaje_final,
-                        porcentaje_mayorista: t.porcentaje_mayorista,
-                      } as NuevoProducto;
-                    });
+                  if (!porcentajePersonalizado) {
+                    setCreateMultipliersFromTipo(selected);
                   }
                 }}
-                className="w-full h-12 border-2 border-purple-400 rounded-full px-3 py-2 bg-white text-black focus:ring-purple-500 focus:border-transparent text-base"
-                style={{ height: '3rem', lineHeight: '1.5rem' }}
+                className={selectClass}
               >
                 {tipos.length > 0 ? (
                   tipos.map((t) => (
@@ -707,55 +814,54 @@ export function buildProductoFormContent(args: {
           )}
         </div>
 
-        {/* Tercera fila: Stock, Precio Costo, Porcentajes */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {/* Stock */}
           {isEdit ? (
-            <div>
-              <Label htmlFor={"stockEdit"}>Stock</Label>
+            <div className="flex flex-col">
+              <Label className={labelClass} htmlFor={"stockEdit"}>Stock</Label>
               <Input
                 id={"stockEdit"}
                 type="number"
                 value={String(getEditValue("stock"))}
                 onChange={(e) => handleEditChange("stock", e.target.value)}
-                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+                className={inputClass}
               />
             </div>
           ) : (
-            <div>
-              <Label htmlFor="stock">Stock</Label>
+            <div className="flex flex-col">
+              <Label className={labelClass} htmlFor="stock">Stock</Label>
               <Input
                 id="stock"
                 type="number"
                 value={String(getCreateValue("stock"))}
                 onChange={(e) => handleCreateChange("stock", e.target.value)}
                 placeholder="0"
-                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+                className={inputClass}
               />
             </div>
           )}
 
           {/* Precio Costo */}
           {isEdit ? (
-            <div>
-              <Label htmlFor="precioEdit">Precio Costo</Label>
+            <div className="flex flex-col">
+              <Label className={labelClass} htmlFor="precioEdit">Precio Costo</Label>
               <Input
                 id="precioEdit"
                 type="number"
                 value={String(getEditValue("precio_costo"))}
                 onChange={(e) => handleEditChange("precio_costo", e.target.value)}
-                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+                className={inputClass}
               />
             </div>
           ) : (
-            <div>
-              <Label htmlFor="precio">Precio Costo</Label>
+            <div className="flex flex-col">
+              <Label className={labelClass} htmlFor="precio">Precio Costo</Label>
               <Input
                 id="precio"
                 type="number"
                 value={String(getCreateValue("precio_costo"))}
                 onChange={(e) => handleCreateChange("precio_costo", e.target.value)}
-                className="rounded-full border-2 border-purple-400 focus:ring-purple-500"
+                className={inputClass}
               />
             </div>
           )}
@@ -763,28 +869,28 @@ export function buildProductoFormContent(args: {
           {/* Porcentajes - Solo en creación */}
           {!isEdit && (
             <>
-              <div>
-                <Label className="text-sm">% incremento CF</Label>
+              <div className="flex flex-col">
+                <Label className={labelClass}>% incremento CF</Label>
                 <Input
                   id="incCFCreate"
                   type="number"
                   step="0.01"
-                  value={String(getCreateValue("porcentaje_final"))}
-                  onChange={(e) => handleCreateChange("porcentaje_final", e.target.value)}
+                  value={formatPercentFromMultiplier(getCreateValue("porcentaje_final"))}
+                  onChange={(e) => handleCreatePercentInputChange("porcentaje_final", e.target.value)}
                   disabled={!porcentajePersonalizado}
-                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
+                  className={porcentajePersonalizado ? inputClass : manualDisabledInputClass}
                 />
               </div>
-              <div>
-                <Label className="text-sm">% de incremento R</Label>
+              <div className="flex flex-col">
+                <Label className={labelClass}>% incremento R</Label>
                 <Input
                   id="incRCreate"
                   type="number"
                   step="0.01"
-                  value={String(getCreateValue("porcentaje_mayorista"))}
-                  onChange={(e) => handleCreateChange("porcentaje_mayorista", e.target.value)}
+                  value={formatPercentFromMultiplier(getCreateValue("porcentaje_mayorista"))}
+                  onChange={(e) => handleCreatePercentInputChange("porcentaje_mayorista", e.target.value)}
                   disabled={!porcentajePersonalizado}
-                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
+                  className={porcentajePersonalizado ? inputClass : manualDisabledInputClass}
                 />
               </div>
             </>
@@ -793,28 +899,28 @@ export function buildProductoFormContent(args: {
           {/* Porcentajes - Solo en edición */}
           {isEdit && (
             <>
-              <div>
-                <Label className="text-sm" htmlFor="incCF">% incremento CF</Label>
+              <div className="flex flex-col">
+                <Label className={labelClass} htmlFor="incCF">% incremento CF</Label>
                 <Input
                   id="incCF"
                   type="number"
                   step="0.01"
-                  value={String((productoEditando?.porcentaje_final) ?? "")}
-                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_final: e.target.value })}
+                  value={formatPercentFromMultiplier(getEditValue("porcentaje_final"))}
+                  onChange={(e) => handleEditPercentInputChange("porcentaje_final", e.target.value)}
                   disabled={!porcentajePersonalizado}
-                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
+                  className={porcentajePersonalizado ? inputClass : manualDisabledInputClass}
                 />
               </div>
-              <div>
-                <Label className="text-sm" htmlFor="incR">% de incremento R</Label>
+              <div className="flex flex-col">
+                <Label className={labelClass} htmlFor="incR">% incremento R</Label>
                 <Input
                   id="incR"
                   type="number"
                   step="0.01"
-                  value={String((productoEditando?.porcentaje_mayorista) ?? "")}
-                  onChange={(e) => setProductoEditando && productoEditando && setProductoEditando({ ...productoEditando, porcentaje_mayorista: e.target.value })}
+                  value={formatPercentFromMultiplier(getEditValue("porcentaje_mayorista"))}
+                  onChange={(e) => handleEditPercentInputChange("porcentaje_mayorista", e.target.value)}
                   disabled={!porcentajePersonalizado}
-                  className={`rounded-full border-2 ${porcentajePersonalizado ? "border-purple-400" : "border-gray-300 bg-gray-100 text-gray-500"}`}
+                  className={porcentajePersonalizado ? inputClass : manualDisabledInputClass}
                 />
               </div>
             </>
@@ -830,7 +936,15 @@ export function buildProductoFormContent(args: {
                 id="manualCreate"
                 type="checkbox"
                 checked={porcentajePersonalizado}
-                onChange={(e) => setPorcentajePersonalizado && setPorcentajePersonalizado(e.target.checked)}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  if (setPorcentajePersonalizado) {
+                    setPorcentajePersonalizado(checked);
+                  }
+                  if (!checked) {
+                    setCreateMultipliersFromTipo(String(getCreateValue("id_tipo") || "1"));
+                  }
+                }}
                 className="mr-2"
               />
               <Label htmlFor="manualCreate" className="text-sm">% Manual</Label>
@@ -852,29 +966,25 @@ export function buildProductoFormContent(args: {
         {!isEdit && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <Label className="text-sm">Precio final CF</Label>
+              <Label className={labelClass}>Precio final CF</Label>
               <Input
-                disabled
-                value={(() => {
-                  const base = Number(getCreateValue("precio_costo") || 0);
-                  const mult = Number(getCreateValue("porcentaje_final") || 0);
-                  const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
-                  return `$ ${v}`;
-                })()}
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                type="number"
+                step="0.01"
+                disabled={!porcentajePersonalizado}
+                value={formatDisplayNumber(createFinalCF)}
+                onChange={(e) => handleCreateFinalPriceChange("porcentaje_final", e.target.value)}
+                className={porcentajePersonalizado ? inputClass : disabledInputClass}
               />
             </div>
             <div>
-              <Label className="text-sm">Precio final R</Label>
+              <Label className={labelClass}>Precio final R</Label>
               <Input
-                disabled
-                value={(() => {
-                  const base = Number(getCreateValue("precio_costo") || 0);
-                  const mult = Number(getCreateValue("porcentaje_mayorista") || 0);
-                  const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
-                  return `$ ${v}`;
-                })()}
-                className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                type="number"
+                step="0.01"
+                disabled={!porcentajePersonalizado}
+                value={formatDisplayNumber(createFinalR)}
+                onChange={(e) => handleCreateFinalPriceChange("porcentaje_mayorista", e.target.value)}
+                className={porcentajePersonalizado ? inputClass : disabledInputClass}
               />
             </div>
           </div>
@@ -890,7 +1000,15 @@ export function buildProductoFormContent(args: {
                   id="manual"
                   type="checkbox"
                   checked={porcentajePersonalizado}
-                  onChange={(e) => setPorcentajePersonalizado && setPorcentajePersonalizado(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    if (setPorcentajePersonalizado) {
+                      setPorcentajePersonalizado(checked);
+                    }
+                    if (!checked) {
+                      setEditMultipliersFromTipo(String(getEditValue("id_tipo") || "1"));
+                    }
+                  }}
                   className="mr-2"
                 />
                 <Label htmlFor="manual" className="text-sm">% Manual</Label>
@@ -910,29 +1028,25 @@ export function buildProductoFormContent(args: {
             {/* Quinta fila: Precios finales */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <Label className="text-sm">Precio final CF</Label>
+                <Label className={labelClass}>Precio final CF</Label>
                 <Input
-                  disabled
-                  value={(() => {
-                    const base = Number((productoEditando?.precio_costo ?? 0));
-                    const mult = Number((productoEditando?.porcentaje_final ?? 0));
-                    const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
-                    return `$ ${v}`;
-                  })()}
-                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                  type="number"
+                  step="0.01"
+                  disabled={!porcentajePersonalizado}
+                  value={formatDisplayNumber(editFinalCF)}
+                  onChange={(e) => handleEditFinalPriceChange("porcentaje_final", e.target.value)}
+                  className={porcentajePersonalizado ? inputClass : disabledInputClass}
                 />
               </div>
               <div>
-                <Label className="text-sm">Precio final R</Label>
+                <Label className={labelClass}>Precio final R</Label>
                 <Input
-                  disabled
-                  value={(() => {
-                    const base = Number((productoEditando?.precio_costo ?? 0));
-                    const mult = Number((productoEditando?.porcentaje_mayorista ?? 0));
-                    const v = !isNaN(base * mult) ? (base * mult).toFixed(2) : "";
-                    return `$ ${v}`;
-                  })()}
-                  className="rounded-full border-2 border-purple-200 bg-gray-50 text-gray-700"
+                  type="number"
+                  step="0.01"
+                  disabled={!porcentajePersonalizado}
+                  value={formatDisplayNumber(editFinalR)}
+                  onChange={(e) => handleEditFinalPriceChange("porcentaje_mayorista", e.target.value)}
+                  className={porcentajePersonalizado ? inputClass : disabledInputClass}
                 />
               </div>
             </div>
