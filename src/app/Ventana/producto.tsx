@@ -360,17 +360,7 @@ export default function Producto() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        let errorMessage = errorData.error || "Error al actualizar producto";
-
-        // Si es un error de duplicado, mostrar información específica
-        if (res.status === 409 && errorData.duplicate) {
-          errorMessage = `Ya existe un producto con el nombre "${errorData.duplicate.nombre}" y el mismo tipo. Por favor, cambia el nombre o el tipo para actualizar el producto.`;
-        }
-        
-        const error = new Error(errorMessage) as any;
-        error.isDuplicate = res.status === 409 && errorData.duplicate;
-        error.duplicateInfo = errorData.duplicate;
-        throw error;
+        throw new Error(errorData.error || "Error al actualizar producto");
       }
 
       // Si hay porcentajes personalizados, actualizarlos
@@ -414,16 +404,8 @@ export default function Producto() {
       cargarProductos(); // Recargar productos para ver los cambios
 
     } catch (err: any) {
-      if (err.isDuplicate) {
-        // Mostrar popup de duplicado
-        setInfoDuplicado(err.duplicateInfo);
-        setMostrarDialogoDuplicado(true);
-        // No logear como error ya que es un comportamiento esperado
-        console.log("Producto duplicado detectado:", err.duplicateInfo);
-      } else {
-        toast.error(err.message);
-        console.error("Error completo:", err);
-      }
+      toast.error(err.message);
+      console.error("Error completo:", err);
     }
   };
 
