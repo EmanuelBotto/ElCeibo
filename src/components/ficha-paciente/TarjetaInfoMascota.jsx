@@ -1,9 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
 import ImageDisplay from "@/components/ImageDisplay";
-import { getPetIcon } from "./utils";
+import { calcularEdad, getPetIcon } from "./utils";
 
 const InfoCard = ({ title, children, className, headerAction }) => (
   <div className={`bg-white rounded-lg p-4 ${className}`}>
@@ -22,6 +21,14 @@ export default function TarjetaInfoMascota({
   onAddNewPet,
   historial = [],
 }) {
+  const getEdadMostrada = (mascota) => {
+    if (mascota.edad) {
+      return calcularEdad(mascota.edad);
+    }
+
+    return "No especificada";
+  };
+
   if (!ficha?.mascota) {
     return (
       <div className="lg:col-span-1">
@@ -49,11 +56,8 @@ export default function TarjetaInfoMascota({
       <InfoCard
         title="Info del animal"
         headerAction={
-          <Button size="icon" variant="ghost" onClick={onEditPet}>
-            <Settings
-              size={20}
-              className="text-gray-500 hover:text-purple-700"
-            />
+          <Button size="sm" variant="outline" onClick={onEditPet}>
+            Modificar
           </Button>
         }
       >
@@ -135,7 +139,7 @@ export default function TarjetaInfoMascota({
                     Edad
                   </span>
                   <span className="text-sm font-semibold text-gray-900">
-                    {mascota.edad} años
+                    {getEdadMostrada(mascota)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">

@@ -62,8 +62,8 @@ const TABLAS_INSERT_QUERIES = {
   },
   mascotas: {
     query: `
-      INSERT INTO mascota (nombre, especie, raza, sexo, edad, peso, estado_reproductivo, fecha_nacimiento, id_cliente)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO mascota (nombre, especie, raza, sexo, edad, peso, estado_reproductivo, id_cliente)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (id_mascota) DO UPDATE SET
         nombre = EXCLUDED.nombre,
         especie = EXCLUDED.especie,
@@ -72,10 +72,9 @@ const TABLAS_INSERT_QUERIES = {
         edad = EXCLUDED.edad,
         peso = EXCLUDED.peso,
         estado_reproductivo = EXCLUDED.estado_reproductivo,
-        fecha_nacimiento = EXCLUDED.fecha_nacimiento,
         id_cliente = EXCLUDED.id_cliente
     `,
-    columns: ['nombre', 'especie', 'raza', 'sexo', 'edad', 'peso', 'estado_reproductivo', 'fecha_nacimiento', 'id_cliente'],
+    columns: ['nombre', 'especie', 'raza', 'sexo', 'edad', 'peso', 'estado_reproductivo', 'id_cliente'],
     required: ['nombre', 'especie']
   }
 };
@@ -259,8 +258,15 @@ async function procesarTabla(client, tabla, data) {
         const value = rowFiltered[column];
         
         // Conversiones específicas por tipo de dato
-        if (column === 'precio_costo' || column === 'stock' || column === 'edad' || column === 'peso') {
+        if (column === 'precio_costo' || column === 'stock' || column === 'peso') {
           return value !== undefined && value !== null ? parseFloat(value) : 0;
+        }
+        if (column === 'edad') {
+          if (!value) return null;
+          const parsedDate = new Date(value);
+          return Number.isNaN(parsedDate.getTime())
+            ? null
+            : parsedDate.toISOString().split('T')[0];
         }
         if (column === 'id_tipo') {
           // Si viene nombre_tipo en lugar de id_tipo, convertirlo
@@ -284,13 +290,6 @@ async function procesarTabla(client, tabla, data) {
           if (value === undefined || value === null) return false; // Por defecto precio fijo
           return value === 'true' || value === true || value === 1 || value === '1';
         }
-        if (column === 'fecha_nacimiento') {
-          if (!value) return null;
-          // Intentar parsear la fecha
-          const date = new Date(value);
-          return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
-        }
-        
         return value !== undefined && value !== null ? value : null;
       }));
 

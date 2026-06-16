@@ -72,7 +72,6 @@ const TABLAS_QUERIES = {
       m.edad,
       m.peso,
       m.estado_reproductivo,
-      m.fecha_nacimiento,
       m.id_cliente
     FROM mascota m
     ORDER BY m.id_mascota

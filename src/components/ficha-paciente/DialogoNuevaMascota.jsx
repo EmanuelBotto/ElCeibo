@@ -281,23 +281,22 @@ export default function DialogoNuevaMascota({
                 </div>
               </div>
 
-              {/* Tercera fila - Edad y Peso */}
+              {/* Tercera fila - Fecha de nacimiento y Peso */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label
-                    htmlFor="edad_mascota"
+                    htmlFor="fecha_nacimiento_mascota"
                     className="text-gray-700 font-semibold"
                   >
-                    Edad (años)
+                    Fecha de nacimiento
                   </Label>
                   <Input
-                    id="edad_mascota"
-                    type="number"
+                    id="fecha_nacimiento_mascota"
+                    type="date"
                     value={formData.edad || ""}
-                    onChange={(e) => handleInputChange("edad", e.target.value)}
-                    placeholder="Edad en años"
-                    min="0"
-                    step="0.1"
+                    onChange={(e) =>
+                      handleInputChange("edad", e.target.value)
+                    }
                     className="mt-1 h-12 rounded-full border-2 border-purple-400 focus:ring-purple-500"
                   />
                 </div>

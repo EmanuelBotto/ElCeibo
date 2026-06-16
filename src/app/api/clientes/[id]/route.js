@@ -57,7 +57,6 @@ export async function GET(request, { params }) {
           edad: m.edad,
           peso: m.peso,
           estado_reproductivo: m.estado_reproductivo,
-          fecha_nacimiento: m.fecha_nacimiento,
           deceso: m.deceso
         }));
         console.log('Mascotas encontradas:', mascotas.length);

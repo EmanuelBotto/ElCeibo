@@ -151,16 +151,16 @@ export default function HistorialMedico({
                 {/* Contenido de la carpeta - solo visible si está abierta */}
                 {isAbierta && (
                   <div className="px-4 pb-4 border-t border-gray-200 bg-white">
-                    {/* Diagnóstico */}
+                    {/* Motivo de visita */}
                     <div className="mb-4 pt-3">
                       <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                        Diagnóstico:
+                        Motivo de visita:
                       </h3>
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-gray-800">
                           {visita.diagnostico
                             ? visita.diagnostico
-                            : "Sin diagnóstico registrado"}
+                            : "Sin motivo de visita registrado"}
                         </p>
                       </div>
                     </div>

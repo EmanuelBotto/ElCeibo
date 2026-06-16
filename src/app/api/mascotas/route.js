@@ -87,7 +87,7 @@ export async function POST(request) {
         especie: formData.get("especie"),
         raza: formData.get("raza") || "",
         sexo: formData.get("sexo"),
-        edad: formData.get("edad") || 0,
+        edad: formData.get("edad"),
         peso: formData.get("peso") || 0,
         estado_reproductivo: formData.get("estado_reproductivo") === "true",
         id_cliente: formData.get("id_cliente"),
@@ -103,7 +103,7 @@ export async function POST(request) {
       especie,
       raza = "",
       sexo,
-      edad = 0,
+      edad,
       peso = 0,
       estado_reproductivo = false,
       id_cliente,
@@ -111,12 +111,30 @@ export async function POST(request) {
       deceso = false,
     } = data;
 
+    const parsedEdadFecha = edad
+      ? new Date(edad)
+      : null;
+    const edadFechaNormalizada =
+      parsedEdadFecha && !Number.isNaN(parsedEdadFecha.getTime())
+        ? parsedEdadFecha.toISOString().split("T")[0]
+        : null;
+
+    if (!edadFechaNormalizada) {
+      return new Response(
+        JSON.stringify({ error: "La fecha de nacimiento es requerida" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     console.log("Datos recibidos en API:", {
       nombre,
       especie,
       raza,
       sexo,
-      edad,
+      edad: edadFechaNormalizada,
       peso,
       estado_reproductivo,
       id_cliente,
@@ -188,7 +206,7 @@ export async function POST(request) {
       especie,
       raza,
       sexo,
-      edad,
+      edadFechaNormalizada,
       peso,
       estado_reproductivo,
       fotoBuffer ? `Buffer (${fotoBuffer.length} bytes)` : null,
@@ -208,7 +226,7 @@ export async function POST(request) {
         especie,
         raza,
         sexo,
-        edad,
+        edadFechaNormalizada,
         peso,
         estado_reproductivo,
         fotoBuffer,
@@ -261,8 +279,33 @@ export async function POST(request) {
 // PUT - Actualizar mascota existente
 export async function PUT(request) {
   try {
-    const { id_mascota, nombre, especie, raza, edad, peso, foto, id_cliente } =
-      await request.json();
+    const {
+      id_mascota,
+      nombre,
+      especie,
+      raza,
+      edad,
+      peso,
+      foto,
+      id_cliente,
+    } = await request.json();
+    const parsedEdadFecha = edad
+      ? new Date(edad)
+      : null;
+    const edadFechaNormalizada =
+      parsedEdadFecha && !Number.isNaN(parsedEdadFecha.getTime())
+        ? parsedEdadFecha.toISOString().split("T")[0]
+        : null;
+
+    if (!edadFechaNormalizada) {
+      return new Response(
+        JSON.stringify({ error: "La fecha de nacimiento es requerida" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
     if (!id_mascota) {
       return new Response(
@@ -323,7 +366,7 @@ export async function PUT(request) {
             WHERE id_mascota = $8
             RETURNING id_mascota
         `,
-      [nombre, especie, raza, edad, peso, fotoBuffer, id_cliente, id_mascota]
+      [nombre, especie, raza, edadFechaNormalizada, peso, fotoBuffer, id_cliente, id_mascota]
     );
 
     if (result.rowCount === 0) {

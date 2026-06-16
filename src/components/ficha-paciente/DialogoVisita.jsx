@@ -134,13 +134,13 @@ export default function DialogoVisita({
               )}
             </div>
 
-            {/* Diagnóstico */}
+            {/* Motivo de Visita */}
             <div>
               <Label
                 htmlFor="diagnostico"
                 className="text-gray-700 font-semibold"
               >
-                Diagnóstico
+                Motivo de Visita
               </Label>
               <textarea
                 id="diagnostico"
@@ -148,7 +148,7 @@ export default function DialogoVisita({
                 onChange={(e) =>
                   handleInputChange("diagnostico", e.target.value)
                 }
-                placeholder="Describe el diagnóstico o motivo de la visita"
+                placeholder="Describe el motivo de la visita"
                 rows={3}
                 className={`mt-1 w-full px-3 py-2 border-2 rounded-lg focus:ring-purple-500 focus:border-transparent resize-none ${
                   errores.diagnostico ? "border-red-400" : "border-purple-400"

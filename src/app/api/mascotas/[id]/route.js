@@ -54,8 +54,20 @@ export async function PUT(request, { params }) {
       } = body;
 
       // Validaciones (similares a POST)
-      if (!nombre?.trim() || !especie?.trim() || !raza?.trim() || !sexo?.trim() || edad === null || peso === null || estado_reproductivo === null || dia === null || !mes?.trim() || anio === null || id_cliente === null) {
+      if (!nombre?.trim() || !especie?.trim() || !raza?.trim() || !sexo?.trim() || peso === null || estado_reproductivo === null || dia === null || !mes?.trim() || anio === null || id_cliente === null) {
         return NextResponse.json({ error: 'Todos los campos son requeridos para la actualización' }, { status: 400 });
+      }
+
+      const parsedEdadFecha = edad
+        ? new Date(edad)
+        : null;
+      const edadFechaNormalizada =
+        parsedEdadFecha && !Number.isNaN(parsedEdadFecha.getTime())
+          ? parsedEdadFecha.toISOString().split('T')[0]
+          : null;
+
+      if (!edadFechaNormalizada) {
+        return NextResponse.json({ error: 'La fecha de nacimiento es requerida para la actualización' }, { status: 400 });
       }
 
       const result = await client.query(
@@ -81,8 +93,8 @@ export async function PUT(request, { params }) {
           especie.trim(),
           raza.trim(),
           sexo.trim(),
-          parseInt(edad, 10),
-          parseInt(peso, 10),
+          edadFechaNormalizada,
+          parseFloat(peso),
           foto,
           estado_reproductivo,
           parseInt(dia, 10),

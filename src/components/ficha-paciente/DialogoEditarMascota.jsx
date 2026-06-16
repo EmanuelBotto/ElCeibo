@@ -138,7 +138,7 @@ export default function DialogoEditarMascota({
             : formData.especie,
         raza: formData.raza,
         sexo: formData.sexo,
-        edad: formData.edad ? parseFloat(formData.edad) : 0,
+        edad: formData.edad || null,
         peso: formData.peso ? parseFloat(formData.peso) : 0,
         foto: fotoBase64,
         estado_reproductivo: formData.estado_reproductivo,
@@ -388,21 +388,22 @@ export default function DialogoEditarMascota({
                 </div>
               </div>
 
-              {/* Tercera fila - Edad y Peso */}
+              {/* Tercera fila - Fecha de nacimiento y Peso */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label
-                    htmlFor="edad_mascota_edit"
+                    htmlFor="fecha_nacimiento_mascota_edit"
                     className="text-gray-700 font-semibold"
                   >
-                    Edad (años)
+                    Fecha de nacimiento
                   </Label>
                   <Input
-                    id="edad_mascota_edit"
-                    type="number"
+                    id="fecha_nacimiento_mascota_edit"
+                    type="date"
                     value={formData.edad || ""}
-                    onChange={(e) => handleInputChange("edad", e.target.value)}
-                    placeholder="Edad en años"
+                    onChange={(e) =>
+                      handleInputChange("edad", e.target.value)
+                    }
                     className="mt-1 h-12 rounded-full border-2 border-purple-400 focus:ring-purple-500"
                   />
                 </div>
