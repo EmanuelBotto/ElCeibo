@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { obtenerItemsVacunas, calcularAlertasVacunas } from "./utils";
 
-export function useFichaPaciente(mascotaId) {
+export function useFichaPaciente(mascotaId, currentUserId) {
   const [ficha, setFicha] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [historial, setHistorial] = useState([]);
@@ -84,7 +84,10 @@ export function useFichaPaciente(mascotaId) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(visitaData),
+        body: JSON.stringify({
+          ...visitaData,
+          id_usuario: currentUserId,
+        }),
       });
 
       if (!response.ok) {

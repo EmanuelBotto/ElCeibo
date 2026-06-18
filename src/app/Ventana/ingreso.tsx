@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { FileText } from 'lucide-react';
 import { ModalVenta, useModalVenta } from '@/lib/modales';
+import { useAuth } from '@/components/AuthProvider';
 import ResponsiveTable from '@/components/ResponsiveTable';
 import ListScrollBox from '@/components/ListScrollBox';
 import OpcionesBusquedaProducto from '@/components/producto/OpcionesBusquedaProducto';
@@ -21,6 +22,7 @@ interface IngresoProps {
 }
 
 export default function Ingreso({ onVolver }: IngresoProps) {
+  const { user } = useAuth();
   const [productos, setProductos] = useState<any[]>([]);
   const [cargando, setCargando] = useState<boolean>(true);
   const [busqueda, setBusqueda] = useState<string>('');
@@ -249,6 +251,11 @@ export default function Ingreso({ onVolver }: IngresoProps) {
       return;
     }
 
+    if (!user?.id_usuario) {
+      showErrorModal('No se pudo identificar el usuario actual. Volvé a iniciar sesión.');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -259,7 +266,7 @@ export default function Ingreso({ onVolver }: IngresoProps) {
         formasPago: formasPago,
         tipoCliente: tipoCliente,
         detalle: `Venta de ${productosSeleccionados.length} productos - Cliente ${tipoCliente}`,
-        id_usuario: 1 // TODO: Obtener del contexto de autenticación
+        id_usuario: user.id_usuario
       };
 
 

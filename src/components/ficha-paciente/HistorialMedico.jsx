@@ -58,6 +58,26 @@ export default function HistorialMedico({
     );
   };
 
+  const formatearFechaVisita = (fecha) => {
+    if (!fecha) return "Sin fecha";
+
+    const fechaTexto = String(fecha).split("T")[0];
+    const partes = fechaTexto.split("-");
+
+    if (partes.length === 3) {
+      const [anio, mes, dia] = partes;
+      return `${dia}/${mes}/${anio}`;
+    }
+
+    const fechaObj = new Date(fecha);
+    if (Number.isNaN(fechaObj.getTime())) return String(fecha);
+
+    const dia = String(fechaObj.getDate()).padStart(2, "0");
+    const mes = String(fechaObj.getMonth() + 1).padStart(2, "0");
+    const anio = fechaObj.getFullYear();
+    return `${dia}/${mes}/${anio}`;
+  };
+
   return (
     <div className="lg:col-span-2 bg-white rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
@@ -138,7 +158,7 @@ export default function HistorialMedico({
                       />
                     )}
                     <FolderOpen className="mr-2 text-purple-600" size={18} />
-                    {visita.fecha}
+                    {formatearFechaVisita(visita.fecha)}
                   </div>
                   <div className="text-sm text-gray-600">
                     <span className="font-semibold">Atendió:</span>{" "}
@@ -157,7 +177,7 @@ export default function HistorialMedico({
                         Motivo de visita:
                       </h3>
                       <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-gray-800">
+                        <p className="text-gray-800 whitespace-pre-wrap">
                           {visita.diagnostico
                             ? visita.diagnostico
                             : "Sin motivo de visita registrado"}

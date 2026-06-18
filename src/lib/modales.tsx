@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
+import { useAuth } from "@/components/AuthProvider";
 import { AlertTriangle, CheckCircle, Trash2, Camera, User } from 'lucide-react';
 
 type NuevoProducto = {
@@ -32,6 +33,7 @@ type ProductoEditando = {
 };
 
 export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } = {}) {
+    const { user } = useAuth();
     const [monto, setMonto] = useState("");
     const [detalle, setDetalle] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -83,6 +85,11 @@ export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } 
             return;
         }
 
+        if (!user?.id_usuario) {
+            alert("No se pudo identificar el usuario actual. Volvé a iniciar sesión.");
+            return;
+        }
+
         setIsLoading(true);
         
         try {
@@ -91,7 +98,8 @@ export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } 
                 monto: parseFloat(monto) || 0,
                 detalle: detalle,
                 formasPago: formasPago,
-                tipo: "varios"
+                tipo: "varios",
+                id_usuario: user.id_usuario
                 
             };
 
@@ -142,6 +150,11 @@ export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } 
             return;
         }
 
+        if (!user?.id_usuario) {
+            alert("No se pudo identificar el usuario actual. Volvé a iniciar sesión.");
+            return;
+        }
+
         setIsLoading(true);
         
         try {
@@ -151,7 +164,8 @@ export function useEgreso({ onEgresoSuccess }: { onEgresoSuccess?: () => void } 
                 monto: parseFloat(monto) || 0,
                 formasPago: formasPago,
                 distribuidor: distribuidorSeleccionado,
-                tipo: "distribuidor"
+                tipo: "distribuidor",
+                id_usuario: user.id_usuario
             };
 
             const response = await fetch('/api/caja/1', {

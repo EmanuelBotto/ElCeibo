@@ -19,13 +19,21 @@ export async function POST(request) {
       frecuencia_cardiaca,
       frecuencia_respiratoria,
       peso,
-      id_usuario = 1, // Por defecto, se puede obtener del contexto de autenticación
+      id_usuario,
     } = body;
 
     // Validar datos requeridos
-    if (!id_mascota || !fecha) {
+    if (!id_mascota || !fecha || !id_usuario) {
       return NextResponse.json(
-        { error: "ID de mascota y fecha son requeridos" },
+        { error: "ID de mascota, fecha e ID de usuario son requeridos" },
+        { status: 400 }
+      );
+    }
+
+    const idUsuarioNumero = parseInt(id_usuario, 10);
+    if (Number.isNaN(idUsuarioNumero)) {
+      return NextResponse.json(
+        { error: "El ID de usuario debe ser un número válido" },
         { status: 400 }
       );
     }
@@ -76,7 +84,7 @@ export async function POST(request) {
         frecuenciaCardiaca,
         frecuenciaRespiratoria,
         pesoNumero,
-        id_usuario,
+        idUsuarioNumero,
       ]
     );
 
@@ -85,7 +93,7 @@ export async function POST(request) {
     // Obtener información del usuario que atendió
     const usuarioResult = await client.query(
       "SELECT nombre, apellido FROM usuario WHERE id_usuario = $1",
-      [id_usuario]
+      [idUsuarioNumero]
     );
 
     const usuario = usuarioResult.rows[0];

@@ -39,6 +39,11 @@ export async function POST(request) {
                 RETURNING id_factura
             `;
 
+            const idUsuario = parseInt(ventaData.id_usuario, 10);
+            if (Number.isNaN(idUsuario)) {
+                throw new Error('ID de usuario inválido o faltante');
+            }
+
             const facturaValues = [
                 dia,
                 mes,
@@ -48,7 +53,7 @@ export async function POST(request) {
                 formaPago,
                 Math.round(ventaData.totalVenta * 100) / 100,
                 ventaData.detalle || null,
-                ventaData.id_usuario || 1
+                idUsuario
             ];
 
             const facturaResult = await client.query(facturaQuery, facturaValues);

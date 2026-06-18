@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, PlusCircle } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ import {
 export default function FichaPaciente({ mascotaId }) {
   const router = useRouter();
   const confirm = useConfirm();
+  const { user } = useAuth();
 
   // Estados para diálogos
   const [isNuevaMascotaDialogOpen, setIsNuevaMascotaDialogOpen] =
@@ -68,7 +70,7 @@ export default function FichaPaciente({ mascotaId }) {
     agregarMascota,
     eliminarMascota,
     actualizarFotoMascota,
-  } = useFichaPaciente(mascotaId);
+  } = useFichaPaciente(mascotaId, user?.id_usuario);
 
   // Estados de carga
   if (isLoading) {

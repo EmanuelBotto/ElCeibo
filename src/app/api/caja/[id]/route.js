@@ -44,6 +44,12 @@ export async function POST(request) {
             `;
 
             const montoTotal = ventaData.monto || ventaData.totalVenta;
+            const idUsuario = parseInt(ventaData.id_usuario, 10);
+
+            if (Number.isNaN(idUsuario)) {
+                throw new Error('ID de usuario inválido o faltante');
+            }
+
             const facturaValues = [
                 dia,
                 mes,
@@ -54,7 +60,7 @@ export async function POST(request) {
                 Math.round(montoTotal * 100) / 100,
                 ventaData.detalle || null,
                 ventaData.distribuidor || ventaData.id_distribuidor || null,
-                ventaData.id_usuario || 1, // Usuario por defecto si no se especifica
+                idUsuario,
                 ventaData.numeroRecibo || null
             ];
 
