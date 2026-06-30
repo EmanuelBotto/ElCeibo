@@ -7,18 +7,36 @@ const connectionString = 'postgresql://neondb_owner:npg_2Wd4rlvPuZGM@ep-green-ba
 
 const pool = new Pool({ connectionString });
 
+const ARGENTINA_TIMEZONE = 'America/Argentina/Buenos_Aires';
+
+function getArgentinaDateTimeParts() {
+    const fechaActual = new Date();
+    const partes = new Intl.DateTimeFormat('es-AR', {
+        timeZone: ARGENTINA_TIMEZONE,
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).formatToParts(fechaActual);
+
+    const getParte = (type) => partes.find((p) => p.type === type)?.value ?? '';
+
+    return {
+        dia: Number(getParte('day')),
+        mes: Number(getParte('month')),
+        anio: Number(getParte('year')),
+        hora: `${getParte('hour')}:${getParte('minute')}`,
+    };
+}
+
 export async function POST(request) {
     try {
         const ventaData = await request.json();
         
-        // Obtener fecha y hora actual automáticamente
-        const fechaActual = new Date();
-        const dia = fechaActual.getDate();
-        const mes = fechaActual.getMonth() + 1; // getMonth() devuelve 0-11
-        const anio = fechaActual.getFullYear();
-        const horas = String(fechaActual.getHours()).padStart(2, '0');
-        const minutos = String(fechaActual.getMinutes()).padStart(2, '0');
-        const hora = `${horas}:${minutos}`;
+        // Usar siempre hora local de Argentina para evitar desfases por zona horaria del servidor
+        const { dia, mes, anio, hora } = getArgentinaDateTimeParts();
 
         const client = await pool.connect();
         
