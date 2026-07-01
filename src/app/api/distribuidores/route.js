@@ -37,10 +37,17 @@ async function ensureTableExists() {
           codigo_postal INTEGER,
           cbu BIGINT,
           alias VARCHAR(50),
-          deuda DECIMAL(10,2) DEFAULT 0
+          deuda DECIMAL(10,2) DEFAULT 0,
+          eliminado BOOLEAN DEFAULT false
         )
       `);
     }
+
+    // Asegurar columna para borrado lógico en instalaciones existentes
+    await client.query(`
+      ALTER TABLE distribuidor
+      ADD COLUMN IF NOT EXISTS eliminado BOOLEAN DEFAULT false
+    `);
   } catch (err) {
     console.error('Error al verificar/crear la tabla distribuidor:', err);
     throw err;
@@ -72,6 +79,8 @@ export async function GET() {
           deuda
         FROM 
           distribuidor
+        WHERE
+          COALESCE(eliminado, false) = false
         ORDER BY 
           nombre
       `);
@@ -130,7 +139,7 @@ export async function POST(request) {
 
       // Verificar si ya existe un distribuidor con el mismo CUIT
       const existingDistribuidor = await client.query(
-        'SELECT id_distribuidor FROM distribuidor WHERE cuit = $1',
+        'SELECT id_distribuidor FROM distribuidor WHERE cuit = $1 AND COALESCE(eliminado, false) = false',
         [cuit.trim()]
       );
 
@@ -244,7 +253,7 @@ export async function PUT(request) {
 
       // Verificar si el distribuidor existe
       const existingDistribuidor = await client.query(
-        'SELECT id_distribuidor FROM distribuidor WHERE id_distribuidor = $1',
+        'SELECT id_distribuidor FROM distribuidor WHERE id_distribuidor = $1 AND COALESCE(eliminado, false) = false',
         [id_distribuidor]
       );
 
@@ -260,10 +269,44 @@ export async function PUT(request) {
       const values = [];
       let paramCount = 1;
 
+      // Whitelist de campos editables para evitar modificaciones no deseadas
+      const allowedFields = new Set([
+        'cuit',
+        'nombre',
+        'telefono',
+        'email',
+        'nombre_fantasia',
+        'calle',
+        'numero',
+        'codigo_postal',
+        'cbu',
+        'alias',
+        'deuda'
+      ]);
+
+      if (updateData.cuit) {
+        const existingCuit = await client.query(
+          `SELECT id_distribuidor
+           FROM distribuidor
+           WHERE cuit = $1
+             AND id_distribuidor != $2
+             AND COALESCE(eliminado, false) = false`,
+          [String(updateData.cuit).trim(), id_distribuidor]
+        );
+
+        if (existingCuit.rows.length > 0) {
+          return NextResponse.json(
+            { error: 'Ya existe otro distribuidor con este CUIT' },
+            { status: 400 }
+          );
+        }
+      }
+
       Object.keys(updateData).forEach(key => {
+        if (!allowedFields.has(key)) return;
         if (updateData[key] !== undefined && updateData[key] !== null) {
           fields.push(`${key} = $${paramCount}`);
-          values.push(updateData[key]);
+          values.push(key === 'cuit' ? String(updateData[key]).trim() : updateData[key]);
           paramCount++;
         }
       });

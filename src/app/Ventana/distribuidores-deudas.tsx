@@ -9,8 +9,8 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
-import { Users, AlertTriangle, Package } from 'lucide-react';
-import { useNuevoDistribuidor, ModalVenta } from '@/lib/modales';
+import { Users, AlertTriangle, Package, Trash2 } from 'lucide-react';
+import { useNuevoDistribuidor, ModalVenta, ModalConfirmacion } from '@/lib/modales';
 import Modal from '@/components/ui/modal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,9 @@ export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeud
     const [cargando, setCargando] = useState<boolean>(true);
     const [distribuidorSeleccionado, setDistribuidorSeleccionado] = useState<any>(null);
     const [isModalModificarOpen, setIsModalModificarOpen] = useState<boolean>(false);
+    const [isEliminarModalOpen, setIsEliminarModalOpen] = useState<boolean>(false);
+    const [pasoEliminacion, setPasoEliminacion] = useState<1 | 2>(1);
+    const [isEliminando, setIsEliminando] = useState<boolean>(false);
     const [distribuidorModificando, setDistribuidorModificando] = useState<any>({
         cuit: '',
         nombre: '',
@@ -127,6 +130,53 @@ export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeud
             console.error("Error al actualizar el distribuidor:", error);
             alert("Error al actualizar el distribuidor: " + (error instanceof Error ? error.message : 'Error desconocido'));
         }
+    };
+
+    const abrirModalEliminar = () => {
+        if (!distribuidorSeleccionado) return;
+        setPasoEliminacion(1);
+        setIsEliminarModalOpen(true);
+    };
+
+    const cerrarModalEliminar = () => {
+        if (isEliminando) return;
+        setIsEliminarModalOpen(false);
+        setPasoEliminacion(1);
+    };
+
+    const eliminarDistribuidor = async () => {
+        if (!distribuidorSeleccionado) return;
+
+        setIsEliminando(true);
+        try {
+            const response = await fetch(`/api/distribuidores/${distribuidorSeleccionado.id_distribuidor}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error al eliminar distribuidor');
+            }
+
+            await obtenerDistribuidores();
+            setDistribuidorSeleccionado(null);
+            setIsEliminarModalOpen(false);
+            setPasoEliminacion(1);
+            alert('Distribuidor eliminado exitosamente');
+        } catch (error) {
+            console.error('Error al eliminar distribuidor:', error);
+            alert('Error al eliminar distribuidor: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+        } finally {
+            setIsEliminando(false);
+        }
+    };
+
+    const confirmarEliminacion = async () => {
+        if (pasoEliminacion === 1) {
+            setPasoEliminacion(2);
+            return;
+        }
+        await eliminarDistribuidor();
     };
 
     const renderFormularioModificacion = () => (
@@ -310,6 +360,15 @@ export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeud
                             Modificar Distribuidor
                         </Button>
                         <Button
+                            variant="destructive"
+                            className="px-6 py-2"
+                            disabled={!distribuidorSeleccionado}
+                            onClick={abrirModalEliminar}
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Eliminar
+                        </Button>
+                        <Button
                             variant="outline"
                             className="px-6 py-2"
                         >
@@ -457,6 +516,25 @@ export default function DistribuidoresDeudas({ onTabChange }: DistribuidoresDeud
                     {renderFormularioModificacion()}
                 </div>
             </Modal>
+
+            <ModalConfirmacion
+                isOpen={isEliminarModalOpen}
+                onClose={cerrarModalEliminar}
+                onConfirm={confirmarEliminacion}
+                isLoading={isEliminando}
+                title={
+                    pasoEliminacion === 1
+                        ? 'Confirmar eliminación'
+                        : 'Reconfirmar eliminación'
+                }
+                message={
+                    pasoEliminacion === 1
+                        ? `Vas a eliminar a ${distribuidorSeleccionado?.nombre_fantasia || distribuidorSeleccionado?.nombre || 'este distribuidor'}. ¿Querés continuar?`
+                        : `Esta acción marcará al distribuidor como eliminado y dejará de aparecer en listados activos. ¿Confirmás eliminar a ${distribuidorSeleccionado?.nombre_fantasia || distribuidorSeleccionado?.nombre || 'este distribuidor'}?`
+                }
+                confirmText={pasoEliminacion === 1 ? 'Continuar' : 'Eliminar'}
+                cancelText="Cancelar"
+            />
         </VentanaShell>
     );
 }

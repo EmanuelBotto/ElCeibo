@@ -86,7 +86,11 @@ export async function PUT(request, { params }) {
 
       // Verificar si existe otro distribuidor con el mismo CUIT (excepto el actual)
       const existingDistribuidor = await client.query(
-        'SELECT id_distribuidor FROM distribuidor WHERE cuit = $1 AND id_distribuidor != $2',
+        `SELECT id_distribuidor
+         FROM distribuidor
+         WHERE cuit = $1
+           AND id_distribuidor != $2
+           AND COALESCE(eliminado, false) = false`,
         [cuit.trim(), id]
       );
 
@@ -160,6 +164,7 @@ export async function PUT(request, { params }) {
              alias = $10,
              deuda = $11
          WHERE id_distribuidor = $12
+           AND COALESCE(eliminado, false) = false
          RETURNING *`,
         [
           cuit.trim(),
@@ -206,7 +211,11 @@ export async function DELETE(request, { params }) {
     try {
       const { id } = await params;
       const result = await client.query(
-        'DELETE FROM distribuidor WHERE id_distribuidor = $1 RETURNING id_distribuidor',
+        `UPDATE distribuidor
+         SET eliminado = true
+         WHERE id_distribuidor = $1
+           AND COALESCE(eliminado, false) = false
+         RETURNING id_distribuidor`,
         [id]
       );
 
